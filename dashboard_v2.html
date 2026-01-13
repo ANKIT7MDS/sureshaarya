@@ -104,9 +104,12 @@ dd { margin:0; font-weight: 500; font-size: 1rem; color: #333; }
     // --- Data Configuration ---
     // User's Sheet ID: 1wyr0gt061UT5IVxT1JBYUEUJw1GYcBpzxDKEQmvcXXY
     const SHEET_ID = "1wyr0gt061UT5IVxT1JBYUEUJw1GYcBpzxDKEQmvcXXY";
-    const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv`;
+    
+    // Using Google Visualization API endpoint which is more reliable for shared sheets
+    const GVIZ_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv`;
+    
     // We use a CORS proxy to ensure fetching works from a static file environment
-    const PROXY_URL = "https://corsproxy.io/?" + encodeURIComponent(CSV_URL);
+    const PROXY_URL = "https://corsproxy.io/?" + encodeURIComponent(GVIZ_URL);
 
     // --- State ---
     let rawData = [];
@@ -175,7 +178,9 @@ dd { margin:0; font-weight: 500; font-size: 1rem; color: #333; }
     async function fetchData() {
         try {
             statusEl.textContent = "Fetching...";
-            let response = await fetch(CSV_URL);
+            // Try direct fetch first
+            let response = await fetch(GVIZ_URL);
+            
             if (!response.ok) {
                 // Fallback to proxy if direct fetch fails (CORS)
                 console.log("Direct fetch failed, trying proxy...");
@@ -185,6 +190,12 @@ dd { margin:0; font-weight: 500; font-size: 1rem; color: #333; }
             if (!response.ok) throw new Error("Failed to fetch CSV");
             
             const text = await response.text();
+            
+            // Google sometimes returns HTML error pages with 200 OK via proxy
+            if(text.trim().startsWith("<!DOCTYPE html") || text.includes("404")) {
+                 throw new Error("Sheet Not Found or Access Denied");
+            }
+
             const rows = parseCSV(text);
             
             if (rows.length < 2) {
@@ -224,10 +235,15 @@ dd { margin:0; font-weight: 500; font-size: 1rem; color: #333; }
                 <div style="text-align:center; padding:40px; color:#d32f2f;">
                     <h2>⚠️ डेटा लोड नहीं हो सका</h2>
                     <p>${error.message}</p>
-                    <p style="margin-top:20px; font-size:0.9rem; color:#555;">
-                        सुझाव: सुनिश्चित करें कि Google Sheet में <b>"File > Share > Publish to web"</b> चालू है।
-                    </p>
-                    <a href="${CSV_URL}" target="_blank" class="btn">CSV लिंक चेक करें</a>
+                    <div style="margin-top:20px; text-align:left; display:inline-block; background:#fff; padding:20px; border:1px solid #ddd; border-radius:8px;">
+                        <strong>यह चेक करें:</strong>
+                        <ol>
+                            <li>अपनी Google Sheet खोलें।</li>
+                            <li><strong>File > Share > Publish to web</strong> पर क्लिक करें।</li>
+                            <li><strong>Link</strong> टैब में <strong>'Entire Document'</strong> और <strong>'Comma-separated values (.csv)'</strong> चुनें।</li>
+                            <li><strong>Publish</strong> बटन दबाएं।</li>
+                        </ol>
+                    </div>
                 </div>
             `;
             statusEl.textContent = "Error";
