@@ -644,7 +644,7 @@
                 const limit = Math.min(photoCount, maxPhotos);
                 for(let i=0; i<limit; i++) {
                     const pid = item.photos[i];
-                    // FIX: Direct Google Link for View (No Proxy) - Fast & Reliable
+                    // Standard Google Drive Thumbnail Link (works for display)
                     const url = `https://drive.google.com/thumbnail?id=${pid}&sz=w1000`; 
                     
                     let overlay = '';
@@ -652,10 +652,11 @@
                         overlay = `<div class="more-overlay">+${photoCount - 3}</div>`;
                     }
                     
-                    // No crossorigin needed for display.
+                    // No crossorigin needed for standard display (browsers handle img tags fine usually)
+                    // But for screenshots/canvas, we will swap this src with Base64 later on demand.
                     photosHtml += `
                     <div class="photo-card" onclick="openLightbox('${url}', '${item.event.replace(/'/g, "")}')">
-                        <img src="${url}" referrerpolicy="no-referrer" onerror="this.src='https://placehold.co/400x300?text=Error'">
+                        <img src="${url}" crossorigin="anonymous" onerror="this.src='https://placehold.co/400x300?text=Error'">
                         ${overlay}
                     </div>`;
                 }
@@ -711,7 +712,7 @@
             div.onclick = () => { switchView('slide'); showSlide(index); };
             
             div.innerHTML = `
-                <img src="${thumb}" class="grid-img" loading="lazy" referrerpolicy="no-referrer" onerror="this.src='https://placehold.co/400x300?text=Error'">
+                <img src="${thumb}" class="grid-img" loading="lazy" crossorigin="anonymous" onerror="this.src='https://placehold.co/400x300?text=Error'">
                 <div class="grid-info">
                     <div class="grid-title">${item.event}</div>
                     <div class="grid-meta">
@@ -815,19 +816,24 @@
     }
 
     // --- HELPER: Fetch Base64 Image (Robust Proxy) ---
-    async function getBase64Image(imgUrl) {
-        // Use a Proxy that handles CORS and binary data correctly
-        const proxyUrl = `https://wsrv.nl/?url=${encodeURIComponent(imgUrl)}&output=jpg`;
+    // THIS IS THE KEY FIX: Using wsrv.nl to get a CORS-safe image via fetch
+    async function getBase64Image(googleDriveId) {
+        // Construct standard thumbnail URL
+        const originalUrl = `https://drive.google.com/thumbnail?id=${googleDriveId}&sz=w800`;
+        // Pass it through wsrv.nl proxy which adds correct CORS headers
+        const proxyUrl = `https://wsrv.nl/?url=${encodeURIComponent(originalUrl)}&output=jpg`;
+        
         try {
             const res = await fetch(proxyUrl);
+            if (!res.ok) throw new Error('Fetch failed');
             const blob = await res.blob();
             return new Promise((resolve) => {
                 const reader = new FileReader();
-                reader.onloadend = () => resolve(reader.result);
+                reader.onloadend = () => resolve(reader.result); // Returns data:image/jpeg;base64,...
                 reader.readAsDataURL(blob);
             });
         } catch (err) {
-            console.error("Image Fetch Error:", err);
+            console.error("Image Fetch Error for ID " + googleDriveId, err);
             return null; // Return null if fails
         }
     }
@@ -837,7 +843,7 @@
         if (filteredData.length === 0) return;
         const btn = document.getElementById('download-main-btn');
         const originalText = btn.innerHTML;
-        btn.innerHTML = '⏳ Generating PDF...';
+        btn.innerHTML = '⏳ Processing Images...';
         btn.disabled = true;
         
         // 1. Create a CLEAN container off-screen
@@ -858,9 +864,8 @@
             const max = Math.min(item.photos.length, 4);
             
             for(let i=0; i<max; i++){
-                const targetUrl = `https://drive.google.com/thumbnail?id=${item.photos[i]}&sz=w800`;
-                // Pre-fetch image to Base64 to avoid PDF generation race conditions
-                const base64Img = await getBase64Image(targetUrl);
+                // Pre-fetch image to Base64 to avoid PDF generation race conditions & CORS issues
+                const base64Img = await getBase64Image(item.photos[i]);
                 
                 if (base64Img) {
                     imgs += `
@@ -918,6 +923,8 @@
         document.body.appendChild(container);
         
         // 3. Configure HTML2PDF
+        btn.innerHTML = '⏳ Generating PDF...';
+        
         const opt = {
             margin:       0,
             filename:     'Karyakram_Slides_Hindi.pdf',
@@ -926,7 +933,7 @@
                 scale: 1.5, 
                 scrollY: 0,
                 backgroundColor: '#0b0c10', // Dark background matching theme
-                allowTaint: true
+                allowTaint: true // Important: Since we have data: URIs now, this is safer
             },
             jsPDF:        { unit: 'px', format: [1123, 794], orientation: 'landscape' } // A4 Landscape
         };
@@ -965,7 +972,7 @@
                 const colorText = 'c5c6c7';
 
                 // Title
-                slide.addText(item.event, { x: 0.5, y: 0.5, w: 5, fontSize: 28, bold: true, color: colorTitle });
+                slide.addText(item.event, { x: 0.5, y: 0.5, w: '90%', fontSize: 28, bold: true, color: colorTitle });
                 
                 // Info Details
                 slide.addText(`Date: ${item.date}`, { x: 0.5, y: 1.5, w: 4, fontSize: 16, color: colorText });
@@ -983,8 +990,8 @@
                 ];
 
                 for(let i=0; i<max; i++){
-                    const targetUrl = `https://drive.google.com/thumbnail?id=${item.photos[i]}&sz=w800`;
-                    const base64Img = await getBase64Image(targetUrl);
+                    // Using the same robust Base64 fetcher
+                    const base64Img = await getBase64Image(item.photos[i]);
                     if(base64Img) {
                         slide.addImage({ data: base64Img, x: positions[i].x, y: positions[i].y, w: positions[i].w, h: positions[i].h });
                     }
@@ -1003,7 +1010,7 @@
     }
 
     // --- NEW: Current Slide Image Download ---
-    function downloadCurrentImage() {
+    async function downloadCurrentImage() {
         const activeSlide = document.getElementById(`slide-${currentIndex}`);
         if (!activeSlide || activeSlide.classList.contains('hidden')) {
             alert("Please switch to Presentation View to download slide.");
@@ -1012,26 +1019,59 @@
         }
 
         const btn = document.getElementById('download-main-btn');
+        const originalText = btn.innerHTML;
         btn.innerHTML = '⏳ Saving Img...';
-        
-        // Temporarily ensure high opacity/visible for capture
-        html2canvas(activeSlide, { 
-            backgroundColor: '#0b0c10',
-            useCORS: true,
-            scale: 2
-        }).then(canvas => {
+        btn.disabled = true;
+
+        try {
+            // 1. Clone the slide to an off-screen container so we don't mess up the UI
+            const clone = activeSlide.cloneNode(true);
+            clone.style.position = 'fixed';
+            clone.style.top = '0';
+            clone.style.left = '0';
+            clone.style.width = '1200px'; // Fixed high-res width
+            clone.style.height = '800px'; // Fixed high-res height
+            clone.style.zIndex = '-9999';
+            clone.style.display = 'flex'; // Ensure flex layout works
+            clone.style.background = '#0b0c10'; // Ensure background color
+            document.body.appendChild(clone);
+
+            // 2. Replace all images in the clone with Base64 versions
+            const imgs = clone.querySelectorAll('img');
+            const currentItem = filteredData[currentIndex];
+            
+            // We loop through images and replace src with base64 fetched freshly
+            // This guarantees html2canvas can read them
+            for (let i = 0; i < imgs.length; i++) {
+                if (currentItem.photos[i]) {
+                    const b64 = await getBase64Image(currentItem.photos[i]);
+                    if (b64) imgs[i].src = b64;
+                }
+            }
+
+            // 3. Capture
+            const canvas = await html2canvas(clone, {
+                backgroundColor: '#0b0c10',
+                useCORS: true,
+                scale: 1.5 // Better quality
+            });
+
+            // 4. Download
             const link = document.createElement('a');
             link.download = `Event_${currentIndex + 1}.png`;
             link.href = canvas.toDataURL("image/png");
             link.click();
-            btn.innerHTML = originalText;
-        }).catch(err => {
+
+            // 5. Cleanup
+            document.body.removeChild(clone);
+
+        } catch (err) {
             console.error(err);
             alert("Image Capture Failed");
+        } finally {
             btn.innerHTML = originalText;
-        });
-        
-        const originalText = btn.innerHTML; // Store text to restore inside promise
+            btn.disabled = false;
+        }
     }
 
     // --- NEW: Screenshot ---
@@ -1039,10 +1079,15 @@
         const btn = document.getElementById('download-main-btn');
         const originalText = btn.innerHTML;
         btn.innerHTML = '📸 Capturing...';
-
+        
+        // Capture specific part or full body
         html2canvas(document.body, {
             backgroundColor: '#0b0c10',
-            useCORS: true
+            useCORS: true,
+            ignoreElements: (element) => {
+                // Ignore the download dropdown itself to clean up screenshot
+                return element.classList.contains('dropdown'); 
+            }
         }).then(canvas => {
             const link = document.createElement('a');
             link.download = `Dashboard_Screenshot.png`;
