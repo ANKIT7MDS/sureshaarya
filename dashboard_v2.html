@@ -11,17 +11,17 @@
             padding: 0;
             background-color: #1a1a1a;
             color: #fff;
-            overflow: hidden; /* Hide scrollbars for PPT feel */
+            overflow: hidden; 
         }
         .slide-container {
-            display: none; /* Hidden by default */
+            display: none; 
             height: 100vh;
             width: 100vw;
             display: flex;
             flex-direction: row;
         }
         .slide-container.active {
-            display: flex; /* Show active slide */
+            display: flex; 
         }
         
         /* Left Side: Info */
@@ -34,95 +34,146 @@
             flex-direction: column;
             justify-content: center;
             border-right: 5px solid #fff;
+            box-shadow: 5px 0 15px rgba(0,0,0,0.5);
+            z-index: 10;
         }
         .info-panel h1 {
-            font-size: 2.5em;
+            font-size: 2.2em;
             margin-bottom: 20px;
             border-bottom: 2px solid rgba(255,255,255,0.3);
-            padding-bottom: 10px;
+            padding-bottom: 15px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
         }
         .info-item {
-            margin-bottom: 15px;
-            font-size: 1.2em;
-            line-height: 1.6;
+            margin-bottom: 18px;
+            font-size: 1.1em;
+            line-height: 1.5;
+            background: rgba(255,255,255,0.1);
+            padding: 10px;
+            border-radius: 5px;
         }
         .label {
             font-weight: bold;
-            color: #ffd700; /* Gold color for labels */
+            color: #ffd700;
+            display: block;
+            margin-bottom: 5px;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
         /* Right Side: Photos */
         .photo-panel {
             width: 60%;
-            padding: 20px;
+            padding: 30px;
             box-sizing: border-box;
-            background-color: #000;
+            background-color: #222;
             display: flex;
             flex-wrap: wrap;
             align-content: flex-start;
-            overflow-y: auto; /* Allow scrolling for many photos */
-            gap: 15px;
+            overflow-y: auto; 
+            gap: 20px;
             justify-content: center;
-            align-items: center;
         }
-        .photo-thumbnail {
-            width: 200px;
-            height: 150px;
-            object-fit: cover;
-            border: 3px solid #fff;
+        
+        /* Image Card Styling */
+        .photo-card {
+            width: 280px;
+            height: 200px;
+            position: relative;
             border-radius: 8px;
-            transition: transform 0.3s;
+            overflow: hidden;
+            border: 3px solid #444;
+            background: #333;
+            transition: transform 0.3s, border-color 0.3s;
             cursor: pointer;
         }
-        .photo-thumbnail:hover {
-            transform: scale(1.1);
-            z-index: 10;
+        .photo-card:hover {
+            transform: scale(1.05);
+            border-color: #ffd700;
+            z-index: 5;
+        }
+        .photo-thumbnail {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        /* Fallback for broken images */
+        .img-error {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            width: 100%;
+            background: #333;
+            color: #aaa;
+            text-align: center;
+            padding: 10px;
+        }
+        .img-error span {
+            font-size: 40px;
+            margin-bottom: 10px;
+        }
+        .img-error p {
+            font-size: 14px;
+            margin: 0;
         }
 
         /* Navigation Buttons */
         .nav-buttons {
             position: fixed;
-            bottom: 20px;
-            right: 20px;
+            bottom: 30px;
+            right: 30px;
             z-index: 100;
+            display: flex;
+            gap: 15px;
         }
         button {
-            padding: 10px 20px;
+            padding: 12px 25px;
             font-size: 16px;
             cursor: pointer;
-            background-color: #ffd700;
+            background: linear-gradient(to bottom, #ffd700, #ffaa00);
             border: none;
-            border-radius: 5px;
+            border-radius: 30px;
             font-weight: bold;
             color: #000;
-            margin-left: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            transition: transform 0.1s;
         }
-        button:hover {
-            background-color: #e6c200;
+        button:active {
+            transform: translateY(2px);
         }
+        
         .slide-counter {
             position: fixed;
-            bottom: 25px;
-            left: 25px;
-            font-size: 18px;
-            background: rgba(0,0,0,0.5);
-            padding: 5px 10px;
-            border-radius: 5px;
+            bottom: 35px;
+            left: 35px;
+            font-size: 20px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            border: 1px solid #555;
+            z-index: 100;
         }
     </style>
 </head>
 <body>
 
+<!-- Slides Data Generated from Spreadsheet -->
 <div id="slides-wrapper"></div>
 
-<div class="slide-counter">Slide <span id="current-slide">1</span> / <span id="total-slides">0</span></div>
+<!-- Navigation Controls -->
+<div class="slide-counter"><span id="current-slide">1</span> / <span id="total-slides">0</span></div>
 <div class="nav-buttons">
-    <button onclick="prevSlide()">❮ Previous</button>
-    <button onclick="nextSlide()">Next ❯</button>
+    <button onclick="prevSlide()">❮ Pichla</button>
+    <button onclick="nextSlide()">Agla ❯</button>
 </div>
 
 <script>
-    // Data from your spreadsheet
+    // Data with Photo IDs
     const data = [
         {
             date: "12/7/2025",
@@ -135,17 +186,17 @@
         {
             date: "12/23/2025",
             district: "मंदसौर",
-            event: "भारतरत्न पूर्व प्रधानमंत्री श्रद्धेय अटल बिहारी वाजपेयी जी की स्मृति सम्मेलन",
+            event: "अटल बिहारी वाजपेयी जी की स्मृति सम्मेलन",
             attendance: "650",
-            guests: "राज्यसभा सांसद श्री बंशीलाल गुर्जर, भाजपा जिला अध्यक्ष श्री राजेश दीक्षित, अन्य...",
+            guests: "सांसद श्री बंशीलाल गुर्जर, श्री राजेश दीक्षित",
             photos: ["1W5ggKhcvGLQBgupYj8cd0yJDnDI_DItY", "1KNi9lFeZ8ZHpeilqnH-glXYwLhcHmue5", "1tGd7kbQqslLatTL61u24maIpveK6DXc6", "1rUKlTAwLJLXcBATiYHVcddhX53-BXdbF"]
         },
         {
             date: "12/23/2025",
             district: "मंदसौर",
-            event: "बाल वीर दिवस पर आयोजित प्रदर्शनी व दीप प्रज्वलन कार्यक्रम",
+            event: "बाल वीर दिवस प्रदर्शनी",
             attendance: "120",
-            guests: "सांसद श्री बंशीलाल जी गुर्जर, श्री राजेश जी दीक्षित, श्री यशपाल जी सिसौदिया...",
+            guests: "सांसद श्री बंशीलाल जी गुर्जर, श्री यशपाल जी सिसौदिया",
             photos: ["1yvv1t7wPFcGM54v5lOWFMHcFb6IVAtxD", "1T1RwilKMKpShYVf_OVA1ppUldnOpp1sC", "1rPmb_3ebRqZz685wiYYmFf6JF8-83NJC"]
         },
         {
@@ -169,7 +220,7 @@
             district: "रतलाम",
             event: "SIR मतदाता गहन पुनरीक्षण बैठक",
             attendance: "75",
-            guests: "श्री प्रदीप जी उपाध्याय, श्री जयवंत जी कोठारी, श्री मनोज जी शर्मा",
+            guests: "श्री प्रदीप जी उपाध्याय, श्री जयवंत जी कोठारी",
             photos: ["1HVoeCRaWf8dp4jm0NPnYWjyWZ69KYbOe", "1WkYCOlHWdxAUKGhu-xy_GddtQqcIHTUZ"]
         },
         {
@@ -177,7 +228,7 @@
             district: "रतलाम",
             event: "संगठनात्मक बैठक (प्रदेश अध्यक्ष)",
             attendance: "35",
-            guests: "भाजपा प्रदेश अध्यक्ष श्री हेमंत जी खंडेलवाल, मंत्री श्री चैतन्य जी कश्यप",
+            guests: "श्री हेमंत जी खंडेलवाल, मंत्री श्री चैतन्य जी कश्यप",
             photos: ["1BqN0Vc9YCU3ojZq7xXZuOq6Ifw-sgC1k", "1Aw0KIcq0X3bcYlVakDLS4Wu2gRmOMGAN", "1hOVP45aMxgOVc2InrFX6tjHmg33mOPHd"]
         },
         {
@@ -185,7 +236,7 @@
             district: "मंदसौर",
             event: "सांसद खेल महोत्सव कार्यक्रम",
             attendance: "310",
-            guests: "विधायक श्री हरदीप सिंह जी डंग, श्री राजेश जी दीक्षित",
+            guests: "विधायक श्री हरदीप सिंह जी डंग",
             photos: ["1u5En0O5tLBBKfygXb5JPpU1WwjB9OiTg", "10GnF2vzbYSjUGhHF8JfgY7z-nyFLHcc_", "13CnkU5qYLr3CItkz5jhOPD0zHdhPq2EH"]
         },
         {
@@ -193,18 +244,17 @@
             district: "उज्जैन",
             event: "संगठनात्मक बैठक (राष्ट्रीय महासचिव)",
             attendance: "120",
-            guests: "श्री सत्यनारायण जटिया जी, श्री Tarun Chugh जी, श्रीमती अल्का गुर्जर जी",
+            guests: "श्री सत्यनारायण जटिया जी, श्री Tarun Chugh जी",
             photos: ["1R_SuDGJb1FSnK1MXweA1v1fSv4ybKtOK", "18fbJkaJtqNNNu1_A-xmeCd2UlJXIy8Vs", "1eVDAesmAphbWQvr1dfLwRHJNHXfh9H1z"]
         },
         {
             date: "11/23/2025",
             district: "मंदसौर",
-            event: "SIR मतदाता सूची विशेष गहन पुनरीक्षण बैठक",
+            event: "SIR मतदाता सूची विशेष गहन पुनरीक्षण",
             attendance: "145",
-            guests: "विधायक श्री चंद्रसिंह जी सिसौदिया, श्री हरदीप जी डंग, श्री राजेश जी दीक्षित",
+            guests: "विधायक श्री चंद्रसिंह जी सिसौदिया, श्री हरदीप जी डंग",
             photos: ["18kM9sTVcGn3F_vWH4eTvdxDFPmZ178No", "1mEX5K-vt7OlowEhInh83nXQn89nshdWE", "1TFiBjhBk-N11m4m-EwmEBGjM210Goyfj"]
         }
-        // ... (Data truncated for brevity, but script handles logic for all)
     ];
 
     const wrapper = document.getElementById('slides-wrapper');
@@ -221,8 +271,25 @@
         // Prepare Images HTML
         let imagesHtml = '';
         item.photos.forEach(photoId => {
-            // Using Google Drive thumbnail link format
-            imagesHtml += `<img src="https://lh3.googleusercontent.com/d/${photoId}=s400" class="photo-thumbnail" alt="Event Photo" onclick="window.open('https://drive.google.com/open?id=${photoId}', '_blank')">`;
+            // New Link Format: drive.google.com/thumbnail
+            // We use referrerpolicy="no-referrer" to try and bypass some hotlinking checks
+            const imgSrc = `https://drive.google.com/thumbnail?id=${photoId}&sz=w600`;
+            const viewLink = `https://drive.google.com/file/d/${photoId}/view?usp=sharing`;
+            
+            imagesHtml += `
+            <div class="photo-card" onclick="window.open('${viewLink}', '_blank')">
+                <img 
+                    src="${imgSrc}" 
+                    class="photo-thumbnail" 
+                    alt="Event Photo" 
+                    referrerpolicy="no-referrer"
+                    onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+                >
+                <div class="img-error" style="display:none;">
+                    <span>📷</span>
+                    <p>Click to View</p>
+                </div>
+            </div>`;
         });
 
         slide.innerHTML = `
@@ -244,9 +311,7 @@
 
     // Navigation Logic
     function showSlide(index) {
-        // Hide all
         document.querySelectorAll('.slide-container').forEach(s => s.classList.remove('active'));
-        // Show current
         document.getElementById(`slide-${index}`).classList.add('active');
         currentSlideSpan.innerText = index + 1;
         currentIndex = index;
