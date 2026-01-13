@@ -3,187 +3,404 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>प्रवास कार्यक्रम – डैशबोर्ड (Google Sheet)</title>
-
+<title>प्रवास कार्यक्रम – डैशबोर्ड (Sheet Version)</title>
+<!-- Fix for Favicon 404 -->
 <link rel="icon" href="data:;base64,iVBORw0KGgo=">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;600;700&family=Hind:wght@400;600&display=swap" rel="stylesheet">
-
 <style>
-body{margin:0;font-family:"Noto Sans Devanagari","Hind",system-ui;background:#f7f8fb;color:#1b2941}
-.wrap{max-width:1200px;margin:auto;padding:16px}
-.topbar,.filters{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;margin-bottom:10px}
-.btn{border:1px solid #1f3b73;background:#eef3ff;color:#1f3b73;padding:8px 12px;border-radius:10px;font-weight:600;cursor:pointer}
-.btn:hover{background:#1f3b73;color:#fff}
-.page{background:#fff;border:1px solid #e8e9ee;border-radius:16px;box-shadow:0 6px 18px rgba(0,0,0,.05);padding:20px}
-.header{display:grid;grid-template-columns:80px 1fr 100px;gap:15px;align-items:center;border-bottom:4px solid #e77019;padding-bottom:15px;margin-bottom:20px}
-.logo{width:80px;height:80px;border-radius:50%;background:#ffe7d6;border:2px solid #e77019;display:flex;align-items:center;justify-content:center;font-weight:800}
-.content{display:grid;grid-template-columns:1fr 1.2fr;gap:20px}
-.card-info,.card-gallery{border:1px solid #e8e9ee;border-radius:14px;padding:20px}
-.section-title{margin:0 0 15px;border-left:5px solid #e77019;padding-left:10px}
-dl{margin:0;display:grid;grid-template-columns:140px 1fr;row-gap:12px}
-.highlight-val{color:#e77019;font-weight:700;font-size:1.2rem}
-.gallery-container{border:1px solid #eee;border-radius:8px;min-height:350px;overflow:hidden;position:relative}
-.drive-frame{width:100%;height:100%;border:0;position:absolute;top:0;left:0}
-.fallback-btn{display:inline-block;background:#e77019;color:#fff;padding:10px 22px;border-radius:6px;text-decoration:none;font-weight:700;margin-top:10px}
-@media(max-width:768px){.content{grid-template-columns:1fr}}
+/* --- Theme A CSS --- */
+body { margin:0; font-family:"Noto Sans Devanagari","Hind",system-ui,Arial,sans-serif; background:#f7f8fb; color:#1b2941; }
+.wrap { max-width:1200px; margin:0 auto; padding:16px; }
+
+/* Top Bar & Filters */
+.topbar, .filters, .extras { display:flex; flex-wrap:wrap; gap:8px; align-items:center; justify-content:space-between; margin-bottom: 10px; }
+.btn { border:1px solid #1f3b73; background:#eef3ff; color:#1f3b73; padding:8px 12px; border-radius:10px; cursor:pointer; font-weight:600; transition: all 0.2s; }
+.btn:hover { background: #1f3b73; color: white; }
+.btn:disabled { opacity:.5; cursor:default; background:#eef3ff; color:#1f3b73; }
+
+input, select, label { padding:8px 10px; border:1px solid #d6d9e0; border-radius:10px; background:#fff; font-family: inherit; }
+.search-box { flex-grow: 1; max-width: 300px; }
+
+/* Main Card (PPT Slide) */
+.page { background:#fff; border:1px solid #e8e9ee; border-radius:16px; box-shadow:0 6px 18px rgba(0,0,0,.05); padding:20px; min-height: 500px; }
+
+.header { display:grid; grid-template-columns:80px 1fr 100px; gap:15px; align-items:center; border-bottom:4px solid #e77019; padding-bottom:15px; margin-bottom: 20px; }
+.logo { width:80px; height:80px; border-radius:50%; background:radial-gradient(circle at 35% 30%, #fff, #ffe7d6); border:2px solid #e77019; display:flex; align-items:center; justify-content:center; color:#9a3e00; font-weight:800; font-size: 1.2rem; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+.title h1 { margin:0; color:#183566; font-size:24px; line-height: 1.2; }
+.subtitle { color:#5c6a86; margin-top: 5px; font-weight: 500; }
+.meta { justify-self:end; color:#5c6a86; font-weight:600; text-align: right; }
+
+.content { display:grid; grid-template-columns:1fr 1.2fr; gap:20px; }
+
+/* Left Side: Info */
+.card-info { background:#fbfbfc; border:1px solid #e8e9ee; border-radius:14px; padding:20px; }
+.section-title { margin:0 0 15px; color:#183566; border-left:5px solid #e77019; padding-left:10px; font-size: 1.1rem; }
+dl { margin:0; display:grid; grid-template-columns:140px 1fr; row-gap:12px; }
+dt { color:#5c6a86; font-weight: 600; font-size: 0.9rem; } 
+dd { margin:0; font-weight: 500; font-size: 1rem; color: #333; }
+.highlight-val { color: #e77019; font-weight: 700; font-size: 1.2rem; }
+
+/* Right Side: Drive Embed */
+.card-gallery { background:#fff; border:1px solid #e8e9ee; border-radius:14px; padding:10px; display: flex; flex-direction: column; }
+.gallery-container { flex-grow: 1; border-radius: 8px; overflow: hidden; border: 1px solid #eee; background: #fafafa url('https://ssl.gstatic.com/docs/doclist/images/drive_icon_128.png') no-repeat center center; background-size: 64px; position: relative; min-height: 350px; }
+.drive-frame { width: 100%; height: 100%; border: 0; position: absolute; top: 0; left: 0; z-index: 2; background: transparent; }
+.fallback-link { text-align: center; margin-top: 10px; font-size: 0.85rem; }
+.fallback-btn { display: inline-block; background: #e77019; color: white; padding: 12px 25px; border-radius: 5px; text-decoration: none; margin-top: 5px; font-size: 1rem; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: transform 0.1s; border: 2px solid #e77019; }
+.fallback-btn:hover { background: #fff; color: #e77019; transform: translateY(-2px); }
+
+/* Status Bar */
+.status-bar { font-size: 0.9rem; color: #666; margin-top: 5px; display: flex; gap: 15px; }
+
+/* Mobile */
+@media (max-width: 768px) {
+  .content { grid-template-columns: 1fr; }
+  .header { grid-template-columns: 60px 1fr; }
+  .meta { grid-column: 1 / -1; justify-self: start; margin-top: 5px; }
+  .logo { width: 60px; height: 60px; font-size: 1rem; }
+  .title h1 { font-size: 20px; }
+  .gallery-container { min-height: 300px; }
+  dl { grid-template-columns: 100px 1fr; }
+}
 </style>
 </head>
-
 <body>
+
 <div class="wrap">
-
-<div class="topbar">
-  <div>
-    <button class="btn" id="prev">◀︎ पिछला</button>
-    <button class="btn" id="next">अगला ▶︎</button>
-    <select id="jump"></select>
+  <!-- Controls -->
+  <div class="topbar">
+    <div>
+      <button class="btn" id="prev">◀︎ पिछला</button>
+      <button class="btn" id="next">अगला ▶︎</button>
+      <select id="jump"></select>
+    </div>
+    <div style="display: flex; gap: 10px; align-items: center;">
+      <input id="search" class="search-box" type="search" placeholder="🔍 खोजें (नाम/स्थान/अतिथि)" />
+      <span id="status" style="font-weight: 600; color: #1f3b73;">Connecting...</span>
+    </div>
   </div>
-  <input id="search" type="search" placeholder="🔍 खोजें (नाम/स्थान/अतिथि)">
-</div>
 
-<div class="filters">
-  <select id="fDistrict"><option value="">📍 सभी जिले</option></select>
-  <span id="status">Loading...</span>
-</div>
+  <!-- Filters -->
+  <div class="filters">
+    <div>
+      <select id="fDistrict"><option value="">📍 सभी जिले</option></select>
+      <input type="date" id="fDate">
+    </div>
+    <div class="status-bar">
+        <span id="total-visits-display">कुल विजिट: 0</span>
+        <span id="total-attendance-display">कुल उपस्थिति: 0</span>
+    </div>
+  </div>
 
-<div id="page" class="page">
-  <div style="text-align:center;padding:50px">⏳ डेटा लोड हो रहा है...</div>
-</div>
-
+  <!-- Main Slide Content -->
+  <div id="page" class="page">
+    <div style="display: flex; justify-content: center; align-items: center; height: 400px; color: #666;">
+        <div>
+            <h2>⏳ डेटा लोड हो रहा है...</h2>
+            <p>कृपया प्रतीक्षा करें (Google Sheet से कनेक्ट हो रहा है)</p>
+        </div>
+    </div>
+  </div>
 </div>
 
 <script>
-/* ================= CONFIG ================= */
+    // --- Data Configuration ---
+    // User's Sheet ID: 1wyr0gt061UT5IVxT1JBYUEUJw1GYcBpzxDKEQmvcXXY
+    const SHEET_ID = "1wyr0gt061UT5IVxT1JBYUEUJw1GYcBpzxDKEQmvcXXY";
+    
+    // Using Google Visualization API endpoint which is more reliable for shared sheets
+    const GVIZ_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv`;
+    
+    // We use a CORS proxy to ensure fetching works from a static file environment
+    const PROXY_URL = "https://corsproxy.io/?" + encodeURIComponent(GVIZ_URL);
 
-const SHEET_ID = "1wyr0gt061UT5IVxT1JBYUEUJw1GYcBpzxDKEQmvcXXY";
-const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv`;
-const PROXY_URL = "https://corsproxy.io/?" + encodeURIComponent(SHEET_URL);
+    // --- State ---
+    let rawData = [];
+    let filtered = [];
+    let idx = 0;
 
-/* ================= STATE ================= */
+    // --- Elements ---
+    const pageEl = document.getElementById('page');
+    const statusEl = document.getElementById('status');
+    const prevBtn = document.getElementById('prev');
+    const nextBtn = document.getElementById('next');
+    const jumpSel = document.getElementById('jump');
+    const searchInput = document.getElementById('search');
+    const fDistrict = document.getElementById('fDistrict');
+    const fDate = document.getElementById('fDate');
+    const totalVisitsEl = document.getElementById('total-visits-display');
+    const totalAttEl = document.getElementById('total-attendance-display');
 
-let rawData=[], filtered=[], idx=0;
+    // --- CSV Parser ---
+    function parseCSV(text) {
+        const rows = [];
+        let currentRow = [];
+        let currentCell = "";
+        let inQuotes = false;
+        
+        for (let i = 0; i < text.length; i++) {
+            const char = text[i];
+            const nextChar = text[i + 1];
+            
+            if (inQuotes) {
+                if (char === '"' && nextChar === '"') {
+                    currentCell += '"';
+                    i++;
+                } else if (char === '"') {
+                    inQuotes = false;
+                } else {
+                    currentCell += char;
+                }
+            } else {
+                if (char === '"') {
+                    inQuotes = true;
+                } else if (char === ',') {
+                    currentRow.push(currentCell.trim());
+                    currentCell = "";
+                } else if (char === '\n' || char === '\r') {
+                    currentRow.push(currentCell.trim());
+                    if (currentRow.length > 0 && (currentRow.length > 1 || currentRow[0] !== "")) {
+                        rows.push(currentRow);
+                    }
+                    currentRow = [];
+                    currentCell = "";
+                    if (char === '\r' && nextChar === '\n') i++;
+                } else {
+                    currentCell += char;
+                }
+            }
+        }
+        if (currentCell || currentRow.length > 0) {
+            currentRow.push(currentCell.trim());
+            rows.push(currentRow);
+        }
+        return rows;
+    }
 
-/* ================= ELEMENTS ================= */
+    // --- Data Fetching & Mapping ---
+    async function fetchData() {
+        try {
+            statusEl.textContent = "Fetching...";
+            // Try direct fetch first
+            let response = await fetch(GVIZ_URL);
+            
+            if (!response.ok) {
+                // Fallback to proxy if direct fetch fails (CORS)
+                console.log("Direct fetch failed, trying proxy...");
+                response = await fetch(PROXY_URL);
+            }
+            
+            if (!response.ok) throw new Error("Failed to fetch CSV");
+            
+            const text = await response.text();
+            
+            // Google sometimes returns HTML error pages with 200 OK via proxy
+            if(text.trim().startsWith("<!DOCTYPE html") || text.includes("404")) {
+                 throw new Error("Sheet Not Found or Access Denied");
+            }
 
-const pageEl=document.getElementById("page");
-const prevBtn=document.getElementById("prev");
-const nextBtn=document.getElementById("next");
-const jumpSel=document.getElementById("jump");
-const search=document.getElementById("search");
-const fDistrict=document.getElementById("fDistrict");
-const statusEl=document.getElementById("status");
+            const rows = parseCSV(text);
+            
+            if (rows.length < 2) {
+                throw new Error("Sheet is empty or has no data rows");
+            }
 
-/* ================= HELPERS ================= */
+            // Map Headers to Keys
+            // Expected headers roughly: Date, District, Title, Count, Guest, Link
+            // We will look for keywords in the header row (row 0)
+            const headers = rows[0].map(h => h.toLowerCase());
+            const dataRows = rows.slice(1);
 
-function getDriveId(url){
-  if(!url) return null;
-  const m=url.match(/[-\w]{25,}/);
-  return m?m[0]:null;
-}
+            // Helper to find index by keywords
+            const findIdx = (keywords) => headers.findIndex(h => keywords.some(k => h.includes(k)));
 
-function parseCSV(text){
-  return text.trim().split("\n").map(r=>r.split(","));
-}
+            const idxDate = findIdx(['date', 'दिनांक', 'तारीख', 'कब']);
+            const idxDist = findIdx(['district', 'place', 'location', 'जिला', 'स्थान', 'कहा', 'कहाँ']);
+            const idxTitle = findIdx(['title', 'event', 'program', 'name', 'कार्यक्रम', 'विषय']);
+            const idxCount = findIdx(['count', 'attendance', 'number', 'संख्या', 'उपस्थिति', 'upasthiti']);
+            const idxGuest = findIdx(['guest', 'chief', 'vip', 'अतिथि', 'वक्ता', 'kon']);
+            const idxLink = findIdx(['link', 'url', 'photo', 'drive', 'लिंक', 'फोटो']);
 
-/* ================= FETCH DATA ================= */
+            rawData = dataRows.map(row => ({
+                date: row[idxDate] || row[0] || "",
+                district: row[idxDist] || row[1] || "",
+                title: row[idxTitle] || row[2] || "कार्यक्रम",
+                count: row[idxCount] || row[3] || "0",
+                guests: row[idxGuest] || row[4] || "-",
+                link: row[idxLink] || row[5] || ""
+            })).filter(item => item.title && item.date); // Basic validation
 
-async function fetchData(){
-  try{
-    let res=await fetch(SHEET_URL);
-    if(!res.ok) res=await fetch(PROXY_URL);
-    const txt=await res.text();
-    const rows=parseCSV(txt);
+            initUI();
+            
+        } catch (error) {
+            console.error(error);
+            pageEl.innerHTML = `
+                <div style="text-align:center; padding:40px; color:#d32f2f;">
+                    <h2>⚠️ डेटा लोड नहीं हो सका</h2>
+                    <p>${error.message}</p>
+                    <div style="margin-top:20px; text-align:left; display:inline-block; background:#fff; padding:20px; border:1px solid #ddd; border-radius:8px;">
+                        <strong>यह चेक करें:</strong>
+                        <ol>
+                            <li>अपनी Google Sheet खोलें।</li>
+                            <li><strong>File > Share > Publish to web</strong> पर क्लिक करें।</li>
+                            <li><strong>Link</strong> टैब में <strong>'Entire Document'</strong> और <strong>'Comma-separated values (.csv)'</strong> चुनें।</li>
+                            <li><strong>Publish</strong> बटन दबाएं।</li>
+                        </ol>
+                    </div>
+                </div>
+            `;
+            statusEl.textContent = "Error";
+        }
+    }
 
-    rows.slice(1).forEach(r=>{
-      rawData.push({
-        date:r[0]||"",
-        district:r[1]||"",
-        title:r[2]||"कार्यक्रम",
-        count:r[3]||"0",
-        guests:r[4]||"-",
-        link:r[5]||""
-      });
-    });
+    // --- ROBUST ID EXTRACTOR (CLEANER) ---
+    function getDriveId(rawUrl) {
+        if (!rawUrl) return null;
+        
+        // This regex looks for specific Drive ID patterns (alphanumeric + underscore/dash, usually 25+ chars)
+        // It ignores everything else around it.
+        const idRegex = /[-\w]{25,}/;
+        const match = rawUrl.match(idRegex);
+        
+        if (match && match[0]) {
+            // Filter out common false positives if any (like "drive.google.com" matched as ID)
+            if (match[0].includes('google') || match[0].includes('http')) return null;
+            return match[0];
+        }
+        return null;
+    }
 
-    initUI();
-  }catch(e){
-    pageEl.innerHTML="<h2 style='color:red'>डेटा लोड नहीं हो सका</h2>";
-    statusEl.textContent="Error";
-  }
-}
+    // --- Render ---
+    function renderCurrent() {
+        if (!filtered.length) {
+            pageEl.innerHTML = `<div style="text-align:center; padding:50px; color:#666;">कोई रिकॉर्ड नहीं मिला।</div>`;
+            statusEl.textContent = "0 / 0";
+            prevBtn.disabled = nextBtn.disabled = true;
+            return;
+        }
 
-/* ================= RENDER ================= */
+        const item = filtered[idx];
+        const driveId = getDriveId(item.link);
+        const embedUrl = driveId ? `https://drive.google.com/embeddedfolderview?id=${driveId}#grid` : "";
+        
+        // Extract a clean link for the fallback button (grab the first http part)
+        const cleanLinkMatch = item.link.match(/https?:\/\/[^\s,]+/);
+        const cleanLink = cleanLinkMatch ? cleanLinkMatch[0] : item.link;
 
-function render(){
-  if(!filtered.length){
-    pageEl.innerHTML="कोई रिकॉर्ड नहीं मिला";
-    return;
-  }
+        pageEl.innerHTML = `
+            <div class="header">
+                <div class="logo">Visit</div>
+                <div class="title">
+                    <h1>${item.title}</h1>
+                    <div class="subtitle">📍 ${item.district} • 📅 ${item.date}</div>
+                </div>
+                <div class="meta">
+                    ${idx + 1} / ${filtered.length}
+                </div>
+            </div>
 
-  const it=filtered[idx];
-  const id=getDriveId(it.link);
-  const embed=id?`https://drive.google.com/drive/folders/${id}?usp=sharing`:"";
+            <div class="content">
+                <div class="card-info">
+                    <h3 class="section-title">कार्यक्रम विवरण</h3>
+                    <dl>
+                        <dt>तारीख</dt>
+                        <dd>${item.date}</dd>
 
-  pageEl.innerHTML=`
-  <div class="header">
-    <div class="logo">Visit</div>
-    <div>
-      <h2>${it.title}</h2>
-      📍 ${it.district} • 📅 ${it.date}
-    </div>
-    <div>${idx+1}/${filtered.length}</div>
-  </div>
+                        <dt>स्थान/जिला</dt>
+                        <dd>${item.district}</dd>
 
-  <div class="content">
-    <div class="card-info">
-      <h3 class="section-title">विवरण</h3>
-      <dl>
-        <dt>उपस्थिति</dt><dd class="highlight-val">${it.count}</dd>
-        <dt>अतिथि</dt><dd>${it.guests}</dd>
-      </dl>
-    </div>
+                        <dt>उपस्थिति</dt>
+                        <dd class="highlight-val">${item.count}</dd>
 
-    <div class="card-gallery">
-      <h3 class="section-title">फोटो एल्बम</h3>
-      <div class="gallery-container">
-        ${id?`<iframe class="drive-frame" src="${embed}" loading="lazy"></iframe>`:"Preview Not Available"}
-      </div>
-      <a class="fallback-btn" target="_blank" href="${it.link}">📂 Open Gallery</a>
-    </div>
-  </div>`;
-}
+                        <dt>मुख्य अतिथि</dt>
+                        <dd>${item.guests}</dd>
+                        
+                        <dt>लिंक</dt>
+                        <dd><a href="${cleanLink}" target="_blank" style="color:#e77019; text-decoration:none; font-size:0.9rem;">Drive Link ↗</a></dd>
+                    </dl>
+                </div>
 
-/* ================= LOGIC ================= */
+                <div class="card-gallery">
+                    <h3 class="section-title" style="border-left-color: #1f3b73; margin-bottom:10px;">फोटो एल्बम</h3>
+                    <div class="gallery-container">
+                        ${driveId ? 
+                          `<iframe src="${embedUrl}" class="drive-frame" title="Photo Gallery" allowfullscreen="true" referrerpolicy="no-referrer"></iframe>` 
+                          : 
+                          `<div style="display:flex; justify-content:center; align-items:center; height:100%; color:#888; text-align:center;">
+                             <p>Preview Not Available<br><small>Click button below</small></p>
+                           </div>`
+                        }
+                    </div>
+                    <div class="fallback-link">
+                        <a href="${cleanLink}" target="_blank" class="fallback-btn">📂 ओपन गैलरी (Open Folder)</a>
+                        <div style="margin-top:10px; color:#666; font-size:0.8rem;">(अगर ऊपर खाली बॉक्स दिखे, तो बटन दबाएं)</div>
+                    </div>
+                </div>
+            </div>
+        `;
 
-function apply(){
-  const s=search.value.toLowerCase();
-  filtered=rawData.filter(i=>(i.title+i.district+i.guests).toLowerCase().includes(s));
+        // Update Controls
+        prevBtn.disabled = (idx === 0);
+        nextBtn.disabled = (idx >= filtered.length - 1);
+        statusEl.textContent = `रिकॉर्ड: ${idx + 1} / ${filtered.length}`;
+        jumpSel.value = idx;
+    }
 
-  jumpSel.innerHTML="";
-  filtered.forEach((_,i)=>jumpSel.add(new Option(i+1,i)));
+    // --- Logic ---
+    function applyFilters() {
+        const sVal = searchInput.value.toLowerCase();
+        const dVal = fDistrict.value;
+        const dateVal = fDate.value; 
 
-  idx=0;
-  render();
-}
+        filtered = rawData.filter(item => {
+            const textMatch = (item.title + ' ' + item.guests + ' ' + item.district).toLowerCase().includes(sVal);
+            const districtMatch = !dVal || item.district === dVal;
+            // Date logic can be added here if needed
+            return textMatch && districtMatch;
+        });
 
-function initUI(){
-  [...new Set(rawData.map(i=>i.district))].filter(Boolean)
-    .forEach(d=>fDistrict.add(new Option(d,d)));
+        // Update Stats
+        let totalAtt = 0;
+        filtered.forEach(i => totalAtt += (parseInt(i.count) || 0));
+        totalVisitsEl.textContent = `कुल विजिट: ${filtered.length}`;
+        totalAttEl.textContent = `कुल उपस्थिति: ${totalAtt}`;
 
-  apply();
-}
+        // Populate Jump
+        jumpSel.innerHTML = "";
+        filtered.forEach((item, i) => {
+            const opt = document.createElement("option");
+            opt.value = i;
+            opt.textContent = `${i+1}. ${item.title.substring(0, 40)}...`;
+            jumpSel.appendChild(opt);
+        });
 
-/* ================= EVENTS ================= */
+        idx = 0;
+        renderCurrent();
+    }
 
-prevBtn.onclick=()=>{if(idx>0){idx--;render()}};
-nextBtn.onclick=()=>{if(idx<filtered.length-1){idx++;render()}};
-jumpSel.onchange=e=>{idx=+e.target.value;render()};
-search.oninput=apply;
-fDistrict.onchange=apply;
+    function initUI() {
+        // Populate District Filter
+        const districts = [...new Set(rawData.map(i => i.district))].filter(Boolean).sort();
+        fDistrict.innerHTML = '<option value="">📍 सभी जिले</option>';
+        districts.forEach(d => {
+            const opt = document.createElement("option");
+            opt.value = d;
+            opt.textContent = d;
+            fDistrict.appendChild(opt);
+        });
 
-/* ================= INIT ================= */
+        applyFilters();
+    }
 
-fetchData();
+    // --- Events ---
+    prevBtn.onclick = () => { if(idx > 0) { idx--; renderCurrent(); jumpSel.value = idx; } };
+    nextBtn.onclick = () => { if(idx < filtered.length - 1) { idx++; renderCurrent(); jumpSel.value = idx; } };
+    jumpSel.onchange = (e) => { idx = parseInt(e.target.value); renderCurrent(); };
+    searchInput.oninput = applyFilters;
+    fDistrict.onchange = applyFilters;
+
+    // Start Fetch
+    fetchData();
+
 </script>
 </body>
 </html>
