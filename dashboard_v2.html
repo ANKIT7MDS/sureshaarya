@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>प्रवास कार्यक्रम – डैशबोर्ड (Sorted)</title>
+<title>प्रवास कार्यक्रम – डैशबोर्ड (Live)</title>
 <!-- Fix for Favicon 404 -->
 <link rel="icon" href="data:;base64,iVBORw0KGgo=">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;600;700&family=Hind:wght@400;600&display=swap" rel="stylesheet">
@@ -162,7 +162,8 @@ dd { margin:0; font-weight: 500; font-size: 1rem; color: #333; }
   <!-- Filters -->
   <div class="filters">
     <div>
-      <select id="fDistrict"><option value="">📍 सभी जिले</option></select>
+      <!-- Explicit 'All' Option added -->
+      <select id="fDistrict"><option value="">📍 सभी (All)</option></select>
       <input type="date" id="fDate">
     </div>
     <div class="status-bar">
@@ -209,19 +210,16 @@ dd { margin:0; font-weight: 500; font-size: 1rem; color: #333; }
     const printViewEl = document.getElementById('print-view');
 
     // --- Date Parser Helper ---
-    // Converts d/m/yyyy to JS Date object
     function parseDate(dateStr) {
-        if (!dateStr) return new Date(0); // If empty, treat as very old
-        // Clean the string and split
+        if (!dateStr) return new Date(0);
         const parts = dateStr.trim().split(/[/\-\.]/);
         if (parts.length === 3) {
-            // Assuming d/m/yyyy which is common in India
             const day = parseInt(parts[0], 10);
-            const month = parseInt(parts[1], 10) - 1; // JS months are 0-11
+            const month = parseInt(parts[1], 10) - 1; 
             const year = parseInt(parts[2], 10);
             return new Date(year, month, day);
         }
-        return new Date(dateStr); // Fallback for other formats
+        return new Date(dateStr);
     }
 
     // --- CSV Parser ---
@@ -288,11 +286,10 @@ dd { margin:0; font-weight: 500; font-size: 1rem; color: #333; }
                 link: row[idxLink] || row[5] || ""
             })).filter(item => item.title && item.date);
 
-            // SORTING LOGIC: Sort by Date Descending (Newest First)
             rawData.sort((a, b) => {
                 const dateA = parseDate(a.date);
                 const dateB = parseDate(b.date);
-                return dateB - dateA; // Descending
+                return dateB - dateA;
             });
 
             initUI();
@@ -305,12 +302,16 @@ dd { margin:0; font-weight: 500; font-size: 1rem; color: #333; }
         }
     }
 
-    // --- ID EXTRACTOR ---
+    // --- IMPROVED ID EXTRACTOR ---
     function getDriveId(rawUrl) {
         if (!rawUrl) return null;
-        const idRegex = /[-\w]{25,}/;
-        const match = rawUrl.match(idRegex);
-        if (match && match[0] && !match[0].includes('google') && !match[0].includes('http')) return match[0];
+        // Tries to grab ID from /d/ID, id=ID, or folders/ID
+        // More robust splitting logic
+        const parts = rawUrl.split(/\/d\/|id=|folders\//);
+        if (parts.length > 1) {
+            // Take the part after the split and clean it (remove params like /view, &usp=, etc.)
+            return parts[1].split(/[/?&]/)[0];
+        }
         return null;
     }
 
@@ -326,10 +327,15 @@ dd { margin:0; font-weight: 500; font-size: 1rem; color: #333; }
         const firstLink = links[0] || "";
         const driveId = getDriveId(firstLink);
         
+        // Setup URLs
         const folderUrl = driveId ? `https://drive.google.com/embeddedfolderview?id=${driveId}#grid` : "";
         const imgUrl = driveId ? `https://drive.google.com/thumbnail?id=${driveId}&sz=w800` : "";
         const cleanLink = firstLink.match(/https?:\/\/[^\s,]+/)?.[0] || firstLink;
 
+        // Smart Check: If link says 'folder' or 'open?id', assume folder (iframe)
+        // If link says 'file/d/' or ends in jpg/png, assume file (img)
+        let isLikelyFolder = firstLink.includes('folder') || firstLink.includes('open?id');
+        
         pageEl.innerHTML = `
             <div class="header">
                 <div class="logo">Visit</div>
@@ -355,20 +361,42 @@ dd { margin:0; font-weight: 500; font-size: 1rem; color: #333; }
                 <div class="card-gallery">
                     <h3 class="section-title" style="border-left-color: #1f3b73; margin-bottom:10px;">फोटो एल्बम</h3>
                     <div class="gallery-container">
-                        <img id="directImg" src="${imgUrl}" class="direct-img" alt="View" onerror="this.style.display='none'; document.getElementById('folderFrame').classList.add('active');">
+                        <!-- Direct Image -->
+                        <img id="directImg" src="${imgUrl}" class="direct-img" alt="View" 
+                             onerror="this.style.display='none'; document.getElementById('folderFrame').classList.add('active');">
+                        
+                        <!-- Folder Iframe -->
                         <iframe id="folderFrame" src="${folderUrl}" class="drive-frame" title="Photo Gallery" allowfullscreen="true" referrerpolicy="no-referrer"></iframe>
+                        
+                        <!-- Multi-link Grid -->
                         ${links.length > 1 ? `<div class="multi-photo-grid active">${links.map(l => { const did=getDriveId(l); return did?`<img src="https://drive.google.com/thumbnail?id=${did}&sz=w400" class="grid-img" onclick="window.open('${l}','_blank')">`:''; }).join('')}</div>` : ''}
+                        
+                        <!-- Placeholder -->
                         <div class="placeholder-content"><span class="placeholder-icon">📁</span><p>लोड हो रहा है...</p></div>
+                    </div>
+                    
+                    <div class="fallback-link">
+                        <a href="${cleanLink}" target="_blank" class="fallback-btn">📂 फोटो गैलरी खोलें (Open Gallery)</a>
                     </div>
                 </div>
             </div>
         `;
         
+        // Logic to switch view
+        const imgEl = document.getElementById('directImg');
+        const frameEl = document.getElementById('folderFrame');
+
         if (links.length > 1) {
-            document.getElementById('directImg').style.display = 'none';
-            document.getElementById('folderFrame').classList.remove('active');
+            // Grid mode for multiple links
+            imgEl.style.display = 'none';
+            frameEl.classList.remove('active');
+        } else if (isLikelyFolder) {
+            // Force Iframe for folders immediately (don't wait for img error)
+            imgEl.style.display = 'none';
+            frameEl.classList.add('active');
         } else {
-            document.getElementById('directImg').style.display = 'block';
+            // Try Image first
+            imgEl.style.display = 'block';
         }
 
         prevBtn.disabled = (idx === 0);
@@ -379,7 +407,6 @@ dd { margin:0; font-weight: 500; font-size: 1rem; color: #333; }
 
     // --- PRINT ALL FUNCTION ---
     window.printAllData = function() {
-        // Generate print-friendly HTML for ALL items
         let printHTML = `<div style="text-align:center; margin-bottom:30px;"><h1>प्रवास कार्यक्रम रिपोर्ट</h1><p>कुल कार्यक्रम: ${filtered.length}</p></div>`;
         
         filtered.forEach((item, i) => {
@@ -441,7 +468,8 @@ dd { margin:0; font-weight: 500; font-size: 1rem; color: #333; }
 
     function initUI() {
         const districts = [...new Set(rawData.map(i => i.district))].filter(Boolean).sort();
-        fDistrict.innerHTML = '<option value="">📍 सभी जिले</option>';
+        // Add "All" option explicitly
+        fDistrict.innerHTML = '<option value="">📍 सभी (All)</option>';
         districts.forEach(d => {
             const opt = document.createElement("option");
             opt.value = d;
