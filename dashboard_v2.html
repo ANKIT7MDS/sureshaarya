@@ -75,23 +75,6 @@ dd { margin:0; font-weight: 500; font-size: 1rem; color: #333; }
 }
 .placeholder-icon { font-size: 40px; margin-bottom: 10px; display: block; opacity: 0.5; }
 
-.fallback-link { text-align: center; margin-top: 10px; font-size: 0.85rem; }
-.fallback-btn { 
-    display: inline-block; 
-    background: #e77019; 
-    color: white; 
-    padding: 12px 25px; 
-    border-radius: 5px; 
-    text-decoration: none; 
-    margin-top: 5px; 
-    font-size: 1rem; 
-    font-weight: bold; 
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
-    transition: transform 0.1s; 
-    border: 2px solid #e77019; 
-}
-.fallback-btn:hover { background: #fff; color: #e77019; transform: translateY(-2px); }
-
 /* Multiple Photos Grid (If user adds comma separated links) */
 .multi-photo-grid {
     display: grid;
@@ -109,6 +92,43 @@ dd { margin:0; font-weight: 500; font-size: 1rem; color: #333; }
 
 /* Status Bar */
 .status-bar { font-size: 0.9rem; color: #666; margin-top: 5px; display: flex; gap: 15px; }
+
+/* PRINT STYLES */
+#print-view { display: none; }
+@media print {
+    body { background: white; }
+    .topbar, .filters, .extras, .wrap > .page { display: none !important; }
+    .wrap { padding: 0; margin: 0; max-width: 100%; }
+    
+    #print-view { display: block !important; padding: 20px; }
+    
+    /* Print Card Style - Matching the Dashboard Look */
+    .print-card {
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 30px;
+        page-break-inside: avoid;
+        display: flex;
+        gap: 20px;
+        background: #fff;
+    }
+    
+    .print-header { border-bottom: 2px solid #e77019; margin-bottom: 15px; padding-bottom: 10px; }
+    .print-title { font-size: 18px; font-weight: bold; color: #1b2941; }
+    .print-meta { font-size: 12px; color: #666; margin-top: 5px; }
+    
+    .print-info { flex: 1; font-size: 12px; }
+    .print-gallery { flex: 1; display: flex; align-items: center; justify-content: center; background: #f9f9f9; border: 1px solid #eee; height: 250px; overflow: hidden; }
+    .print-img { max-width: 100%; max-height: 100%; object-fit: contain; }
+    
+    dl { display: grid; grid-template-columns: 100px 1fr; gap: 5px; margin: 0; }
+    dt { font-weight: bold; color: #555; }
+    dd { margin: 0; }
+    
+    /* Ensure colors print */
+    * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
 
 /* Mobile */
 @media (max-width: 768px) {
@@ -132,8 +152,9 @@ dd { margin:0; font-weight: 500; font-size: 1rem; color: #333; }
       <button class="btn" id="next">अगला ▶︎</button>
       <select id="jump"></select>
     </div>
-    <div style="display: flex; gap: 10px; align-items: center;">
+    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
       <input id="search" class="search-box" type="search" placeholder="🔍 खोजें (नाम/स्थान/अतिथि)" />
+      <button class="btn" onclick="printAllData()" style="background: #e77019; color: white; border: none;">🖨️ पूरी शीट डाउनलोड करें (PDF)</button>
       <span id="status" style="font-weight: 600; color: #1f3b73;">Connecting...</span>
     </div>
   </div>
@@ -150,7 +171,7 @@ dd { margin:0; font-weight: 500; font-size: 1rem; color: #333; }
     </div>
   </div>
 
-  <!-- Main Slide Content -->
+  <!-- Main Slide Content (Single View) -->
   <div id="page" class="page">
     <div style="display: flex; justify-content: center; align-items: center; height: 400px; color: #666;">
         <div>
@@ -161,15 +182,12 @@ dd { margin:0; font-weight: 500; font-size: 1rem; color: #333; }
   </div>
 </div>
 
+<!-- Print View Container (Hidden normally, visible during print) -->
+<div id="print-view"></div>
+
 <script>
     // --- Data Configuration ---
-    // User Provided Published Link:
-    // https://docs.google.com/spreadsheets/d/e/2PACX-1vQdH6jHfrBQbsAi78xZ9nIfJjajjInnbBEi6ZonuP3kP8AIkbf6aWBKnzCLpS5tTJFQOqXBS3gvzDT_/pubhtml
-    
-    // We convert it to CSV output format for fetching
     const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQdH6jHfrBQbsAi78xZ9nIfJjajjInnbBEi6ZonuP3kP8AIkbf6aWBKnzCLpS5tTJFQOqXBS3gvzDT_/pub?output=csv";
-    
-    // We use a CORS proxy to ensure fetching works from a static file environment
     const PROXY_URL = "https://corsproxy.io/?" + encodeURIComponent(CSV_URL);
 
     // --- State ---
@@ -188,6 +206,7 @@ dd { margin:0; font-weight: 500; font-size: 1rem; color: #333; }
     const fDate = document.getElementById('fDate');
     const totalVisitsEl = document.getElementById('total-visits-display');
     const totalAttEl = document.getElementById('total-attendance-display');
+    const printViewEl = document.getElementById('print-view');
 
     // --- CSV Parser ---
     function parseCSV(text) {
@@ -195,10 +214,8 @@ dd { margin:0; font-weight: 500; font-size: 1rem; color: #333; }
         let currentRow = [];
         let currentCell = "";
         let inQuotes = false;
-        
         for (let i = 0; i < text.length; i++) {
             const char = text[i];
-            
             if (inQuotes) {
                 if (char === '"' && text[i+1] === '"') { currentCell += '"'; i++; }
                 else if (char === '"') { inQuotes = false; }
@@ -218,42 +235,33 @@ dd { margin:0; font-weight: 500; font-size: 1rem; color: #333; }
         return rows;
     }
 
-    // --- Data Fetching & Mapping ---
+    // --- Data Fetching ---
     async function fetchData() {
         try {
             statusEl.textContent = "Fetching...";
             let response = await fetch(CSV_URL);
-            
             if (!response.ok) {
-                console.log("Direct fetch failed, trying proxy...");
+                console.log("Using Proxy...");
                 response = await fetch(PROXY_URL);
             }
-            
             if (!response.ok) throw new Error("Failed to fetch CSV");
             
             const text = await response.text();
-            
-            if(text.trim().startsWith("<!DOCTYPE html") || text.includes("404")) {
-                 throw new Error("Sheet Not Found or Access Denied");
-            }
+            if(text.trim().startsWith("<!DOCTYPE html") || text.includes("404")) throw new Error("Sheet Access Denied");
 
             const rows = parseCSV(text);
-            
-            if (rows.length < 2) {
-                throw new Error("Sheet is empty or has no data rows");
-            }
+            if (rows.length < 2) throw new Error("Empty Sheet");
 
             const headers = rows[0].map(h => h.toLowerCase());
             const dataRows = rows.slice(1);
 
             const findIdx = (keywords) => headers.findIndex(h => keywords.some(k => h.includes(k)));
-
-            const idxDate = findIdx(['date', 'दिनांक', 'तारीख', 'कब']);
-            const idxDist = findIdx(['district', 'place', 'location', 'जिला', 'स्थान', 'कहा', 'कहाँ']);
-            const idxTitle = findIdx(['title', 'event', 'program', 'name', 'कार्यक्रम', 'विषय']);
-            const idxCount = findIdx(['count', 'attendance', 'number', 'संख्या', 'उपस्थिति', 'upasthiti']);
-            const idxGuest = findIdx(['guest', 'chief', 'vip', 'अतिथि', 'वक्ता', 'kon']);
-            const idxLink = findIdx(['link', 'url', 'photo', 'drive', 'लिंक', 'फोटो']);
+            const idxDate = findIdx(['date', 'दिनांक', 'तारीख']);
+            const idxDist = findIdx(['district', 'place', 'location', 'जिला']);
+            const idxTitle = findIdx(['title', 'event', 'program', 'कार्यक्रम']);
+            const idxCount = findIdx(['count', 'attendance', 'संख्या', 'उपस्थिति']);
+            const idxGuest = findIdx(['guest', 'chief', 'अतिथि']);
+            const idxLink = findIdx(['link', 'url', 'photo', 'लिंक']);
 
             rawData = dataRows.map(row => ({
                 date: row[idxDate] || row[0] || "",
@@ -265,16 +273,11 @@ dd { margin:0; font-weight: 500; font-size: 1rem; color: #333; }
             })).filter(item => item.title && item.date);
 
             initUI();
+            statusEl.textContent = "Live";
             
         } catch (error) {
             console.error(error);
-            pageEl.innerHTML = `
-                <div style="text-align:center; padding:40px; color:#d32f2f;">
-                    <h2>⚠️ डेटा लोड नहीं हो सका</h2>
-                    <p>${error.message}</p>
-                    <p>कृपया सुनिश्चित करें कि Sheet "Public" है।</p>
-                </div>
-            `;
+            pageEl.innerHTML = `<div style="text-align:center; padding:40px; color:red;"><h2>Error</h2><p>${error.message}</p></div>`;
             statusEl.textContent = "Error";
         }
     }
@@ -284,34 +287,25 @@ dd { margin:0; font-weight: 500; font-size: 1rem; color: #333; }
         if (!rawUrl) return null;
         const idRegex = /[-\w]{25,}/;
         const match = rawUrl.match(idRegex);
-        if (match && match[0] && !match[0].includes('google') && !match[0].includes('http')) {
-            return match[0];
-        }
+        if (match && match[0] && !match[0].includes('google') && !match[0].includes('http')) return match[0];
         return null;
     }
 
-    // --- Render ---
+    // --- Render Single Slide ---
     function renderCurrent() {
         if (!filtered.length) {
             pageEl.innerHTML = `<div style="text-align:center; padding:50px; color:#666;">कोई रिकॉर्ड नहीं मिला।</div>`;
-            statusEl.textContent = "0 / 0";
             return;
         }
 
         const item = filtered[idx];
-        
-        // Split links if multiple (comma separated)
         const links = item.link.split(/[\n,]/).map(l => l.trim()).filter(Boolean);
         const firstLink = links[0] || "";
         const driveId = getDriveId(firstLink);
         
-        // URLs
         const folderUrl = driveId ? `https://drive.google.com/embeddedfolderview?id=${driveId}#grid` : "";
         const imgUrl = driveId ? `https://drive.google.com/thumbnail?id=${driveId}&sz=w800` : "";
-
-        // Extract clean link for fallback
-        const cleanLinkMatch = firstLink.match(/https?:\/\/[^\s,]+/);
-        const cleanLink = cleanLinkMatch ? cleanLinkMatch[0] : firstLink;
+        const cleanLink = firstLink.match(/https?:\/\/[^\s,]+/)?.[0] || firstLink;
 
         pageEl.innerHTML = `
             <div class="header">
@@ -320,60 +314,28 @@ dd { margin:0; font-weight: 500; font-size: 1rem; color: #333; }
                     <h1>${item.title}</h1>
                     <div class="subtitle">📍 ${item.district} • 📅 ${item.date}</div>
                 </div>
-                <div class="meta">
-                    ${idx + 1} / ${filtered.length}
-                </div>
+                <div class="meta">${idx + 1} / ${filtered.length}</div>
             </div>
 
             <div class="content">
                 <div class="card-info">
                     <h3 class="section-title">कार्यक्रम विवरण</h3>
                     <dl>
-                        <dt>तारीख</dt>
-                        <dd>${item.date}</dd>
-
-                        <dt>स्थान/जिला</dt>
-                        <dd>${item.district}</dd>
-
-                        <dt>उपस्थिति</dt>
-                        <dd class="highlight-val">${item.count}</dd>
-
-                        <dt>मुख्य अतिथि</dt>
-                        <dd>${item.guests}</dd>
-                        
-                        <dt>लिंक</dt>
-                        <dd><a href="${cleanLink}" target="_blank" style="color:#e77019; text-decoration:none; font-size:0.9rem;">Drive Link ↗</a></dd>
+                        <dt>तारीख</dt> <dd>${item.date}</dd>
+                        <dt>स्थान/जिला</dt> <dd>${item.district}</dd>
+                        <dt>उपस्थिति</dt> <dd class="highlight-val">${item.count}</dd>
+                        <dt>मुख्य अतिथि</dt> <dd>${item.guests}</dd>
+                        <dt>लिंक</dt> <dd><a href="${cleanLink}" target="_blank" style="color:#e77019; text-decoration:none;">Drive Link ↗</a></dd>
                     </dl>
                 </div>
 
                 <div class="card-gallery">
                     <h3 class="section-title" style="border-left-color: #1f3b73; margin-bottom:10px;">फोटो एल्बम</h3>
                     <div class="gallery-container">
-                        
-                        <!-- 1. Try Direct Image (If file) -->
-                        <img id="directImg" src="${imgUrl}" class="direct-img" alt="Direct View" onerror="this.style.display='none'; document.getElementById('folderFrame').classList.add('active');">
-                        
-                        <!-- 2. Fallback to Iframe (If folder) -->
+                        <img id="directImg" src="${imgUrl}" class="direct-img" alt="View" onerror="this.style.display='none'; document.getElementById('folderFrame').classList.add('active');">
                         <iframe id="folderFrame" src="${folderUrl}" class="drive-frame" title="Photo Gallery" allowfullscreen="true" referrerpolicy="no-referrer"></iframe>
-                        
-                        <!-- 3. Multiple Photos Grid (If multiple links detected) -->
-                        ${links.length > 1 ? `<div class="multi-photo-grid active">${links.map(l => {
-                            const did = getDriveId(l);
-                            return did ? `<img src="https://drive.google.com/thumbnail?id=${did}&sz=w400" class="grid-img" onclick="window.open('${l}','_blank')">` : '';
-                        }).join('')}</div>` : ''}
-
-                        <!-- Placeholder behind -->
-                        <div class="placeholder-content">
-                            <span class="placeholder-icon">📁</span>
-                            <p>लोड हो रहा है...</p>
-                        </div>
-                    </div>
-                    
-                    <div class="fallback-link">
-                        <a href="${cleanLink}" target="_blank" class="fallback-btn">📂 फोटो गैलरी खोलें (Open Gallery)</a>
-                        <div style="margin-top:10px; color:#666; font-size:0.8rem;">
-                            (Tip: Sheet में एक से ज्यादा फोटो लिंक डालने पर यहां गैलरी बनेगी)
-                        </div>
+                        ${links.length > 1 ? `<div class="multi-photo-grid active">${links.map(l => { const did=getDriveId(l); return did?`<img src="https://drive.google.com/thumbnail?id=${did}&sz=w400" class="grid-img" onclick="window.open('${l}','_blank')">`:''; }).join('')}</div>` : ''}
+                        <div class="placeholder-content"><span class="placeholder-icon">📁</span><p>लोड हो रहा है...</p></div>
                     </div>
                 </div>
             </div>
@@ -383,37 +345,65 @@ dd { margin:0; font-weight: 500; font-size: 1rem; color: #333; }
             document.getElementById('directImg').style.display = 'none';
             document.getElementById('folderFrame').classList.remove('active');
         } else {
-            const img = document.getElementById('directImg');
-            img.style.display = 'block'; 
+            document.getElementById('directImg').style.display = 'block';
         }
 
-        // Update Controls
         prevBtn.disabled = (idx === 0);
         nextBtn.disabled = (idx >= filtered.length - 1);
         statusEl.textContent = `रिकॉर्ड: ${idx + 1} / ${filtered.length}`;
         jumpSel.value = idx;
     }
 
+    // --- PRINT ALL FUNCTION ---
+    window.printAllData = function() {
+        // Generate print-friendly HTML for ALL items
+        let printHTML = `<div style="text-align:center; margin-bottom:30px;"><h1>प्रवास कार्यक्रम रिपोर्ट</h1><p>कुल कार्यक्रम: ${filtered.length}</p></div>`;
+        
+        filtered.forEach((item, i) => {
+            const links = item.link.split(/[\n,]/).map(l => l.trim()).filter(Boolean);
+            const firstLink = links[0] || "";
+            const driveId = getDriveId(firstLink);
+            const imgUrl = driveId ? `https://drive.google.com/thumbnail?id=${driveId}&sz=w500` : "";
+
+            printHTML += `
+                <div class="print-card">
+                    <div class="print-info">
+                        <div class="print-header">
+                            <div class="print-title">${item.title}</div>
+                            <div class="print-meta">📍 ${item.district} | 📅 ${item.date}</div>
+                        </div>
+                        <dl>
+                            <dt>उपस्थिति:</dt> <dd>${item.count}</dd>
+                            <dt>अतिथि:</dt> <dd>${item.guests}</dd>
+                            <dt>लिंक:</dt> <dd>${firstLink.substring(0,30)}...</dd>
+                        </dl>
+                    </div>
+                    <div class="print-gallery">
+                        ${driveId ? `<img src="${imgUrl}" class="print-img" alt="Photo">` : `<span style="color:#ccc;">No Photo</span>`}
+                    </div>
+                </div>
+            `;
+        });
+
+        printViewEl.innerHTML = printHTML;
+        window.print();
+    };
+
     // --- Logic ---
     function applyFilters() {
         const sVal = searchInput.value.toLowerCase();
         const dVal = fDistrict.value;
-        const dateVal = fDate.value; 
-
         filtered = rawData.filter(item => {
             const textMatch = (item.title + ' ' + item.guests + ' ' + item.district).toLowerCase().includes(sVal);
             const districtMatch = !dVal || item.district === dVal;
-            // Date logic can be added here if needed
             return textMatch && districtMatch;
         });
 
-        // Update Stats
         let totalAtt = 0;
         filtered.forEach(i => totalAtt += (parseInt(i.count) || 0));
         totalVisitsEl.textContent = `कुल विजिट: ${filtered.length}`;
         totalAttEl.textContent = `कुल उपस्थिति: ${totalAtt}`;
 
-        // Populate Jump
         jumpSel.innerHTML = "";
         filtered.forEach((item, i) => {
             const opt = document.createElement("option");
@@ -427,7 +417,6 @@ dd { margin:0; font-weight: 500; font-size: 1rem; color: #333; }
     }
 
     function initUI() {
-        // Populate District Filter
         const districts = [...new Set(rawData.map(i => i.district))].filter(Boolean).sort();
         fDistrict.innerHTML = '<option value="">📍 सभी जिले</option>';
         districts.forEach(d => {
@@ -436,18 +425,15 @@ dd { margin:0; font-weight: 500; font-size: 1rem; color: #333; }
             opt.textContent = d;
             fDistrict.appendChild(opt);
         });
-
         applyFilters();
     }
 
-    // --- Events ---
     prevBtn.onclick = () => { if(idx > 0) { idx--; renderCurrent(); jumpSel.value = idx; } };
     nextBtn.onclick = () => { if(idx < filtered.length - 1) { idx++; renderCurrent(); jumpSel.value = idx; } };
     jumpSel.onchange = (e) => { idx = parseInt(e.target.value); renderCurrent(); };
     searchInput.oninput = applyFilters;
     fDistrict.onchange = applyFilters;
 
-    // Start Fetch
     fetchData();
 
 </script>
