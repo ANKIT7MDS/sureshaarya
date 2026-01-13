@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>प्रवास कार्यक्रम – डैशबोर्ड (Final)</title>
+<title>प्रवास कार्यक्रम – डैशबोर्ड (Smart Image Loader)</title>
 <link rel="icon" href="data:;base64,iVBORw0KGgo=">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;600;700&family=Hind:wght@400;600&display=swap" rel="stylesheet">
 <style>
@@ -20,7 +20,7 @@ body { margin:0; font-family:"Noto Sans Devanagari","Hind",system-ui,Arial,sans-
 input, select, label { padding:8px 10px; border:1px solid #d6d9e0; border-radius:10px; background:#fff; font-family: inherit; }
 .search-box { flex-grow: 1; max-width: 300px; }
 
-/* Main Card (PPT Slide) */
+/* Main Card */
 .page { background:#fff; border:1px solid #e8e9ee; border-radius:16px; box-shadow:0 6px 18px rgba(0,0,0,.05); padding:20px; min-height: 500px; }
 
 .header { display:grid; grid-template-columns:80px 1fr 100px; gap:15px; align-items:center; border-bottom:4px solid #e77019; padding-bottom:15px; margin-bottom: 20px; }
@@ -55,25 +55,25 @@ dd { margin:0; font-weight: 500; font-size: 1rem; color: #333; }
     flex-direction: column;
 }
 
-/* 1. Iframe for Folders (Default Active for your data) */
-.drive-frame { 
-    width: 100%; height: 100%; border: 0; 
-    position: absolute; top: 0; left: 0; 
-    z-index: 5; /* High priority */
-    background: #fff; 
-}
-
-/* 2. Direct Image for Files (Only used if explicitly a file) */
+/* Priority 1: Direct Image (Attempts to load first) */
 .direct-img { 
     width: 100%; height: 100%; 
     object-fit: contain; 
     position: absolute; top: 0; left: 0;
-    z-index: 6; 
-    display: none; /* Hidden by default */
+    z-index: 10; 
+    display: none; 
     background: #fff;
 }
+.direct-img.active { display: block; }
 
-/* 3. Placeholder */
+/* Priority 2: Iframe (Fallback) */
+.drive-frame { 
+    width: 100%; height: 100%; border: 0; 
+    position: absolute; top: 0; left: 0; 
+    z-index: 5; 
+    background: #fff; 
+}
+
 .placeholder-content {
     text-align: center;
     color: #888;
@@ -92,7 +92,7 @@ dd { margin:0; font-weight: 500; font-size: 1rem; color: #333; }
     width: 100%; height: 100%;
     overflow-y: auto;
     display: none;
-    z-index: 10;
+    z-index: 20;
     background: #fff;
     position: absolute; top: 0; left: 0;
 }
@@ -250,9 +250,43 @@ dd { margin:0; font-weight: 500; font-size: 1rem; color: #333; }
 
     function getDriveId(url) {
         if (!url) return null;
-        // Robust splitter
         const parts = url.split(/\/d\/|id=|folders\//);
         return parts.length > 1 ? parts[1].split(/[/?&]/)[0] : null;
+    }
+
+    // --- ROBUST IMAGE LOADER ---
+    // Tries 3 different URL formats sequentially
+    async function loadBestImage(imgEl, driveId, callback) {
+        const candidates = [
+            `https://drive.google.com/thumbnail?id=${driveId}&sz=w1000`, // Often works for folders
+            `https://lh3.googleusercontent.com/d/${driveId}=w1000`,      // Works for files
+            `https://drive.google.com/uc?export=view&id=${driveId}`       // Fallback for files
+        ];
+
+        let loaded = false;
+        for (const src of candidates) {
+            if (loaded) break;
+            await new Promise((resolve) => {
+                const testImg = new Image();
+                testImg.onload = () => {
+                    imgEl.src = src;
+                    imgEl.style.display = 'block';
+                    loaded = true;
+                    resolve();
+                };
+                testImg.onerror = () => {
+                    resolve();
+                };
+                testImg.src = src;
+            });
+        }
+
+        if (!loaded) {
+            imgEl.style.display = 'none';
+            callback(false); // All failed
+        } else {
+            callback(true); // Success
+        }
     }
 
     function renderCurrent() {
@@ -263,15 +297,9 @@ dd { margin:0; font-weight: 500; font-size: 1rem; color: #333; }
         const firstLink = links[0] || "";
         const driveId = getDriveId(firstLink);
         const cleanLink = firstLink.match(/https?:\/\/[^\s,]+/)?.[0] || firstLink;
-
-        // --- CORE LOGIC: DETECT FOLDER vs FILE ---
-        // Since your sheet has 'open?id=' which is usually ambiguous but mostly folders for you
-        // We will default to IFRAME (Folder View)
-        const isFolder = true; // FORCE FOLDER VIEW BY DEFAULT for safety
         
-        // URLs
+        // Always set iframe URL immediately so it's ready if images fail
         const folderUrl = driveId ? `https://drive.google.com/embeddedfolderview?id=${driveId}#grid` : "";
-        const imgUrl = driveId ? `https://drive.google.com/thumbnail?id=${driveId}&sz=w1000` : "";
 
         els.page.innerHTML = `
             <div class="header">
@@ -294,11 +322,13 @@ dd { margin:0; font-weight: 500; font-size: 1rem; color: #333; }
                     <h3 class="section-title" style="border-left-color:#1f3b73;margin-bottom:10px">फोटो एल्बम</h3>
                     <div class="gallery-container">
                         
-                        <!-- 1. IFRAME (DEFAULT VISIBLE) -->
-                        <!-- This will show the grid of thumbnails inside the folder -->
-                        <iframe src="${folderUrl}" class="drive-frame" title="Gallery" allowfullscreen="true"></iframe>
+                        <!-- 1. DIRECT IMAGE (Hidden initially, shown if loads) -->
+                        <img id="directImg" class="direct-img" alt="Photo">
                         
-                        <!-- 2. GRID: Shows only if multiple links exist in CSV -->
+                        <!-- 2. IFRAME (Fallback for Folders) -->
+                        <iframe id="folderFrame" src="${folderUrl}" class="drive-frame" title="Gallery" allowfullscreen="true"></iframe>
+                        
+                        <!-- 3. GRID (Multiple Links) -->
                         ${links.length > 1 ? `<div class="multi-photo-grid active">${links.map(l=>{const d=getDriveId(l); return d?`<img src="https://drive.google.com/thumbnail?id=${d}&sz=w400" class="grid-img" onclick="window.open('${l}','_blank')">`:''}).join('')}</div>` : ''}
                         
                         <div class="placeholder-content"><span class="placeholder-icon">📁</span><p>लोड हो रहा है...</p></div>
@@ -309,6 +339,22 @@ dd { margin:0; font-weight: 500; font-size: 1rem; color: #333; }
                 </div>
             </div>
         `;
+
+        if (links.length > 1) {
+            // Multi-link mode: Hide single image/frame
+            document.getElementById('directImg').style.display = 'none';
+            document.getElementById('folderFrame').style.display = 'none';
+        } else if (driveId) {
+            // Single link mode: Try to load image
+            const imgEl = document.getElementById('directImg');
+            // Start the multi-try process
+            loadBestImage(imgEl, driveId, (success) => {
+                if (!success) {
+                    // If image fails, ensure iframe is visible (it is by default z-index 5, placeholder is 0)
+                    console.log("Image load failed, showing folder view");
+                }
+            });
+        }
 
         els.prev.disabled = idx === 0;
         els.next.disabled = idx >= filtered.length - 1;
