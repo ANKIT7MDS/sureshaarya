@@ -14,6 +14,22 @@
             overflow: hidden; 
         }
 
+        /* Loading Screen */
+        #loader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: #121212;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            font-size: 24px;
+            color: #ffd700;
+        }
+
         /* Slide Animation Container */
         .slide-container {
             display: none; 
@@ -29,21 +45,20 @@
             opacity: 1;
         }
         
-        /* Left Side: Info (40% Width) */
+        /* Left Side: Info (50% Width now for balance) */
         .info-panel {
-            width: 35%;
-            padding: 50px;
+            width: 50%;
+            padding: 60px;
             box-sizing: border-box;
             background: linear-gradient(160deg, #1e3c72 0%, #2a5298 100%);
             display: flex;
             flex-direction: column;
-            justify-content: center; /* Vertically Center text */
+            justify-content: center;
             box-shadow: 10px 0 20px rgba(0,0,0,0.3);
             z-index: 10;
             position: relative;
         }
         
-        /* Decorative line on left */
         .info-panel::before {
             content: '';
             position: absolute;
@@ -55,7 +70,7 @@
         }
 
         .info-panel h1 {
-            font-size: 2.5em;
+            font-size: 2.8em;
             margin: 0 0 30px 0;
             border-bottom: 2px solid rgba(255,255,255,0.2);
             padding-bottom: 15px;
@@ -65,72 +80,72 @@
         
         .info-item {
             margin-bottom: 25px;
-            font-size: 1.2em;
+            font-size: 1.3em;
             line-height: 1.6;
             color: #e0e0e0;
+            display: flex;
+            align-items: flex-start;
         }
 
         .label {
             font-weight: 600;
-            color: #ffd700; /* Gold */
-            display: block;
-            margin-bottom: 5px;
-            font-size: 0.85em;
+            color: #ffd700;
+            min-width: 150px; /* Fixed width for labels to align text */
             text-transform: uppercase;
-            letter-spacing: 1.5px;
+            letter-spacing: 1px;
+            font-size: 0.8em;
+            margin-top: 5px;
         }
 
-        /* Right Side: Photos (60% Width) */
+        .value {
+            flex: 1;
+        }
+
+        /* Right Side: Photos (50% Width) */
         .photo-panel {
-            width: 65%;
-            padding: 40px;
+            width: 50%;
+            padding: 30px;
             box-sizing: border-box;
             background-color: #1a1a1a;
             display: flex;
             flex-wrap: wrap;
-            align-content: center; /* Center content vertically */
-            justify-content: center; /* Center content horizontally */
+            align-content: center;
+            justify-content: center;
             overflow-y: auto; 
-            gap: 25px;
+            gap: 15px; /* Reduced gap */
         }
         
-        /* Scrollbar styling for photo panel */
-        .photo-panel::-webkit-scrollbar {
-            width: 8px;
-        }
-        .photo-panel::-webkit-scrollbar-thumb {
-            background-color: #555;
-            border-radius: 4px;
-        }
+        .photo-panel::-webkit-scrollbar { width: 8px; }
+        .photo-panel::-webkit-scrollbar-thumb { background-color: #555; border-radius: 4px; }
 
-        /* Image Card Styling - The "Cart" */
+        /* Image Card Styling - Smaller Size */
         .photo-card {
-            width: 260px;
-            height: 195px;
+            width: 180px; /* Smaller width */
+            height: 135px; /* Smaller height */
             position: relative;
-            border-radius: 12px;
+            border-radius: 8px;
             overflow: hidden;
             background: #2c2c2c;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
             transition: all 0.3s ease;
             cursor: pointer;
             border: 1px solid #444;
         }
 
         .photo-card:hover {
-            transform: translateY(-5px) scale(1.03);
-            box-shadow: 0 10px 25px rgba(0,0,0,0.7);
+            transform: translateY(-5px) scale(1.05);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.7);
             border-color: #ffd700;
+            z-index: 5;
         }
 
         .photo-thumbnail {
             width: 100%;
             height: 100%;
-            object-fit: cover; /* Ensures image fills the box neatly */
+            object-fit: cover;
             display: block;
         }
         
-        /* Fallback View */
         .img-error {
             display: flex;
             flex-direction: column;
@@ -141,11 +156,10 @@
             background: #333;
             color: #aaa;
             text-align: center;
-            padding: 10px;
-            box-sizing: border-box;
+            padding: 5px;
         }
-        .img-error span { font-size: 30px; margin-bottom: 5px; }
-        .img-error p { font-size: 12px; margin: 0; }
+        .img-error span { font-size: 24px; }
+        .img-error p { font-size: 10px; margin: 0; }
 
         /* Controls */
         .controls-area {
@@ -160,7 +174,7 @@
             align-items: center;
             padding: 0 40px;
             box-sizing: border-box;
-            pointer-events: none; /* Let clicks pass through empty areas */
+            pointer-events: none;
         }
 
         .slide-counter {
@@ -179,8 +193,8 @@
         }
 
         button {
-            padding: 12px 30px;
-            font-size: 16px;
+            padding: 10px 25px;
+            font-size: 14px;
             cursor: pointer;
             background-color: #ffd700;
             border: none;
@@ -191,20 +205,20 @@
             text-transform: uppercase;
             letter-spacing: 1px;
         }
-        button:hover {
-            background-color: #fff;
-        }
+        button:hover { background-color: #fff; }
 
-        /* Responsive */
         @media (max-width: 768px) {
             .slide-container { flex-direction: column; overflow-y: auto; }
             .info-panel, .photo-panel { width: 100%; height: auto; }
             .photo-panel { padding-bottom: 100px; }
+            .info-item { flex-direction: column; }
+            .label { margin-bottom: 2px; }
         }
     </style>
 </head>
 <body>
 
+<div id="loader">Loading Data from Sheet...</div>
 <div id="slides-wrapper"></div>
 
 <!-- Floating Controls -->
@@ -217,162 +231,164 @@
 </div>
 
 <script>
-    // Data
-    const data = [
-        {
-            date: "12/7/2025",
-            district: "रतलाम",
-            event: "पुरस्कार वितरण कार्यक्रम",
-            attendance: "250",
-            guests: "कैबिनेट मंत्री श्री चैतन्य जी कश्यप",
-            photos: ["1t40iSWdLL9b8XZ5FU7HNqsb_XtJBWjSS", "1cLWjcYWgylCNBXJie13EF4trzzgTovf7", "1TQj1snLsNDQasLJ70QqqCnouOcccHch9", "1dqYSTrJOrM4Cey32PiTi4ZZQ9yb44bBT"]
-        },
-        {
-            date: "12/23/2025",
-            district: "मंदसौर",
-            event: "अटल बिहारी वाजपेयी जी की स्मृति सम्मेलन",
-            attendance: "650",
-            guests: "सांसद श्री बंशीलाल गुर्जर, श्री राजेश दीक्षित",
-            photos: ["1W5ggKhcvGLQBgupYj8cd0yJDnDI_DItY", "1KNi9lFeZ8ZHpeilqnH-glXYwLhcHmue5", "1tGd7kbQqslLatTL61u24maIpveK6DXc6", "1rUKlTAwLJLXcBATiYHVcddhX53-BXdbF"]
-        },
-        {
-            date: "12/23/2025",
-            district: "मंदसौर",
-            event: "बाल वीर दिवस प्रदर्शनी",
-            attendance: "120",
-            guests: "सांसद श्री बंशीलाल जी गुर्जर, श्री यशपाल जी सिसौदिया",
-            photos: ["1yvv1t7wPFcGM54v5lOWFMHcFb6IVAtxD", "1T1RwilKMKpShYVf_OVA1ppUldnOpp1sC", "1rPmb_3ebRqZz685wiYYmFf6JF8-83NJC"]
-        },
-        {
-            date: "1/3/2026",
-            district: "मंदसौर",
-            event: "बूथ चलो अभियान कार्यक्रम",
-            attendance: "35",
-            guests: "-",
-            photos: ["1c6Rv5Af_9PJql71jiqMPehDdnTZtc1Kk", "1Q_LX7wJkx9utDAteaXk-VdwL_gZGRibl", "1AfWv8SVd4lg_26NloKoMOLudl5ojT3-U"]
-        },
-        {
-            date: "1/1/2026",
-            district: "रतलाम",
-            event: "SIR विशेष गहन पुनरीक्षण बैठक",
-            attendance: "35",
-            guests: "मंडल अध्यक्ष श्री सूरजमल जी जैन",
-            photos: ["1D5sqWR0Oc1fzKapX6Cc74S3tyLgduuqF", "1rRE-lcc8VddjcK-z-omfQbp4GdUg8sNZ"]
-        },
-        {
-            date: "1/1/2026",
-            district: "रतलाम",
-            event: "SIR मतदाता गहन पुनरीक्षण बैठक",
-            attendance: "75",
-            guests: "श्री प्रदीप जी उपाध्याय, श्री जयवंत जी कोठारी",
-            photos: ["1HVoeCRaWf8dp4jm0NPnYWjyWZ69KYbOe", "1WkYCOlHWdxAUKGhu-xy_GddtQqcIHTUZ"]
-        },
-        {
-            date: "1/10/2026",
-            district: "रतलाम",
-            event: "संगठनात्मक बैठक (प्रदेश अध्यक्ष)",
-            attendance: "35",
-            guests: "श्री हेमंत जी खंडेलवाल, मंत्री श्री चैतन्य जी कश्यप",
-            photos: ["1BqN0Vc9YCU3ojZq7xXZuOq6Ifw-sgC1k", "1Aw0KIcq0X3bcYlVakDLS4Wu2gRmOMGAN", "1hOVP45aMxgOVc2InrFX6tjHmg33mOPHd"]
-        },
-        {
-            date: "12/19/2025",
-            district: "मंदसौर",
-            event: "सांसद खेल महोत्सव कार्यक्रम",
-            attendance: "310",
-            guests: "विधायक श्री हरदीप सिंह जी डंग",
-            photos: ["1u5En0O5tLBBKfygXb5JPpU1WwjB9OiTg", "10GnF2vzbYSjUGhHF8JfgY7z-nyFLHcc_", "13CnkU5qYLr3CItkz5jhOPD0zHdhPq2EH"]
-        },
-        {
-            date: "11/27/2025",
-            district: "उज्जैन",
-            event: "संगठनात्मक बैठक (राष्ट्रीय महासचिव)",
-            attendance: "120",
-            guests: "श्री सत्यनारायण जटिया जी, श्री Tarun Chugh जी",
-            photos: ["1R_SuDGJb1FSnK1MXweA1v1fSv4ybKtOK", "18fbJkaJtqNNNu1_A-xmeCd2UlJXIy8Vs", "1eVDAesmAphbWQvr1dfLwRHJNHXfh9H1z"]
-        },
-        {
-            date: "11/23/2025",
-            district: "मंदसौर",
-            event: "SIR मतदाता सूची विशेष गहन पुनरीक्षण",
-            attendance: "145",
-            guests: "विधायक श्री चंद्रसिंह जी सिसौदिया, श्री हरदीप जी डंग",
-            photos: ["18kM9sTVcGn3F_vWH4eTvdxDFPmZ178No", "1mEX5K-vt7OlowEhInh83nXQn89nshdWE", "1TFiBjhBk-N11m4m-EwmEBGjM210Goyfj"]
-        }
-    ];
+    // Configuration for Google Sheet
+    const SHEET_ID = '1wyr0gt061UT5IVxT1JBYUEUJw1GYcBpzxDKEQmvcXXY';
+    const GID = '1839722438';
+    // Using Google Visualization API to get JSON
+    const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&gid=${GID}`;
 
-    const wrapper = document.getElementById('slides-wrapper');
-    const totalSlidesSpan = document.getElementById('total-slides');
-    const currentSlideSpan = document.getElementById('current-slide');
+    let slideData = [];
     let currentIndex = 0;
 
-    // Generate Slides
-    data.forEach((item, index) => {
-        const slide = document.createElement('div');
-        slide.className = index === 0 ? 'slide-container active' : 'slide-container';
-        slide.id = `slide-${index}`;
-
-        // Prepare Images HTML
-        let imagesHtml = '';
-        item.photos.forEach(photoId => {
-            const imgSrc = `https://drive.google.com/thumbnail?id=${photoId}&sz=w600`;
-            const viewLink = `https://drive.google.com/file/d/${photoId}/view?usp=sharing`;
+    // Fetch and Parse Data
+    async function fetchSheetData() {
+        try {
+            const response = await fetch(SHEET_URL);
+            const text = await response.text();
             
-            imagesHtml += `
-            <div class="photo-card" onclick="window.open('${viewLink}', '_blank')">
-                <img 
-                    src="${imgSrc}" 
-                    class="photo-thumbnail" 
-                    alt="Photo" 
-                    referrerpolicy="no-referrer"
-                    onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
-                >
-                <div class="img-error" style="display:none;">
-                    <span>🖼️</span>
-                    <p>Open Link</p>
+            // Clean up the response text from Google API wrapper
+            const jsonText = text.substring(47).slice(0, -2);
+            const json = JSON.parse(jsonText);
+            
+            const rows = json.table.rows;
+            
+            // Map rows to our data structure
+            // Assuming Columns: A=Date, B=District, C=Event, D=Attendance, E=Guests, F onwards=Photos
+            slideData = rows.map(row => {
+                const c = row.c;
+                if (!c) return null;
+
+                // Extract basic info safely
+                const date = c[0] ? (c[0].f || c[0].v) : '';
+                const district = c[1] ? c[1].v : '';
+                const event = c[2] ? c[2].v : '';
+                const attendance = c[3] ? c[3].v : '';
+                const guests = c[4] ? c[4].v : '';
+
+                // Extract Photos (Column F onwards, index 5+)
+                let photos = [];
+                for (let i = 5; i < c.length; i++) {
+                    if (c[i] && c[i].v) {
+                        const val = String(c[i].v);
+                        // Extract ID from URL if it's a link, or use value if it's just ID
+                        const idMatch = val.match(/[-\w]{25,}/);
+                        if (idMatch) {
+                            photos.push(idMatch[0]);
+                        }
+                    }
+                }
+
+                return {
+                    date, district, event, attendance, guests, photos
+                };
+            }).filter(item => item && item.event); // Filter out empty rows
+
+            initSlides();
+            document.getElementById('loader').style.display = 'none';
+
+        } catch (error) {
+            console.error("Error fetching data:", error);
+            document.getElementById('loader').innerText = "Error loading data. Check console.";
+        }
+    }
+
+    function initSlides() {
+        const wrapper = document.getElementById('slides-wrapper');
+        const totalSlidesSpan = document.getElementById('total-slides');
+        
+        // Clear existing if any
+        wrapper.innerHTML = '';
+
+        slideData.forEach((item, index) => {
+            const slide = document.createElement('div');
+            slide.className = index === 0 ? 'slide-container active' : 'slide-container';
+            slide.id = `slide-${index}`;
+            slide.style.display = index === 0 ? 'flex' : 'none';
+
+            // Prepare Images HTML
+            let imagesHtml = '';
+            if (item.photos.length > 0) {
+                item.photos.forEach(photoId => {
+                    const imgSrc = `https://drive.google.com/thumbnail?id=${photoId}&sz=w400`; // Reduced size request
+                    const viewLink = `https://drive.google.com/file/d/${photoId}/view?usp=sharing`;
+                    
+                    imagesHtml += `
+                    <div class="photo-card" onclick="window.open('${viewLink}', '_blank')">
+                        <img 
+                            src="${imgSrc}" 
+                            class="photo-thumbnail" 
+                            alt="Img" 
+                            referrerpolicy="no-referrer"
+                            onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+                        >
+                        <div class="img-error" style="display:none;">
+                            <span>🖼️</span>
+                            <p>Open</p>
+                        </div>
+                    </div>`;
+                });
+            } else {
+                imagesHtml = '<div style="color:#666; width:100%; text-align:center;">No Photos Available</div>';
+            }
+
+            slide.innerHTML = `
+                <div class="info-panel">
+                    <h1>${item.event}</h1>
+                    <div class="info-item">
+                        <span class="label">दिनांक</span> 
+                        <span class="value">${item.date}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">जिला</span> 
+                        <span class="value">${item.district}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">उपस्थिति</span> 
+                        <span class="value">${item.attendance}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">अतिथि</span> 
+                        <span class="value">${item.guests}</span>
+                    </div>
                 </div>
-            </div>`;
+                <div class="photo-panel">
+                    ${imagesHtml}
+                </div>
+            `;
+            wrapper.appendChild(slide);
         });
 
-        slide.innerHTML = `
-            <div class="info-panel">
-                <h1>${item.event}</h1>
-                <div class="info-item"><span class="label">दिनांक</span> ${item.date}</div>
-                <div class="info-item"><span class="label">जिला</span> ${item.district}</div>
-                <div class="info-item"><span class="label">उपस्थिति</span> ${item.attendance}</div>
-                <div class="info-item"><span class="label">अतिथि</span><br>${item.guests}</div>
-            </div>
-            <div class="photo-panel">
-                ${imagesHtml}
-            </div>
-        `;
-        wrapper.appendChild(slide);
-    });
-
-    totalSlidesSpan.innerText = data.length;
+        totalSlidesSpan.innerText = slideData.length;
+        updateCounter(0);
+    }
 
     // Navigation Logic
+    const currentSlideSpan = document.getElementById('current-slide');
+
+    function updateCounter(index) {
+        currentSlideSpan.innerText = index + 1;
+    }
+
     function showSlide(index) {
         // Hide all
-        document.querySelectorAll('.slide-container').forEach(s => {
+        const slides = document.querySelectorAll('.slide-container');
+        slides.forEach(s => {
             s.classList.remove('active');
-            s.style.display = 'none'; // Force hide
+            s.style.display = 'none';
         });
         
         // Show current
         const current = document.getElementById(`slide-${index}`);
-        current.style.display = 'flex';
-        // Small timeout to allow display:flex to apply before adding opacity class for transition
-        setTimeout(() => {
-            current.classList.add('active');
-        }, 10);
-        
-        currentSlideSpan.innerText = index + 1;
-        currentIndex = index;
+        if(current) {
+            current.style.display = 'flex';
+            setTimeout(() => current.classList.add('active'), 10);
+            updateCounter(index);
+            currentIndex = index;
+        }
     }
 
     function nextSlide() {
-        if (currentIndex < data.length - 1) {
+        if (currentIndex < slideData.length - 1) {
             showSlide(currentIndex + 1);
         }
     }
@@ -387,6 +403,9 @@
         if(event.key === "ArrowRight") nextSlide();
         if(event.key === "ArrowLeft") prevSlide();
     });
+
+    // Start loading
+    fetchSheetData();
 
 </script>
 
