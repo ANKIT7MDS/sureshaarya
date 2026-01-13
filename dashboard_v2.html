@@ -165,12 +165,12 @@
         }
         .highlight-text { color: var(--accent); }
 
-        /* Right: Photo Thumbnails (Mockup) */
+        /* Right: Photo/Drive Embed */
         .ppt-gallery {
-            flex: 1;
+            flex: 1.5; /* Give more space to the gallery */
             min-width: 300px;
             background: #f5f5f5;
-            padding: 15px;
+            padding: 10px;
             border-radius: 8px;
             display: flex;
             flex-direction: column;
@@ -185,60 +185,29 @@
             justify-content: space-between;
         }
 
-        /* The grid of thumbnails */
-        .thumb-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            grid-template-rows: repeat(2, 1fr);
-            gap: 10px;
+        .drive-embed-frame {
+            width: 100%;
             height: 100%;
-            min-height: 200px;
-        }
-
-        .thumb-item {
-            background-color: #cfd8dc;
+            min-height: 300px;
+            border: 1px solid #ddd;
+            background: white;
             border-radius: 4px;
-            cursor: pointer;
-            position: relative;
-            overflow: hidden;
-            transition: transform 0.2s;
-            background-size: cover;
-            background-position: center;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
+        }
+
+        .fallback-link {
+            text-align: center;
+            margin-top: 8px;
+            font-size: 0.85rem;
+        }
+        .fallback-link a {
+            color: var(--primary);
             text-decoration: none;
-            font-size: 2rem;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
-        }
-
-        /* Colorful placeholders since we don't have real images */
-        .thumb-item:nth-child(1) { background-color: #90caf9; }
-        .thumb-item:nth-child(2) { background-color: #a5d6a7; }
-        .thumb-item:nth-child(3) { background-color: #ef9a9a; }
-        .thumb-item:nth-child(4) { background-color: #b0bec5; }
-
-        .thumb-item:hover {
-            transform: scale(1.02);
-            filter: brightness(0.9);
-        }
-
-        .more-photos-overlay {
-            position: absolute;
-            inset: 0;
-            background: rgba(0,0,0,0.5);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 1rem;
-            font-weight: bold;
+            border-bottom: 1px dashed var(--primary);
         }
 
         @media (max-width: 700px) {
             .ppt-body { flex-direction: column; }
-            .thumb-grid { min-height: 250px; }
+            .drive-embed-frame { min-height: 250px; }
         }
 
     </style>
@@ -309,6 +278,22 @@
             renderSlides();
         }
 
+        // Helper to extract Drive Folder ID
+        function getDriveId(url) {
+            let id = null;
+            if (url.includes('id=')) {
+                id = url.split('id=')[1];
+            } else if (url.includes('/d/')) {
+                id = url.split('/d/')[1];
+            }
+            
+            if (id) {
+                // Remove any extra parameters like &usp=sharing
+                return id.split('&')[0].split('?')[0];
+            }
+            return null;
+        }
+
         function renderSlides() {
             const container = document.getElementById('slides-container');
             const districtVal = document.getElementById('districtFilter').value;
@@ -329,11 +314,13 @@
                 totalVisits++;
                 totalAttendance += (parseInt(item.count) || 0);
 
+                const driveId = getDriveId(item.link);
+                // Attempt to use embedded folder view
+                const embedUrl = driveId ? `https://drive.google.com/embeddedfolderview?id=${driveId}#grid` : item.link;
+
                 const slide = document.createElement('div');
                 slide.className = 'ppt-card';
                 
-                // Note: Thumbnails are simulated placeholders because we cannot fetch direct images from Drive folder links without API.
-                // Clicking any thumbnail opens the Drive folder.
                 slide.innerHTML = `
                     <div class="ppt-header">
                         <div class="ppt-date-badge">📅 ${item.date}</div>
@@ -356,23 +343,21 @@
                             <div class="info-row">
                                 <div class="info-label">विवरण</div>
                                 <div class="info-content" style="font-size: 0.95rem; color: #666;">
-                                    कार्यक्रम का विस्तृत विवरण और अन्य जानकारी के लिए फोटो गैलरी देखें।
+                                    दाईं ओर (Right Side) फोल्डर प्रीव्यू है। अगर लोड न हो, तो नीचे दिए लिंक पर क्लिक करें।
                                 </div>
                             </div>
                         </div>
 
                         <div class="ppt-gallery">
                             <div class="gallery-label">
-                                <span>📷 फोटो गैलरी (Photo Gallery)</span>
-                                <a href="${item.link}" target="_blank" style="font-size: 0.8rem; color: var(--primary);">Drive Link ↗</a>
+                                <span>📷 फोटो एल्बम (Photo Album)</span>
                             </div>
-                            <div class="thumb-grid">
-                                <a href="${item.link}" target="_blank" class="thumb-item" title="फोटो देखें">🖼️</a>
-                                <a href="${item.link}" target="_blank" class="thumb-item" title="फोटो देखें">👥</a>
-                                <a href="${item.link}" target="_blank" class="thumb-item" title="फोटो देखें">🎤</a>
-                                <a href="${item.link}" target="_blank" class="thumb-item" title="और देखें">
-                                    <div class="more-photos-overlay">+10</div>
-                                </a>
+                            
+                            <!-- Embedded Drive Folder View -->
+                            <iframe src="${embedUrl}" class="drive-embed-frame" title="Drive Folder Preview"></iframe>
+                            
+                            <div class="fallback-link">
+                                <a href="${item.link}" target="_blank">🔗 अगर फोटो यहाँ न दिखें, तो यहाँ क्लिक करें (Open Drive)</a>
                             </div>
                         </div>
                     </div>
