@@ -644,18 +644,18 @@
                 const limit = Math.min(photoCount, maxPhotos);
                 for(let i=0; i<limit; i++) {
                     const pid = item.photos[i];
-                    // FIX: Use lh3 direct link for display. No crossorigin.
-                    const url = `https://lh3.googleusercontent.com/d/${pid}=s1000`; 
+                    // FIX: Back to standard direct link which worked reliably for display
+                    const url = `https://lh3.googleusercontent.com/d/${pid}=s1000`;
                     
                     let overlay = '';
                     if(i === 3 && photoCount > 4) {
                         overlay = `<div class="more-overlay">+${photoCount - 3}</div>`;
                     }
                     
-                    // Added onerror to fallback to drive link if lh3 fails
+                    // Simple img tag, removed complex onerror loops
                     photosHtml += `
                     <div class="photo-card" onclick="openLightbox('${url}', '${item.event.replace(/'/g, "")}')">
-                        <img src="${url}" referrerpolicy="no-referrer" onerror="this.src='https://drive.google.com/uc?export=view&id=${pid}'">
+                        <img src="${url}" onerror="this.src='https://placehold.co/400x300?text=Error'">
                         ${overlay}
                     </div>`;
                 }
@@ -704,16 +704,15 @@
         grid.innerHTML = '';
         
         filteredData.forEach((item, index) => {
-            // FIX: Use lh3 direct link for display.
+            // FIX: Back to direct link for Grid
             const thumb = item.photos.length > 0 ? `https://lh3.googleusercontent.com/d/${item.photos[0]}=s500` : 'https://placehold.co/400x300?text=No+Img';
             
             const div = document.createElement('div');
             div.className = 'grid-item';
             div.onclick = () => { switchView('slide'); showSlide(index); };
             
-            // Added onerror fallback
             div.innerHTML = `
-                <img src="${thumb}" class="grid-img" loading="lazy" referrerpolicy="no-referrer" onerror="this.src='https://drive.google.com/uc?export=view&id=${item.photos[0]}'">
+                <img src="${thumb}" class="grid-img" loading="lazy" onerror="this.src='https://placehold.co/400x300?text=Error'">
                 <div class="grid-info">
                     <div class="grid-title">${item.event}</div>
                     <div class="grid-meta">
@@ -817,11 +816,10 @@
     }
 
     // --- HELPER: Fetch Base64 Image (Robust Proxy) ---
-    // Use lh3 via wsrv.nl proxy to get clean CORS-enabled base64 for capturing
+    // Using lh3 via wsrv.nl proxy to get clean CORS-enabled base64 for capturing
+    // This is exclusively for the download functions
     async function getBase64Image(googleDriveId) {
-        // Source URL for proxy
         const originalUrl = `https://lh3.googleusercontent.com/d/${googleDriveId}=s1000`;
-        // Pass it through wsrv.nl proxy which adds correct CORS headers
         const proxyUrl = `https://wsrv.nl/?url=${encodeURIComponent(originalUrl)}&output=jpg`;
         
         try {
