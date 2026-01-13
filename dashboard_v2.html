@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>प्रवास कार्यक्रम – डैशबोर्ड (Sheet Version)</title>
+<title>प्रवास कार्यक्रम – डैशबोर्ड (Smart View)</title>
 <!-- Fix for Favicon 404 -->
 <link rel="icon" href="data:;base64,iVBORw0KGgo=">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;600;700&family=Hind:wght@400;600&display=swap" rel="stylesheet">
@@ -40,7 +40,7 @@ dt { color:#5c6a86; font-weight: 600; font-size: 0.9rem; }
 dd { margin:0; font-weight: 500; font-size: 1rem; color: #333; }
 .highlight-val { color: #e77019; font-weight: 700; font-size: 1.2rem; }
 
-/* Right Side: Drive Embed */
+/* Right Side: Gallery Container */
 .card-gallery { background:#fff; border:1px solid #e8e9ee; border-radius:14px; padding:10px; display: flex; flex-direction: column; }
 .gallery-container { 
     flex-grow: 1; 
@@ -55,13 +55,23 @@ dd { margin:0; font-weight: 500; font-size: 1rem; color: #333; }
     align-items: center;
     flex-direction: column;
 }
-.drive-frame { width: 100%; height: 100%; border: 0; position: absolute; top: 0; left: 0; z-index: 2; background: #fff; }
 
+/* 1. Iframe for Folders */
+.drive-frame { width: 100%; height: 100%; border: 0; position: absolute; top: 0; left: 0; z-index: 1; background: #fff; display: none; }
+.drive-frame.active { display: block; }
+
+/* 2. Direct Image for Files */
+.direct-img { max-width: 100%; max-height: 400px; object-fit: contain; z-index: 2; display: none; border-radius: 4px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+.direct-img.active { display: block; }
+
+/* 3. Placeholder */
 .placeholder-content {
     text-align: center;
     color: #888;
-    z-index: 1;
+    z-index: 0;
     padding: 20px;
+    position: absolute;
+    width: 100%;
 }
 .placeholder-icon { font-size: 40px; margin-bottom: 10px; display: block; opacity: 0.5; }
 
@@ -81,6 +91,21 @@ dd { margin:0; font-weight: 500; font-size: 1rem; color: #333; }
     border: 2px solid #e77019; 
 }
 .fallback-btn:hover { background: #fff; color: #e77019; transform: translateY(-2px); }
+
+/* Multiple Photos Grid (If user adds comma separated links) */
+.multi-photo-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 5px;
+    width: 100%;
+    height: 100%;
+    overflow-y: auto;
+    display: none;
+    z-index: 3;
+    background: #fff;
+}
+.multi-photo-grid.active { display: grid; }
+.grid-img { width: 100%; height: 150px; object-fit: cover; border-radius: 4px; cursor: pointer; }
 
 /* Status Bar */
 .status-bar { font-size: 0.9rem; color: #666; margin-top: 5px; display: flex; gap: 15px; }
@@ -173,40 +198,23 @@ dd { margin:0; font-weight: 500; font-size: 1rem; color: #333; }
         
         for (let i = 0; i < text.length; i++) {
             const char = text[i];
-            const nextChar = text[i + 1];
             
             if (inQuotes) {
-                if (char === '"' && nextChar === '"') {
-                    currentCell += '"';
-                    i++;
-                } else if (char === '"') {
-                    inQuotes = false;
-                } else {
-                    currentCell += char;
-                }
+                if (char === '"' && text[i+1] === '"') { currentCell += '"'; i++; }
+                else if (char === '"') { inQuotes = false; }
+                else { currentCell += char; }
             } else {
-                if (char === '"') {
-                    inQuotes = true;
-                } else if (char === ',') {
+                if (char === '"') { inQuotes = true; }
+                else if (char === ',') { currentRow.push(currentCell.trim()); currentCell = ""; }
+                else if (char === '\n' || char === '\r') {
                     currentRow.push(currentCell.trim());
-                    currentCell = "";
-                } else if (char === '\n' || char === '\r') {
-                    currentRow.push(currentCell.trim());
-                    if (currentRow.length > 0 && (currentRow.length > 1 || currentRow[0] !== "")) {
-                        rows.push(currentRow);
-                    }
-                    currentRow = [];
-                    currentCell = "";
-                    if (char === '\r' && nextChar === '\n') i++;
-                } else {
-                    currentCell += char;
+                    if (currentRow.length > 0) rows.push(currentRow);
+                    currentRow = []; currentCell = "";
                 }
+                else { currentCell += char; }
             }
         }
-        if (currentCell || currentRow.length > 0) {
-            currentRow.push(currentCell.trim());
-            rows.push(currentRow);
-        }
+        if (currentCell || currentRow.length > 0) { currentRow.push(currentCell.trim()); rows.push(currentRow); }
         return rows;
     }
 
@@ -214,11 +222,9 @@ dd { margin:0; font-weight: 500; font-size: 1rem; color: #333; }
     async function fetchData() {
         try {
             statusEl.textContent = "Fetching...";
-            // Try direct fetch first
             let response = await fetch(GVIZ_URL);
             
             if (!response.ok) {
-                // Fallback to proxy if direct fetch fails (CORS)
                 console.log("Direct fetch failed, trying proxy...");
                 response = await fetch(PROXY_URL);
             }
@@ -227,7 +233,6 @@ dd { margin:0; font-weight: 500; font-size: 1rem; color: #333; }
             
             const text = await response.text();
             
-            // Google sometimes returns HTML error pages with 200 OK via proxy
             if(text.trim().startsWith("<!DOCTYPE html") || text.includes("404")) {
                  throw new Error("Sheet Not Found or Access Denied");
             }
@@ -238,13 +243,9 @@ dd { margin:0; font-weight: 500; font-size: 1rem; color: #333; }
                 throw new Error("Sheet is empty or has no data rows");
             }
 
-            // Map Headers to Keys
-            // Expected headers roughly: Date, District, Title, Count, Guest, Link
-            // We will look for keywords in the header row (row 0)
             const headers = rows[0].map(h => h.toLowerCase());
             const dataRows = rows.slice(1);
 
-            // Helper to find index by keywords
             const findIdx = (keywords) => headers.findIndex(h => keywords.some(k => h.includes(k)));
 
             const idxDate = findIdx(['date', 'दिनांक', 'तारीख', 'कब']);
@@ -261,7 +262,7 @@ dd { margin:0; font-weight: 500; font-size: 1rem; color: #333; }
                 count: row[idxCount] || row[3] || "0",
                 guests: row[idxGuest] || row[4] || "-",
                 link: row[idxLink] || row[5] || ""
-            })).filter(item => item.title && item.date); // Basic validation
+            })).filter(item => item.title && item.date);
 
             initUI();
             
@@ -271,33 +272,19 @@ dd { margin:0; font-weight: 500; font-size: 1rem; color: #333; }
                 <div style="text-align:center; padding:40px; color:#d32f2f;">
                     <h2>⚠️ डेटा लोड नहीं हो सका</h2>
                     <p>${error.message}</p>
-                    <div style="margin-top:20px; text-align:left; display:inline-block; background:#fff; padding:20px; border:1px solid #ddd; border-radius:8px;">
-                        <strong>यह चेक करें:</strong>
-                        <ol>
-                            <li>अपनी Google Sheet खोलें।</li>
-                            <li><strong>File > Share > Publish to web</strong> पर क्लिक करें।</li>
-                            <li><strong>Link</strong> टैब में <strong>'Entire Document'</strong> और <strong>'Comma-separated values (.csv)'</strong> चुनें।</li>
-                            <li><strong>Publish</strong> बटन दबाएं।</li>
-                        </ol>
-                    </div>
+                    <p>कृपया सुनिश्चित करें कि Sheet "Public" है।</p>
                 </div>
             `;
             statusEl.textContent = "Error";
         }
     }
 
-    // --- ROBUST ID EXTRACTOR (CLEANER) ---
+    // --- ID EXTRACTOR ---
     function getDriveId(rawUrl) {
         if (!rawUrl) return null;
-        
-        // This regex looks for specific Drive ID patterns (alphanumeric + underscore/dash, usually 25+ chars)
-        // It ignores everything else around it.
         const idRegex = /[-\w]{25,}/;
         const match = rawUrl.match(idRegex);
-        
-        if (match && match[0]) {
-            // Filter out common false positives if any (like "drive.google.com" matched as ID)
-            if (match[0].includes('google') || match[0].includes('http')) return null;
+        if (match && match[0] && !match[0].includes('google') && !match[0].includes('http')) {
             return match[0];
         }
         return null;
@@ -308,17 +295,23 @@ dd { margin:0; font-weight: 500; font-size: 1rem; color: #333; }
         if (!filtered.length) {
             pageEl.innerHTML = `<div style="text-align:center; padding:50px; color:#666;">कोई रिकॉर्ड नहीं मिला।</div>`;
             statusEl.textContent = "0 / 0";
-            prevBtn.disabled = nextBtn.disabled = true;
             return;
         }
 
         const item = filtered[idx];
-        const driveId = getDriveId(item.link);
-        const embedUrl = driveId ? `https://drive.google.com/embeddedfolderview?id=${driveId}#grid` : "";
         
-        // Extract a clean link for the fallback button (grab the first http part)
-        const cleanLinkMatch = item.link.match(/https?:\/\/[^\s,]+/);
-        const cleanLink = cleanLinkMatch ? cleanLinkMatch[0] : item.link;
+        // Split links if multiple (comma separated)
+        const links = item.link.split(/[\n,]/).map(l => l.trim()).filter(Boolean);
+        const firstLink = links[0] || "";
+        const driveId = getDriveId(firstLink);
+        
+        // URLs
+        const folderUrl = driveId ? `https://drive.google.com/embeddedfolderview?id=${driveId}#grid` : "";
+        const imgUrl = driveId ? `https://drive.google.com/thumbnail?id=${driveId}&sz=w800` : "";
+
+        // Extract clean link for fallback
+        const cleanLinkMatch = firstLink.match(/https?:\/\/[^\s,]+/);
+        const cleanLink = cleanLinkMatch ? cleanLinkMatch[0] : firstLink;
 
         pageEl.innerHTML = `
             <div class="header">
@@ -354,30 +347,53 @@ dd { margin:0; font-weight: 500; font-size: 1rem; color: #333; }
                 </div>
 
                 <div class="card-gallery">
-                    <h3 class="section-title" style="border-left-color: #1f3b73; margin-bottom:10px;">फोटो एल्बम (Folder View)</h3>
+                    <h3 class="section-title" style="border-left-color: #1f3b73; margin-bottom:10px;">फोटो एल्बम</h3>
                     <div class="gallery-container">
-                        ${driveId ? 
-                          `<iframe src="${embedUrl}" class="drive-frame" title="Photo Gallery" loading="eager" allowfullscreen="true" referrerpolicy="no-referrer"></iframe>` 
-                          : ''
-                        }
                         
-                        <!-- Placeholder behind the iframe -->
+                        <!-- 1. Try Direct Image (If file) -->
+                        <img id="directImg" src="${imgUrl}" class="direct-img" alt="Direct View" onerror="this.style.display='none'; document.getElementById('folderFrame').classList.add('active');">
+                        
+                        <!-- 2. Fallback to Iframe (If folder) -->
+                        <iframe id="folderFrame" src="${folderUrl}" class="drive-frame" title="Photo Gallery" allowfullscreen="true" referrerpolicy="no-referrer"></iframe>
+                        
+                        <!-- 3. Multiple Photos Grid (If multiple links detected) -->
+                        ${links.length > 1 ? `<div class="multi-photo-grid active">${links.map(l => {
+                            const did = getDriveId(l);
+                            return did ? `<img src="https://drive.google.com/thumbnail?id=${did}&sz=w400" class="grid-img" onclick="window.open('${l}','_blank')">` : '';
+                        }).join('')}</div>` : ''}
+
+                        <!-- Placeholder behind -->
                         <div class="placeholder-content">
                             <span class="placeholder-icon">📁</span>
-                            <p>फोल्डर प्रीव्यू लोड नहीं हो पा रहा है</p>
-                            <small>Google Security के कारण कभी-कभी फोल्डर व्यू ब्लॉक हो जाता है।</small>
+                            <p>लोड हो रहा है...</p>
                         </div>
                     </div>
                     
                     <div class="fallback-link">
                         <a href="${cleanLink}" target="_blank" class="fallback-btn">📂 फोटो गैलरी खोलें (Open Gallery)</a>
-                        <div style="margin-top:10px; color:#d9534f; font-size:0.8rem; font-weight:600;">
-                            नोट: अगर बॉक्स खाली है, तो फोल्डर को "Anyone with the link" करें।
+                        <div style="margin-top:10px; color:#666; font-size:0.8rem;">
+                            (Tip: Sheet में एक से ज्यादा फोटो लिंक डालने पर यहां गैलरी बनेगी)
                         </div>
                     </div>
                 </div>
             </div>
         `;
+        
+        // Smart Toggle Logic: 
+        // We initially assume it MIGHT be an image and try to load it in #directImg
+        // If #directImg fails (onError), we hide it and show #folderFrame
+        // If multiple links exist, we show grid instead.
+
+        if (links.length > 1) {
+            // Priority to Grid
+            document.getElementById('directImg').style.display = 'none';
+            document.getElementById('folderFrame').classList.remove('active');
+        } else {
+            // Try single image first
+            const img = document.getElementById('directImg');
+            img.style.display = 'block'; // Start visible
+            // Note: If it fails, the inline onerror handler switches to iframe
+        }
 
         // Update Controls
         prevBtn.disabled = (idx === 0);
