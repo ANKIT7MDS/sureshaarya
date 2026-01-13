@@ -332,10 +332,6 @@ dd { margin:0; font-weight: 500; font-size: 1rem; color: #333; }
         const imgUrl = driveId ? `https://drive.google.com/thumbnail?id=${driveId}&sz=w800` : "";
         const cleanLink = firstLink.match(/https?:\/\/[^\s,]+/)?.[0] || firstLink;
 
-        // Smart Check: If link says 'folder' or 'open?id', assume folder (iframe)
-        // If link says 'file/d/' or ends in jpg/png, assume file (img)
-        let isLikelyFolder = firstLink.includes('folder') || firstLink.includes('open?id');
-        
         pageEl.innerHTML = `
             <div class="header">
                 <div class="logo">Visit</div>
@@ -382,21 +378,18 @@ dd { margin:0; font-weight: 500; font-size: 1rem; color: #333; }
             </div>
         `;
         
-        // Logic to switch view
+        // Always try to show the image first!
         const imgEl = document.getElementById('directImg');
         const frameEl = document.getElementById('folderFrame');
 
         if (links.length > 1) {
-            // Grid mode for multiple links
+            // If multiple links, show grid
             imgEl.style.display = 'none';
             frameEl.classList.remove('active');
-        } else if (isLikelyFolder) {
-            // Force Iframe for folders immediately (don't wait for img error)
-            imgEl.style.display = 'none';
-            frameEl.classList.add('active');
         } else {
-            // Try Image first
+            // Default to trying image. If it fails, onerror will switch to iframe.
             imgEl.style.display = 'block';
+            frameEl.classList.remove('active');
         }
 
         prevBtn.disabled = (idx === 0);
