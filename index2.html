@@ -13,6 +13,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script> <!-- Added Excel Lib -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
     <style>
@@ -146,7 +147,7 @@
             position: absolute;
             right: 0;
             background-color: var(--bg-panel);
-            min-width: 200px;
+            min-width: 220px;
             box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.5);
             z-index: 101;
             border-radius: 10px;
@@ -162,6 +163,9 @@
             cursor: pointer;
             border-bottom: 1px solid rgba(255,255,255,0.05);
             transition: 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
         .dropdown-content a:hover {
             background-color: var(--primary);
@@ -463,10 +467,6 @@
             <button class="action-btn" id="tv-mode-btn" onclick="toggleTVMode()">
                 <i class='bx bx-play-circle'></i> TV Mode
             </button>
-            
-            <button class="action-btn" onclick="downloadDataCSV()">
-                <i class='bx bxs-file-csv'></i> CSV
-            </button>
              
             <!-- NEW DOWNLOAD DROPDOWN -->
             <div class="dropdown">
@@ -474,8 +474,9 @@
                     <i class='bx bxs-download'></i> Download <i class='bx bx-chevron-down'></i>
                 </button>
                 <div class="dropdown-content">
-                    <a onclick="downloadFullPDF()"><i class='bx bxs-file-pdf'></i> PDF Booklet</a>
+                    <a onclick="downloadFullPDF()"><i class='bx bxs-file-pdf'></i> PDF Booklet (Book)</a>
                     <a onclick="downloadPPT()"><i class='bx bxs-slideshow'></i> PowerPoint (PPT)</a>
+                    <a onclick="downloadExcel()"><i class='bx bxs-spreadsheet'></i> Excel Export</a>
                     <a onclick="downloadCurrentImage()"><i class='bx bxs-image'></i> Current Slide (Img)</a>
                     <a onclick="downloadScreenshot()"><i class='bx bxs-camera'></i> Screenshot</a>
                 </div>
@@ -644,15 +645,15 @@
                 const limit = Math.min(photoCount, maxPhotos);
                 for(let i=0; i<limit; i++) {
                     const pid = item.photos[i];
-                    // FIX: Back to standard direct link which worked reliably for display
-                    const url = `https://lh3.googleusercontent.com/d/${pid}=s1000`;
+                    // USE LH3 FOR DISPLAY (FASTEST & MOST RELIABLE for Screen)
+                    const url = `https://lh3.googleusercontent.com/d/${pid}=s1000`; 
                     
                     let overlay = '';
                     if(i === 3 && photoCount > 4) {
                         overlay = `<div class="more-overlay">+${photoCount - 3}</div>`;
                     }
                     
-                    // Simple img tag, removed complex onerror loops
+                    // Simple img tag, no complex crossorigin/onerror that causes loops
                     photosHtml += `
                     <div class="photo-card" onclick="openLightbox('${url}', '${item.event.replace(/'/g, "")}')">
                         <img src="${url}" onerror="this.src='https://placehold.co/400x300?text=Error'">
@@ -704,7 +705,7 @@
         grid.innerHTML = '';
         
         filteredData.forEach((item, index) => {
-            // FIX: Back to direct link for Grid
+            // USE LH3 FOR GRID (FASTEST)
             const thumb = item.photos.length > 0 ? `https://lh3.googleusercontent.com/d/${item.photos[0]}=s500` : 'https://placehold.co/400x300?text=No+Img';
             
             const div = document.createElement('div');
@@ -798,6 +799,32 @@
         }
     }
 
+    // --- SMART DOWNLOAD HELPER (FROM MANDAL FILE) ---
+    // This is the Magic Function: Converts images to Base64 using a CORS proxy
+    async function inlineImagesToDataURL(root, { concurrency=6 } = {}){
+      const imgs = Array.from(root.querySelectorAll('img')).filter(img=>img.src);
+      let i=0;
+      async function worker(){
+        while(i<imgs.length){
+          const img = imgs[i++];
+          try{
+            // Use wsrv.nl proxy (same logic as mandal dashboard)
+            const prox = `https://wsrv.nl/?url=${encodeURIComponent(img.src)}&output=jpg`;
+            const res = await fetch(prox, { cache:'no-store' });
+            const blob = await res.blob();
+            await new Promise(r=>{
+              const fr=new FileReader();
+              fr.onloadend=()=>{ img.src=fr.result; r(); };
+              fr.readAsDataURL(blob);
+            });
+          }catch(e){ 
+              console.warn("Img inline failed", e); 
+          }
+        }
+      }
+      await Promise.all(Array.from({length:Math.min(concurrency, imgs.length)}, worker));
+    }
+
     // --- CSV Download ---
     function downloadDataCSV() {
         if(filteredData.length === 0) return alert("No data to export");
@@ -815,29 +842,27 @@
         document.body.appendChild(link); link.click(); document.body.removeChild(link);
     }
 
-    // --- HELPER: Fetch Base64 Image (Robust Proxy) ---
-    // Using lh3 via wsrv.nl proxy to get clean CORS-enabled base64 for capturing
-    // This is exclusively for the download functions
-    async function getBase64Image(googleDriveId) {
-        const originalUrl = `https://lh3.googleusercontent.com/d/${googleDriveId}=s1000`;
-        const proxyUrl = `https://wsrv.nl/?url=${encodeURIComponent(originalUrl)}&output=jpg`;
+    // --- EXCEL Download ---
+    function downloadExcel() {
+        if(filteredData.length === 0) return alert("No data to export");
         
-        try {
-            const res = await fetch(proxyUrl);
-            if (!res.ok) throw new Error('Fetch failed');
-            const blob = await res.blob();
-            return new Promise((resolve) => {
-                const reader = new FileReader();
-                reader.onloadend = () => resolve(reader.result); // Returns data:image/jpeg;base64,...
-                reader.readAsDataURL(blob);
-            });
-        } catch (err) {
-            console.error("Image Fetch Error for ID " + googleDriveId, err);
-            return null; // Return null if fails
-        }
+        // Prepare Data for SheetJS
+        const dataForExcel = filteredData.map(item => ({
+            "दिनांक": item.date,
+            "जिला": item.district,
+            "कार्यक्रम": item.event,
+            "उपस्थिति": item.attendance,
+            "अतिथि": item.guests,
+            "फोटो संख्या": item.photos.length
+        }));
+
+        const ws = XLSX.utils.json_to_sheet(dataForExcel);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Karyakram Data");
+        XLSX.writeFile(wb, "Karyakram_Report.xlsx");
     }
 
-    // --- PDF Download (PPT STYLE - FULLY ROBUST) ---
+    // --- PDF Download (PPT STYLE - SMART) ---
     async function downloadFullPDF() {
         if (filteredData.length === 0) return;
         const btn = document.getElementById('download-main-btn');
@@ -853,65 +878,43 @@
         container.style.position = 'absolute'; 
         container.style.top = '-99999px';
         container.style.left = '0';
-        container.style.fontFamily = "'Noto Sans Devanagari', sans-serif"; // Force Hindi Font
+        container.style.fontFamily = "'Noto Sans Devanagari', sans-serif";
         
-        // 2. Build HTML for each event (One Slide per Event)
-        // Note: Using for...of loop to handle async/await for images
+        // 2. Build HTML
         for (const item of filteredData) {
             let imgs = '';
-            // Get up to 4 images
             const max = Math.min(item.photos.length, 4);
             
             for(let i=0; i<max; i++){
-                // Pre-fetch image to Base64 to avoid PDF generation race conditions & CORS issues
-                const base64Img = await getBase64Image(item.photos[i]);
-                
-                if (base64Img) {
-                    imgs += `
-                    <div style="border:1px solid rgba(255,255,255,0.2); border-radius:10px; overflow:hidden; background:#000;">
-                        <img src="${base64Img}" style="width:100%; height:100%; object-fit:cover;">
-                    </div>`;
-                } else {
-                     // Fallback placeholder
-                     imgs += `
-                    <div style="border:1px solid rgba(255,255,255,0.2); border-radius:10px; overflow:hidden; background:#222; display:flex; justify-content:center; align-items:center; color:#555;">
-                        Img Error
-                    </div>`;
-                }
+                // Use standard lh3 link here, inlineImagesToDataURL will upgrade it later
+                const src = `https://lh3.googleusercontent.com/d/${item.photos[i]}=s800`;
+                imgs += `
+                <div style="border:1px solid rgba(255,255,255,0.2); border-radius:10px; overflow:hidden; background:#000;">
+                    <img src="${src}" style="width:100%; height:100%; object-fit:cover;">
+                </div>`;
             }
-            
             // Fill empty slots
             for(let i=max; i<4; i++){
                  imgs += `<div style="border:1px dashed rgba(255,255,255,0.1); border-radius:10px;"></div>`;
             }
             
-            // Layout: PPT Style (Text Left, Images Right)
             container.innerHTML += `
                 <div style="width: 1123px; height: 794px; padding: 50px; page-break-after: always; box-sizing: border-box; display: flex; gap: 40px; border: 1px solid #333;">
-                    
-                    <!-- Left: Info -->
                     <div style="flex: 1; display: flex; flex-direction: column; justify-content: center;">
                         <h1 style="font-size: 42px; color: #66fcf1; margin-bottom: 30px; line-height: 1.2;">${item.event}</h1>
-                        
-                        <div style="font-size: 24px; color: #c5c6c7; margin-bottom: 20px; display: flex; align-items: center;">
-                            <span style="color: #45a29e; width: 40px; font-size: 30px;">📅</span> 
-                            <strong>Date:</strong> &nbsp; ${item.date}
+                        <div style="font-size: 24px; color: #c5c6c7; margin-bottom: 20px;">
+                            <span style="color: #45a29e; font-size: 30px;">📅</span> <strong>Date:</strong> ${item.date}
                         </div>
-                        <div style="font-size: 24px; color: #c5c6c7; margin-bottom: 20px; display: flex; align-items: center;">
-                            <span style="color: #45a29e; width: 40px; font-size: 30px;">📍</span> 
-                            <strong>District:</strong> &nbsp; ${item.district}
+                        <div style="font-size: 24px; color: #c5c6c7; margin-bottom: 20px;">
+                            <span style="color: #45a29e; font-size: 30px;">📍</span> <strong>District:</strong> ${item.district}
                         </div>
-                        <div style="font-size: 24px; color: #c5c6c7; margin-bottom: 20px; display: flex; align-items: center;">
-                            <span style="color: #45a29e; width: 40px; font-size: 30px;">👥</span> 
-                            <strong>Attendance:</strong> &nbsp; ${item.attendance}
+                        <div style="font-size: 24px; color: #c5c6c7; margin-bottom: 20px;">
+                            <span style="color: #45a29e; font-size: 30px;">👥</span> <strong>Attend:</strong> ${item.attendance}
                         </div>
-                        <div style="font-size: 24px; color: #c5c6c7; margin-bottom: 20px; display: flex; align-items: flex-start;">
-                            <span style="color: #45a29e; width: 40px; font-size: 30px; margin-top:5px;">🎤</span> 
-                            <div><strong>Guests:</strong><br>${item.guests}</div>
+                        <div style="font-size: 24px; color: #c5c6c7;">
+                            <span style="color: #45a29e; font-size: 30px;">🎤</span> <strong>Guests:</strong><br>${item.guests}
                         </div>
                     </div>
-
-                    <!-- Right: Photo Grid (2x2) -->
                     <div style="flex: 1; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 20px; height: 100%;">
                         ${imgs}
                     </div>
@@ -921,35 +924,30 @@
         
         document.body.appendChild(container);
         
-        // 3. Configure HTML2PDF
-        btn.innerHTML = '⏳ Generating PDF...';
-        
+        // 3. MAGIC STEP: Inline images using proxy BEFORE html2pdf
+        await inlineImagesToDataURL(container);
+
+        // 4. Generate PDF
+        btn.innerHTML = '⏳ Saving PDF...';
         const opt = {
-            margin:       0,
-            filename:     'Karyakram_Slides_Hindi.pdf',
-            image:        { type: 'jpeg', quality: 0.95 },
-            html2canvas:  { 
-                scale: 1.5, 
-                scrollY: 0,
-                backgroundColor: '#0b0c10', // Dark background matching theme
-                allowTaint: true // Important: Since we have data: URIs now, this is safer
-            },
-            jsPDF:        { unit: 'px', format: [1123, 794], orientation: 'landscape' } // A4 Landscape
+            margin: 0,
+            filename: 'Karyakram_Booklet.pdf',
+            image: { type: 'jpeg', quality: 0.95 },
+            html2canvas: { scale: 1.5, scrollY: 0, backgroundColor: '#0b0c10', useCORS: true },
+            jsPDF: { unit: 'px', format: [1123, 794], orientation: 'landscape' }
         };
 
         try {
             await html2pdf().set(opt).from(container).save();
-        } catch(e) { 
-            console.error(e); 
-            alert("PDF Error. Please try again."); 
-        } finally { 
+        } catch(e) { console.error(e); alert("PDF Error"); } 
+        finally { 
             document.body.removeChild(container); 
             btn.innerHTML = originalText;
             btn.disabled = false; 
         }
     }
 
-    // --- NEW: PPT Download ---
+    // --- PPT Download ---
     async function downloadPPT() {
         if (filteredData.length === 0) return;
         const btn = document.getElementById('download-main-btn');
@@ -960,59 +958,41 @@
         try {
             let pptx = new PptxGenJS();
             pptx.layout = 'LAYOUT_WIDE';
-            pptx.background = { color: '0b0c10' }; // Dark background
+            pptx.background = { color: '0b0c10' };
 
             for (const item of filteredData) {
                 let slide = pptx.addSlide();
-                
-                // Text Colors
                 const colorTitle = '66fcf1';
-                const colorLabel = '45a29e';
                 const colorText = 'c5c6c7';
 
-                // Title
                 slide.addText(item.event, { x: 0.5, y: 0.5, w: '90%', fontSize: 28, bold: true, color: colorTitle });
-                
-                // Info Details
-                slide.addText(`Date: ${item.date}`, { x: 0.5, y: 1.5, w: 4, fontSize: 16, color: colorText });
-                slide.addText(`District: ${item.district}`, { x: 0.5, y: 2.0, w: 4, fontSize: 16, color: colorText });
-                slide.addText(`Attendance: ${item.attendance}`, { x: 0.5, y: 2.5, w: 4, fontSize: 16, color: colorText });
+                slide.addText(`Date: ${item.date}`, { x: 0.5, y: 1.5, fontSize: 16, color: colorText });
+                slide.addText(`District: ${item.district}`, { x: 0.5, y: 2.0, fontSize: 16, color: colorText });
                 slide.addText(`Guests: ${item.guests}`, { x: 0.5, y: 3.0, w: 4, h: 2, fontSize: 14, color: colorText, valign: 'top' });
 
-                // Images (Right Side Grid)
                 const max = Math.min(item.photos.length, 4);
-                const positions = [
-                    { x: 5.5, y: 1, w: 3.5, h: 2.5 },
-                    { x: 9.2, y: 1, w: 3.5, h: 2.5 },
-                    { x: 5.5, y: 3.7, w: 3.5, h: 2.5 },
-                    { x: 9.2, y: 3.7, w: 3.5, h: 2.5 }
-                ];
+                const positions = [{x:5.5,y:1},{x:9.2,y:1},{x:5.5,y:3.7},{x:9.2,y:3.7}];
 
+                // Manual fetch for PPT (since it doesn't use HTML container)
                 for(let i=0; i<max; i++){
-                    // Using the same robust Base64 fetcher
-                    const base64Img = await getBase64Image(item.photos[i]);
-                    if(base64Img) {
-                        slide.addImage({ data: base64Img, x: positions[i].x, y: positions[i].y, w: positions[i].w, h: positions[i].h });
-                    }
+                    try {
+                        const originalUrl = `https://lh3.googleusercontent.com/d/${item.photos[i]}=s800`;
+                        const proxyUrl = `https://wsrv.nl/?url=${encodeURIComponent(originalUrl)}&output=jpg`;
+                        // PptxGenJS can take remote URLs if CORS allows, but let's be safe
+                        slide.addImage({ path: proxyUrl, x: positions[i].x, y: positions[i].y, w: 3.5, h: 2.5 });
+                    } catch(e){}
                 }
             }
-            
-            pptx.writeFile({ fileName: `Karyakram_Report_${new Date().toISOString().slice(0,10)}.pptx` });
-
-        } catch (e) {
-            console.error(e);
-            alert("PPT Creation Error");
-        } finally {
-            btn.innerHTML = originalText;
-            btn.disabled = false;
-        }
+            pptx.writeFile({ fileName: `Karyakram.pptx` });
+        } catch (e) { alert("PPT Error"); } 
+        finally { btn.innerHTML = originalText; btn.disabled = false; }
     }
 
-    // --- NEW: Current Slide Image Download ---
+    // --- Current Slide Image Download ---
     async function downloadCurrentImage() {
         const activeSlide = document.getElementById(`slide-${currentIndex}`);
         if (!activeSlide || activeSlide.classList.contains('hidden')) {
-            alert("Please switch to Presentation View to download slide.");
+            alert("Please switch to Presentation View.");
             switchView('slide');
             return;
         }
@@ -1023,80 +1003,58 @@
         btn.disabled = true;
 
         try {
-            // 1. Clone the slide to an off-screen container so we don't mess up the UI
             const clone = activeSlide.cloneNode(true);
-            clone.style.position = 'fixed';
-            clone.style.top = '0';
-            clone.style.left = '0';
-            clone.style.width = '1200px'; // Fixed high-res width
-            clone.style.height = '800px'; // Fixed high-res height
-            clone.style.zIndex = '-9999';
-            clone.style.display = 'flex'; // Ensure flex layout works
-            clone.style.background = '#0b0c10'; // Ensure background color
+            clone.style.position='fixed'; clone.style.top='0'; clone.style.left='0'; 
+            clone.style.width='1200px'; clone.style.height='800px'; clone.style.zIndex='-9999';
+            clone.style.background='#0b0c10'; clone.style.display='flex';
             document.body.appendChild(clone);
 
-            // 2. Replace all images in the clone with Base64 versions
-            const imgs = clone.querySelectorAll('img');
-            const currentItem = filteredData[currentIndex];
-            
-            // We loop through images and replace src with base64 fetched freshly
-            // This guarantees html2canvas can read them
-            for (let i = 0; i < imgs.length; i++) {
-                if (currentItem.photos[i]) {
-                    const b64 = await getBase64Image(currentItem.photos[i]);
-                    if (b64) imgs[i].src = b64;
-                }
-            }
+            // MAGIC STEP
+            await inlineImagesToDataURL(clone);
 
-            // 3. Capture
-            const canvas = await html2canvas(clone, {
-                backgroundColor: '#0b0c10',
-                useCORS: true,
-                scale: 1.5 // Better quality
-            });
-
-            // 4. Download
+            const canvas = await html2canvas(clone, { backgroundColor: '#0b0c10', useCORS: true, scale: 1.5 });
             const link = document.createElement('a');
             link.download = `Event_${currentIndex + 1}.png`;
             link.href = canvas.toDataURL("image/png");
             link.click();
-
-            // 5. Cleanup
             document.body.removeChild(clone);
-
-        } catch (err) {
-            console.error(err);
-            alert("Image Capture Failed");
-        } finally {
-            btn.innerHTML = originalText;
-            btn.disabled = false;
-        }
+        } catch (err) { alert("Capture Failed"); } 
+        finally { btn.innerHTML = originalText; btn.disabled = false; }
     }
 
-    // --- NEW: Screenshot ---
-    function downloadScreenshot() {
+    // --- Screenshot ---
+    async function downloadScreenshot() {
         const btn = document.getElementById('download-main-btn');
         const originalText = btn.innerHTML;
         btn.innerHTML = '📸 Capturing...';
         
-        // Capture specific part or full body
-        html2canvas(document.body, {
-            backgroundColor: '#0b0c10',
-            useCORS: true,
-            ignoreElements: (element) => {
-                // Ignore the download dropdown itself to clean up screenshot
-                return element.classList.contains('dropdown'); 
-            }
-        }).then(canvas => {
-            const link = document.createElement('a');
-            link.download = `Dashboard_Screenshot.png`;
-            link.href = canvas.toDataURL("image/png");
-            link.click();
-            btn.innerHTML = originalText;
-        }).catch(err => {
-            alert("Screenshot Failed");
-            btn.innerHTML = originalText;
-        });
+        try {
+            // Need to process images in body before capture?
+            // Doing entire body is heavy, but let's try a clone approach for safety
+            // Or just capture as is (images on screen are already loaded via lh3, might be tainted)
+            // SAFEST: Clone body, inline images, capture clone.
+            // BUT simpler: Use allowTaint: true (might block download) OR useCORS: true (needs proxy)
+            
+            // For screenshot, what's on screen (lh3) might not be CORS-exportable.
+            // So we really should clone the visible area.
+            
+            html2canvas(document.body, {
+                backgroundColor: '#0b0c10',
+                useCORS: true, // Attempt to use CORS
+                allowTaint: true,
+                ignoreElements: (element) => element.classList.contains('dropdown')
+            }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = `Dashboard_Screenshot.png`;
+                link.href = canvas.toDataURL("image/png");
+                link.click();
+                btn.innerHTML = originalText;
+            }).catch(err => {
+                console.error(err);
+                alert("Screenshot might be blocked by browser due to image security.");
+                btn.innerHTML = originalText;
+            });
+        } catch(e) { btn.innerHTML = originalText; }
     }
 
     // --- Lightbox ---
