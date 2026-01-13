@@ -46,6 +46,44 @@
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
+        /* Lightbox (Modal) for viewing images */
+        .lightbox {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 5000;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            backdrop-filter: blur(5px);
+        }
+        .lightbox img {
+            max-width: 90%;
+            max-height: 85%;
+            border-radius: 8px;
+            box-shadow: 0 0 30px rgba(102, 252, 241, 0.2);
+            border: 2px solid #333;
+        }
+        .lightbox-close {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            color: #fff;
+            font-size: 40px;
+            cursor: pointer;
+            transition: color 0.3s;
+        }
+        .lightbox-close:hover { color: #66fcf1; }
+        .lightbox-caption {
+            margin-top: 15px;
+            color: #ccc;
+            font-size: 16px;
+        }
+
         /* Search / Filter Bar */
         .top-bar {
             position: fixed;
@@ -111,7 +149,6 @@
             backdrop-filter: blur(10px);
         }
         
-        /* Decorative Top Border */
         .info-panel::after {
             content: '';
             position: absolute;
@@ -159,7 +196,7 @@
 
         .label {
             font-weight: 600;
-            color: #66fcf1; /* Teal accent */
+            color: #66fcf1;
             min-width: 100px; 
             text-transform: uppercase;
             font-size: 0.8em;
@@ -186,15 +223,15 @@
             position: relative;
         }
 
-        /* Grid Layout - Fixed 2x2 for 4 items */
+        /* Grid Layout */
         .photo-grid-container {
             display: grid;
-            grid-template-columns: repeat(2, 1fr); /* 2 Columns */
-            grid-template-rows: repeat(2, 1fr);    /* 2 Rows */
+            grid-template-columns: repeat(2, 1fr);
+            grid-template-rows: repeat(2, 1fr);
             gap: 20px;
             width: 100%;
             height: 100%;
-            max-height: 600px; /* Constraint height to keep square-ish look */
+            max-height: 600px;
         }
 
         /* Image Card Styling */
@@ -226,7 +263,6 @@
             transition: opacity 0.3s;
         }
         
-        /* Overlay for +N photos */
         .more-overlay {
             position: absolute;
             top: 0; left: 0; right: 0; bottom: 0;
@@ -294,16 +330,19 @@
         button:hover { background: #66fcf1; color: #0b0c10; transform: scale(1.1); }
         button:active { transform: scale(0.95); }
         
-        /* Specific style for PDF download button */
         .pdf-btn {
             background: #ff4757;
             margin-left: 10px;
+            width: auto;
+            padding: 0 20px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
         }
         .pdf-btn:hover {
             background: #ff6b81;
         }
 
-        /* Message when no results found */
         .no-results {
             position: absolute;
             top: 50%;
@@ -333,6 +372,13 @@
     <div>Loading Data...</div>
 </div>
 
+<!-- Lightbox Modal -->
+<div id="lightbox" class="lightbox">
+    <span class="lightbox-close" onclick="closeLightbox()">&times;</span>
+    <img id="lightbox-img" src="" alt="Full View">
+    <div id="lightbox-caption" class="lightbox-caption"></div>
+</div>
+
 <div class="top-bar">
     <input type="text" id="search-input" class="search-input" placeholder="Search District or Event..." onkeyup="filterSlides()">
 </div>
@@ -345,7 +391,7 @@
     <button onclick="prevSlide()">❮</button>
     <div class="slide-counter"><span id="current-slide">1</span> / <span id="total-slides">0</span></div>
     <button onclick="nextSlide()">❯</button>
-    <button onclick="downloadPDF()" class="pdf-btn" title="Download Slide as PDF">⬇</button>
+    <button onclick="downloadFullPDF()" class="pdf-btn" title="Download Full Report">⬇ All PDF</button>
 </div>
 
 <script>
@@ -353,8 +399,8 @@
     const GID = '1839722438';
     const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&gid=${GID}`;
 
-    let allSlideData = []; // Store all data here
-    let filteredData = []; // Store currently filtered data
+    let allSlideData = [];
+    let filteredData = [];
     let currentIndex = 0;
 
     async function fetchSheetData() {
@@ -392,7 +438,6 @@
                 };
             }).filter(item => item && item.event);
 
-            // Initial load: Filtered data is same as all data
             filteredData = [...allSlideData];
             initSlides();
             document.getElementById('loader').style.display = 'none';
@@ -426,7 +471,6 @@
             slide.id = `slide-${index}`;
             slide.style.display = index === 0 ? 'flex' : 'none';
 
-            // Logic to handle max 4 photos with "More" counter
             let imagesHtml = '';
             let totalPhotos = item.photos.length;
             let displayCount = Math.min(totalPhotos, 4);
@@ -434,18 +478,18 @@
             if (totalPhotos > 0) {
                 for(let i = 0; i < displayCount; i++) {
                     let photoId = item.photos[i];
-                    // Requesting 600px width for better PDF quality
-                    const imgSrc = `https://drive.google.com/thumbnail?id=${photoId}&sz=w600`;
-                    const viewLink = `https://drive.google.com/file/d/${photoId}/view?usp=sharing`;
+                    // Using w800 for better view in lightbox and thumbnail
+                    const imgSrc = `https://drive.google.com/thumbnail?id=${photoId}&sz=w800`;
                     
                     let overlay = '';
                     if (i === 3 && totalPhotos > 4) {
                         const remaining = totalPhotos - 4; 
-                        overlay = `<div class="more-overlay" data-html2canvas-ignore="true">+${totalPhotos - 3}</div>`;
+                        overlay = `<div class="more-overlay">+${totalPhotos - 3}</div>`;
                     }
 
+                    // OnClick now opens Lightbox
                     imagesHtml += `
-                    <div class="photo-card" onclick="window.open('${viewLink}', '_blank')" title="View Photo">
+                    <div class="photo-card" onclick="openLightbox('${imgSrc}', '${item.event.replace(/'/g, "\\'")}')" title="View Zoomed">
                         <img 
                             src="${imgSrc}" 
                             class="photo-thumbnail" 
@@ -457,7 +501,7 @@
                         ${overlay}
                         <div class="img-error" style="display:none;">
                             <span style="font-size:24px;">📷</span>
-                            <p style="font-size:10px; margin-top:5px;">View</p>
+                            <p style="font-size:10px; margin-top:5px;">Error</p>
                         </div>
                     </div>`;
                 }
@@ -510,7 +554,27 @@
         updateCounter(0);
     }
 
-    // Filter Logic
+    // --- Lightbox Functions ---
+    function openLightbox(url, caption) {
+        const lightbox = document.getElementById('lightbox');
+        const img = document.getElementById('lightbox-img');
+        const cap = document.getElementById('lightbox-caption');
+        
+        img.src = url;
+        cap.innerText = caption || '';
+        lightbox.style.display = 'flex';
+    }
+
+    function closeLightbox() {
+        document.getElementById('lightbox').style.display = 'none';
+    }
+
+    // Close lightbox on Escape key
+    document.addEventListener('keydown', function(event) {
+        if(event.key === "Escape") closeLightbox();
+    });
+
+    // --- Filter Logic ---
     function filterSlides() {
         const query = document.getElementById('search-input').value.toLowerCase();
         
@@ -525,43 +589,85 @@
         initSlides();
     }
 
-    // PDF Download Logic
-    function downloadPDF() {
+    // --- PDF Download Logic (FULL REPORT) ---
+    async function downloadFullPDF() {
         if (filteredData.length === 0) return;
 
-        const element = document.getElementById(`slide-${currentIndex}`);
-        
-        // Options for pdf generation
+        const btn = document.querySelector('.pdf-btn');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '⏳ Generating...';
+        btn.disabled = true;
+
+        // Create a temporary container off-screen
+        const pdfContainer = document.createElement('div');
+        pdfContainer.style.width = '1100px'; // Wide enough for landscape
+        pdfContainer.style.position = 'absolute';
+        pdfContainer.style.top = '-10000px';
+        pdfContainer.style.left = '0';
+        pdfContainer.style.background = '#1f2833'; // Keep background color
+        document.body.appendChild(pdfContainer);
+
+        // Generate HTML for ALL slides into this container
+        filteredData.forEach(item => {
+            // Reconstruct HTML for PDF (simpler structure, no interactions)
+            let imagesHtml = '';
+            let totalPhotos = item.photos.length;
+            let displayCount = Math.min(totalPhotos, 4);
+
+            if (totalPhotos > 0) {
+                for(let i = 0; i < displayCount; i++) {
+                    let photoId = item.photos[i];
+                    const imgSrc = `https://drive.google.com/thumbnail?id=${photoId}&sz=w600`;
+                    
+                    // Note: No overlay in PDF usually, just images
+                    imagesHtml += `
+                    <div style="width:100%; height:180px; overflow:hidden; border-radius:8px; border:1px solid #444; background:#000;">
+                        <img src="${imgSrc}" style="width:100%; height:100%; object-fit:cover;" crossorigin="anonymous">
+                    </div>`;
+                }
+            }
+
+            const slideHtml = `
+            <div style="display:flex; flex-direction:row; height:750px; padding:40px; box-sizing:border-box; gap:30px; page-break-after: always; color:#fff; font-family:'Poppins', sans-serif;">
+                <div style="flex:1; padding:30px; background:rgba(31, 40, 51, 0.95); border-radius:15px; border:1px solid #444;">
+                    <h1 style="font-size:24px; color:#fff; border-bottom:1px solid #555; padding-bottom:15px; margin-bottom:20px;">${item.event}</h1>
+                    <p style="margin-bottom:10px; font-size:14px;"><strong style="color:#66fcf1;">दिनांक:</strong> ${item.date}</p>
+                    <p style="margin-bottom:10px; font-size:14px;"><strong style="color:#66fcf1;">जिला:</strong> ${item.district}</p>
+                    <p style="margin-bottom:10px; font-size:14px;"><strong style="color:#66fcf1;">उपस्थिति:</strong> ${item.attendance}</p>
+                    <p style="margin-bottom:10px; font-size:14px;"><strong style="color:#66fcf1;">अतिथि:</strong> ${item.guests}</p>
+                </div>
+                <div style="flex:1; display:grid; grid-template-columns: 1fr 1fr; gap:15px; align-content:start;">
+                    ${imagesHtml}
+                </div>
+            </div>`;
+            
+            pdfContainer.innerHTML += slideHtml;
+        });
+
+        // Generate PDF
         const opt = {
             margin:       [0, 0, 0, 0],
-            filename:     `${filteredData[currentIndex].event.substring(0, 15)}_report.pdf`,
-            image:        { type: 'jpeg', quality: 0.98 },
+            filename:     `Full_Report_${new Date().toLocaleDateString()}.pdf`,
+            image:        { type: 'jpeg', quality: 0.95 },
             html2canvas:  { 
-                scale: 2, 
-                useCORS: true, // Critical for Google Drive images
+                scale: 1.5, 
+                useCORS: true, 
                 allowTaint: true,
-                backgroundColor: '#1f2833' // Match body bg
+                backgroundColor: '#1f2833' 
             },
             jsPDF:        { unit: 'in', format: 'a4', orientation: 'landscape' }
         };
 
-        // Temporary styling change for PDF capture to ensure it looks good
-        const originalDisplay = element.style.display;
-        element.style.display = 'flex'; // Ensure it's visible for capture
-        
-        // Show loading state
-        const btn = document.querySelector('.pdf-btn');
-        const originalText = btn.innerText;
-        btn.innerText = '⏳';
-
-        html2pdf().set(opt).from(element).save().then(() => {
-            btn.innerText = originalText;
-        }).catch(err => {
+        try {
+            await html2pdf().set(opt).from(pdfContainer).save();
+        } catch (err) {
             console.error(err);
-            btn.innerText = '❌';
-            setTimeout(() => btn.innerText = originalText, 2000);
-            alert("Error downloading PDF. Images might be blocked by browser security.");
-        });
+            alert("Error generating PDF. Some images might be blocked.");
+        } finally {
+            document.body.removeChild(pdfContainer);
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
     }
 
     const currentSlideSpan = document.getElementById('current-slide');
