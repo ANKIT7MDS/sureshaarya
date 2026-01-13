@@ -2,240 +2,492 @@
 <html lang="hi">
 <head>
     <meta charset="UTF-8">
-    <title>कार्यक्रम घटनाएँ - लाइव डैशबोर्ड</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Karyakram Presentation</title>
+    <!-- Importing a nice font -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
         body {
-            background-color: #f9f9f9;
-            font-family: Arial, sans-serif;
-            color: #333;
+            font-family: 'Poppins', sans-serif;
+            margin: 0;
+            padding: 0;
+            background: radial-gradient(circle at center, #1f2833, #0b0c10); /* Modern Dark Background */
+            color: #fff;
+            overflow: hidden; 
+            height: 100vh;
+            width: 100vw;
         }
-        .filter-container {
-            text-align: center;
-            margin: 20px;
-            background-color: #ff9933; /* Saffron */
-            padding: 10px;
-            border-radius: 8px;
-        }
-        .slide {
+
+        /* Loading Screen */
+        #loader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: #0b0c10;
             display: flex;
-            flex-wrap: wrap;
-            margin: 20px auto;
-            max-width: 1200px;
-            background-color: white;
-            border: 2px solid #138808; /* Green */
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            color: #66fcf1;
+        }
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(102, 252, 241, 0.3);
+            border-top: 4px solid #66fcf1;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* Slide Animation Container */
+        .slide-container {
+            display: none; 
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            flex-direction: row;
+            opacity: 0;
+            transition: opacity 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+            padding: 40px; /* Outer padding for the whole slide */
+            box-sizing: border-box;
+            gap: 30px; /* Gap between panels */
+        }
+        .slide-container.active {
+            display: flex; 
+            opacity: 1;
+        }
+        
+        /* Left Side: Info (Card Style) */
+        .info-panel {
+            flex: 1;
+            padding: 40px;
+            box-sizing: border-box;
+            background: rgba(31, 40, 51, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            position: relative;
+            border: 1px solid rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+        }
+        
+        /* Decorative Top Border */
+        .info-panel::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 20px;
+            right: 20px;
+            height: 4px;
+            background: linear-gradient(90deg, #45a29e, #66fcf1);
+            border-radius: 0 0 4px 4px;
+        }
+
+        .info-panel h1 {
+            font-size: 2.2em;
+            margin: 0 0 30px 0;
+            color: #fff;
+            line-height: 1.3;
+            font-weight: 700;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .info-item {
+            margin-bottom: 15px;
+            font-size: 1.1em;
+            line-height: 1.5;
+            color: #c5c6c7;
+            display: flex;
+            align-items: center;
+            background: rgba(255,255,255,0.03);
+            padding: 12px 15px;
             border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-            padding: 20px;
-            page-break-after: always;
-            min-height: 80vh;
+            transition: transform 0.2s, background 0.2s;
         }
-        .info {
-            width: 50%;
-            padding: 20px;
-            background-color: #fff5e6;
-            border-right: 1px solid #ccc;
+        
+        .info-item:hover {
+            background: rgba(255,255,255,0.08);
+            transform: translateX(5px);
         }
-        .photos {
-            width: 50%;
-            padding: 20px;
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 20px;
-            justify-items: center;
-            background-color: #e6ffe6;
+
+        .icon {
+            font-size: 1.2em;
+            margin-right: 15px;
+            width: 30px;
+            text-align: center;
+        }
+
+        .label {
+            font-weight: 600;
+            color: #66fcf1; /* Teal accent */
+            min-width: 100px; 
+            text-transform: uppercase;
+            font-size: 0.8em;
+            letter-spacing: 1px;
+        }
+
+        .value {
+            flex: 1;
+            font-weight: 400;
+            color: #fff;
+        }
+
+        /* Right Side: Photos (Card Style) */
+        .photo-panel {
+            flex: 1;
+            padding: 30px;
+            box-sizing: border-box;
+            background: rgba(31, 40, 51, 0.5);
+            border-radius: 20px;
+            border: 1px solid rgba(255,255,255,0.05);
+            display: flex;
+            justify-content: center;
+            align-items: center;
             position: relative;
         }
-        .img-thumb {
-            max-width: 100%;
-            height: auto;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+
+        /* Grid Layout - Fixed 2x2 for 4 items */
+        .photo-grid-container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr); /* 2 Columns */
+            grid-template-rows: repeat(2, 1fr);    /* 2 Rows */
+            gap: 20px;
+            width: 100%;
+            height: 100%;
+            max-height: 600px; /* Constraint height to keep square-ish look */
         }
-        .limited .img-thumb:nth-child(n+5) {
-            display: none;
+
+        /* Image Card Styling */
+        .photo-card {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            border-radius: 12px;
+            overflow: hidden;
+            background: #000;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            cursor: pointer;
+            border: 2px solid transparent;
         }
-        .overlay {
+
+        .photo-card:hover {
+            transform: scale(1.02);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.4);
+            border-color: #66fcf1;
+            z-index: 10;
+        }
+
+        .photo-thumbnail {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            transition: opacity 0.3s;
+        }
+        
+        /* Overlay for +N photos */
+        .more-overlay {
             position: absolute;
-            inset: 0;
-            background: rgba(255, 153, 51, 0.85);
-            color: white;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #fff;
+            font-size: 2.5em;
+            font-weight: 700;
+            backdrop-filter: blur(2px);
+        }
+        
+        .img-error {
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            font-size: 28px;
-            font-weight: bold;
-            cursor: pointer;
-            border-radius: 5px;
+            height: 100%;
+            width: 100%;
+            background: #2a2a2a;
+            color: #888;
             text-align: center;
         }
-        h2 {
-            color: #138808;
+
+        /* Controls */
+        .controls-area {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            background: rgba(11, 12, 16, 0.8);
+            padding: 10px 25px;
+            border-radius: 50px;
+            border: 1px solid rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            z-index: 1000;
         }
-        p {
-            margin: 8px 0;
-            font-size: 16px;
+
+        .slide-counter {
+            font-size: 14px;
+            color: #c5c6c7;
+            font-weight: 600;
         }
-        #downloadBtn {
-            display: block;
-            margin: 20px auto;
-            padding: 10px 20px;
-            background-color: #ff9933;
-            color: white;
+        .slide-counter span { color: #66fcf1; }
+
+        button {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
             border: none;
-            border-radius: 5px;
-            cursor: pointer;
+            background: #45a29e;
+            color: #fff;
             font-size: 18px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
         }
-        #downloadBtn:hover {
-            background-color: #e68a00;
-        }
-        @media print {
-            .filter-container, #downloadBtn {
-                display: none;
-            }
-            .slide {
-                page-break-after: always;
-            }
-        }
-        @media screen and (max-width: 768px) {
-            .slide {
-                flex-direction: column;
-            }
-            .info, .photos {
-                width: 100%;
-                border: none;
-            }
-            .photos {
-                grid-template-columns: 1fr;
-            }
+        button:hover { background: #66fcf1; color: #0b0c10; transform: scale(1.1); }
+        button:active { transform: scale(0.95); }
+
+        @media (max-width: 900px) {
+            .slide-container { flex-direction: column; padding: 20px; gap: 15px; }
+            .info-panel { height: auto; flex: 0 0 auto; padding: 25px; }
+            .info-panel h1 { font-size: 1.5em; margin-bottom: 15px; }
+            .photo-panel { flex: 1; max-height: 400px; }
+            .controls-area { bottom: 10px; padding: 8px 20px; }
         }
     </style>
 </head>
 <body>
-    <div class="filter-container">
-        <label for="districtFilter">जिला द्वारा फिल्टर करें:</label>
-        <select id="districtFilter">
-            <option value="all">सभी</option>
-        </select>
-    </div>
-    <button id="downloadBtn" onclick="window.print()">PDF के रूप में डाउनलोड करें</button>
-    <div id="slidesContainer"></div>
 
-    <script>
-        const csvUrl = 'https://docs.google.com/spreadsheets/d/1wyr0gt061UT5IVxT1JBYUEUJw1GYcBpzxDKEQmvcXXY/export?format=csv&gid=1839722438';
+<div id="loader">
+    <div class="spinner"></div>
+    <div>Loading Data...</div>
+</div>
+<div id="slides-wrapper"></div>
 
-        async function fetchAndRenderData() {
-            try {
-                const response = await fetch(csvUrl);
-                const csvText = await response.text();
-                const parsed = Papa.parse(csvText, { header: false, skipEmptyLines: true });
-                const data = parsed.data;
+<!-- Floating Controls -->
+<div class="controls-area">
+    <button onclick="prevSlide()">❮</button>
+    <div class="slide-counter"><span id="current-slide">1</span> / <span id="total-slides">0</span></div>
+    <button onclick="nextSlide()">❯</button>
+</div>
 
-                if (data.length < 1) return;
+<script>
+    const SHEET_ID = '1wyr0gt061UT5IVxT1JBYUEUJw1GYcBpzxDKEQmvcXXY';
+    const GID = '1839722438';
+    const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&gid=${GID}`;
 
-                const headers = data[0];
-                const rows = data.slice(1);
+    let slideData = [];
+    let currentIndex = 0;
 
-                const districts = new Set();
-                const slidesContainer = document.getElementById('slidesContainer');
-                slidesContainer.innerHTML = '';
+    async function fetchSheetData() {
+        try {
+            const response = await fetch(SHEET_URL);
+            const text = await response.text();
+            const jsonText = text.substring(47).slice(0, -2);
+            const json = JSON.parse(jsonText);
+            
+            const rows = json.table.rows;
+            
+            slideData = rows.map(row => {
+                const c = row.c;
+                if (!c) return null;
 
-                rows.forEach(row => {
-                    const entry = {};
-                    headers.forEach((header, i) => {
-                        entry[header.trim()] = (row[i] || '').trim();
-                    });
+                // FIX: Column indices shifted by +1 to correct mismatch
+                // Assuming Col 0 is Serial No/Timestamp
+                const date = c[1] ? (c[1].f || c[1].v) : '';
+                const district = c[2] ? c[2].v : '';
+                const event = c[3] ? c[3].v : '';
+                const attendance = c[4] ? c[4].v : '';
+                const guests = c[5] ? c[5].v : '';
 
-                    const district = entry['जिला'] || 'अज्ञात';
-                    districts.add(district);
-
-                    const slide = document.createElement('div');
-                    slide.className = 'slide';
-                    slide.dataset.district = district;
-
-                    const info = document.createElement('div');
-                    info.className = 'info';
-                    info.innerHTML = `
-                        <h2>${entry['कार्यक्रम का नाम'] || 'N/A'}</h2>
-                        <p><strong>दिनांक:</strong> ${entry['दिनांक'] || 'N/A'}</p>
-                        <p><strong>जिला:</strong> ${district}</p>
-                        <p><strong>कुल उपस्थिति:</strong> ${entry['कुल उपस्तिथि'] || 'N/A'}</p>
-                        <p><strong>अतिथि/वक्ता:</strong> ${entry['अन्य वक्ता /अतिथि /पदाधिकारी'] || 'N/A'}</p>
-                        <p><strong>टाइमस्टैम्प:</strong> ${entry['Timestamp'] || 'N/A'}</p>
-                    `;
-
-                    const photosDiv = document.createElement('div');
-                    photosDiv.className = 'photos';
-
-                    const photoText = entry['कार्यक्रम से सम्बंधित फोटो'] || '';
-                    const photoLinks = photoText.split(',').map(l => l.trim()).filter(l => l);
-
-                    photoLinks.forEach(link => {
-                        const idMatch = link.match(/id=([^& ]+)/);
+                let photos = [];
+                // Photos start from index 6 now (shifted from 5)
+                for (let i = 6; i < c.length; i++) {
+                    if (c[i] && c[i].v) {
+                        const val = String(c[i].v);
+                        const idMatch = val.match(/[-\w]{25,}/);
                         if (idMatch) {
-                            const img = document.createElement('img');
-                            img.className = 'img-thumb';
-                            img.src = `https://drive.google.com/uc?export=view&id=${idMatch[1]}`;
-                            img.alt = 'कार्यक्रम फोटो';
-                            img.loading = 'lazy';
-                            photosDiv.appendChild(img);
-                        }
-                    });
-
-                    // Limit to 4 thumbnails + "See More" overlay on 4th if more
-                    if (photoLinks.length > 4) {
-                        photosDiv.classList.add('limited');
-                        const thumbs = photosDiv.querySelectorAll('.img-thumb');
-                        const fourthThumb = thumbs[3];
-                        if (fourthThumb) {
-                            fourthThumb.style.position = 'relative';
-                            const overlay = document.createElement('div');
-                            overlay.className = 'overlay';
-                            overlay.innerHTML = `+${photoLinks.length - 4}<br>और देखें`;
-                            overlay.onclick = function (e) {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                photosDiv.classList.remove('limited');
-                                overlay.remove();
-                            };
-                            fourthThumb.appendChild(overlay);
+                            photos.push(idMatch[0]);
                         }
                     }
+                }
 
-                    slide.appendChild(info);
-                    slide.appendChild(photosDiv);
-                    slidesContainer.appendChild(slide);
-                });
+                return {
+                    date, district, event, attendance, guests, photos
+                };
+            }).filter(item => item && item.event);
 
-                // Populate district filter
-                const filterSelect = document.getElementById('districtFilter');
-                filterSelect.innerHTML = '<option value="all">सभी</option>';
-                Array.from(districts).sort().forEach(dist => {
-                    const opt = document.createElement('option');
-                    opt.value = dist;
-                    opt.textContent = dist;
-                    filterSelect.appendChild(opt);
-                });
+            initSlides();
+            document.getElementById('loader').style.display = 'none';
 
-            } catch (error) {
-                console.error('Error:', error);
-                document.getElementById('slidesContainer').innerHTML = '<p>डेटा लोड करने में समस्या। स्प्रेडशीट पब्लिक है न?</p>';
-            }
+        } catch (error) {
+            console.error("Error fetching data:", error);
+            document.getElementById('loader').innerHTML = "<div style='color:red'>Failed to load data.<br>Check internet or sheet permissions.</div>";
         }
+    }
 
-        // Filter
-        document.getElementById('districtFilter').addEventListener('change', function () {
-            const value = this.value;
-            document.querySelectorAll('.slide').forEach(slide => {
-                slide.style.display = (value === 'all' || slide.dataset.district === value) ? 'flex' : 'none';
-            });
+    function initSlides() {
+        const wrapper = document.getElementById('slides-wrapper');
+        const totalSlidesSpan = document.getElementById('total-slides');
+        wrapper.innerHTML = '';
+
+        slideData.forEach((item, index) => {
+            const slide = document.createElement('div');
+            slide.className = index === 0 ? 'slide-container active' : 'slide-container';
+            slide.id = `slide-${index}`;
+            slide.style.display = index === 0 ? 'flex' : 'none';
+
+            // Logic to handle max 4 photos with "More" counter
+            let imagesHtml = '';
+            let totalPhotos = item.photos.length;
+            let displayCount = Math.min(totalPhotos, 4);
+
+            if (totalPhotos > 0) {
+                for(let i = 0; i < displayCount; i++) {
+                    let photoId = item.photos[i];
+                    const imgSrc = `https://drive.google.com/thumbnail?id=${photoId}&sz=w400`;
+                    const viewLink = `https://drive.google.com/file/d/${photoId}/view?usp=sharing`;
+                    
+                    let overlay = '';
+                    // If this is the 4th photo (index 3) AND there are more than 4 total
+                    if (i === 3 && totalPhotos > 4) {
+                        const remaining = totalPhotos - 4; // Count hidden photos
+                        overlay = `<div class="more-overlay">+${remaining + 1}</div>`; 
+                        // +1 because we are counting the current one as part of the "more" group visually? 
+                        // Actually, usually it's "how many more besides these visible ones". 
+                        // If I show 4 tiles, and the last tile has an overlay.
+                        // Standard UX: The last tile shows one image, but implies there are X more BEHIND it.
+                        // Let's say Total = 6. 
+                        // Tile 1, Tile 2, Tile 3. Tile 4 (shows Image 4 + overlay saying "+2").
+                        // So remaining = Total - 4 (visible slots). 
+                        // If remaining is 2, text is "+2".
+                         overlay = `<div class="more-overlay">+${totalPhotos - 3}</div>`;
+                         // Wait, if I cover the 4th image, I am technically hiding it too?
+                         // Let's keep it simple: "+N" where N is total - 3 (the 3 fully clear ones).
+                    }
+
+                    imagesHtml += `
+                    <div class="photo-card" onclick="window.open('${viewLink}', '_blank')" title="View Photo">
+                        <img 
+                            src="${imgSrc}" 
+                            class="photo-thumbnail" 
+                            alt="Event Photo" 
+                            referrerpolicy="no-referrer"
+                            onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+                        >
+                        ${overlay}
+                        <div class="img-error" style="display:none;">
+                            <span style="font-size:24px;">📷</span>
+                            <p style="font-size:10px; margin-top:5px;">View</p>
+                        </div>
+                    </div>`;
+                }
+            } else {
+                imagesHtml = '<div style="color:#888; width:100%; text-align:center; padding: 20px; grid-column: span 2;">No Photos Available</div>';
+            }
+
+            slide.innerHTML = `
+                <div class="info-panel">
+                    <h1>${item.event}</h1>
+                    <div class="info-item">
+                        <span class="icon">📅</span>
+                        <div>
+                            <span class="label">दिनांक</span>
+                            <div class="value">${item.date}</div>
+                        </div>
+                    </div>
+                    <div class="info-item">
+                        <span class="icon">📍</span>
+                        <div>
+                            <span class="label">जिला</span>
+                            <div class="value">${item.district}</div>
+                        </div>
+                    </div>
+                    <div class="info-item">
+                        <span class="icon">👥</span>
+                        <div>
+                            <span class="label">उपस्थिति</span>
+                            <div class="value">${item.attendance}</div>
+                        </div>
+                    </div>
+                    <div class="info-item" style="align-items: flex-start;">
+                        <span class="icon" style="margin-top:5px;">🎤</span>
+                        <div>
+                            <span class="label">अतिथि</span>
+                            <div class="value">${item.guests}</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="photo-panel">
+                    <div class="photo-grid-container">
+                        ${imagesHtml}
+                    </div>
+                </div>
+            `;
+            wrapper.appendChild(slide);
         });
 
-        // Load on start
-        fetchAndRenderData();
-    </script>
+        totalSlidesSpan.innerText = slideData.length;
+        updateCounter(0);
+    }
+
+    const currentSlideSpan = document.getElementById('current-slide');
+
+    function updateCounter(index) {
+        currentSlideSpan.innerText = index + 1;
+    }
+
+    function showSlide(index) {
+        const slides = document.querySelectorAll('.slide-container');
+        slides.forEach(s => {
+            s.classList.remove('active');
+            s.style.display = 'none';
+        });
+        
+        const current = document.getElementById(`slide-${index}`);
+        if(current) {
+            current.style.display = 'flex';
+            void current.offsetWidth; 
+            current.classList.add('active');
+            updateCounter(index);
+            currentIndex = index;
+        }
+    }
+
+    function nextSlide() {
+        if (currentIndex < slideData.length - 1) {
+            showSlide(currentIndex + 1);
+        }
+    }
+
+    function prevSlide() {
+        if (currentIndex > 0) {
+            showSlide(currentIndex - 1);
+        }
+    }
+
+    document.addEventListener('keydown', function(event) {
+        if(event.key === "ArrowRight") nextSlide();
+        if(event.key === "ArrowLeft") prevSlide();
+    });
+
+    fetchSheetData();
+
+</script>
+
 </body>
 </html>
