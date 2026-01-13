@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>प्रवास कार्यक्रम – डैशबोर्ड (Final Version)</title>
+<title>प्रवास कार्यक्रम – डैशबोर्ड (Multi-Link Supported)</title>
 <link rel="icon" href="data:;base64,iVBORw0KGgo=">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;600;700&family=Hind:wght@400;600&display=swap" rel="stylesheet">
 <style>
@@ -49,21 +49,44 @@ dd { margin:0; font-weight:500; color:#333; font-size:15px; }
     display:flex; justify-content:center; align-items:center; 
 }
 
-/* --- THE MAGIC LAYERS --- */
+/* --- LAYERS --- */
+/* 1. IFRAME (Bottom) */
+.drive-frame { width:100%; height:100%; border:0; position:absolute; inset:0; z-index:1; background:#fff; }
 
-/* 1. IFRAME (Grid View) - Always there at bottom */
-.drive-frame { 
-    width:100%; height:100%; border:0; position:absolute; inset:0; z-index:1; 
-    background:#fff; 
+/* 2. IMAGE (Middle) */
+.direct-img { width:100%; height:100%; object-fit:contain; position:absolute; inset:0; z-index:2; background:#fff; transition: opacity 0.3s; }
+
+/* 3. MULTI-GRID (Top - If >1 links) */
+.multi-photo-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 10px;
+    padding: 10px;
+    width: 100%; height: 100%;
+    overflow-y: auto;
+    position: absolute; inset:0;
+    z-index: 10;
+    background: #fff;
+    align-content: start;
 }
-
-/* 2. IMAGE (Thumbnail) - On top. Hides if broken. */
-.direct-img { 
-    width:100%; height:100%; object-fit:contain; position:absolute; inset:0; z-index:2; 
-    background:#fff; transition: opacity 0.3s;
+.grid-item {
+    position: relative;
+    border: 1px solid #eee;
+    border-radius: 8px;
+    overflow: hidden;
+    height: 120px;
+    background: #f9f9f9;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: transform 0.2s;
 }
+.grid-item:hover { transform: scale(1.02); border-color: #e77019; }
+.grid-img { width: 100%; height: 100%; object-fit: cover; }
+.grid-fallback-icon { font-size: 40px; color: #ccc; }
 
-/* 3. Placeholder (Behind everything) */
+/* 4. Placeholder (Behind everything) */
 .placeholder { position:absolute; z-index:0; color:#999; text-align:center; }
 
 .fallback-btn { 
@@ -152,7 +175,7 @@ dd { margin:0; font-weight:500; color:#333; font-size:15px; }
         for (let i = 0; i < text.length; i++) {
             let ch = text[i];
             if (q) { if (ch === '"' && text[i+1] === '"') { c += '"'; i++; } else if (ch === '"') q = false; else c += ch; }
-            else { if (ch === '"') q = true; else if (ch === ',') { row.push(c.trim()); c = ""; } else if (ch === '\n' || ch === '\r') { row.push(c.trim()); if(row.length) r.push(row); row = []; c = ""; } else c += ch; }
+            else { if (ch === '"') q = true; else if (ch === ',') { row.push(c.trim()); c = ""; } else if (ch === '\n' || c === '\r') { row.push(c.trim()); if(row.length) r.push(row); row = []; c = ""; } else c += ch; }
         }
         if (c || row.length) { row.push(c.trim()); r.push(row); }
         return r;
@@ -196,6 +219,7 @@ dd { margin:0; font-weight:500; color:#333; font-size:15px; }
 
     function getDriveId(url) {
         if (!url) return null;
+        // Robust ID extractor
         const parts = url.split(/\/d\/|id=|folders\//);
         return parts.length > 1 ? parts[1].split(/[/?&]/)[0] : null;
     }
@@ -205,12 +229,20 @@ dd { margin:0; font-weight:500; color:#333; font-size:15px; }
         if (!filtered.length) { els.page.innerHTML = `<div style="text-align:center;padding:50px">कोई डेटा नहीं मिला</div>`; return; }
         
         const item = filtered[idx];
-        const driveId = getDriveId(item.link);
-        const cleanLink = item.link.match(/https?:\/\/[^\s,]+/)?.[0] || item.link;
+        
+        // 1. SPLIT LINKS (For cells with multiple links)
+        const allLinks = item.link.split(/[\n,]/).map(l => l.trim()).filter(Boolean);
+        
+        const firstLink = allLinks[0] || "";
+        const driveId = getDriveId(firstLink);
+        const cleanLink = firstLink.match(/https?:\/\/[^\s,]+/)?.[0] || firstLink;
 
-        // URLs
+        // URLs for Single View
         const folderUrl = driveId ? `https://drive.google.com/embeddedfolderview?id=${driveId}#grid` : "";
         const imgUrl = driveId ? `https://lh3.googleusercontent.com/d/${driveId}=w800` : "";
+
+        // Standard Folder Icon (Google Style)
+        const folderIcon = "https://ssl.gstatic.com/docs/doclist/images/drive_icon_128.png";
 
         els.page.innerHTML = `
             <div class="header">
@@ -237,15 +269,37 @@ dd { margin:0; font-weight:500; color:#333; font-size:15px; }
 
                 <div class="card-gallery">
                     <div class="gallery-container">
-                        <!-- LAYER 1: IFRAME (FOLDER GRID) -->
-                        <iframe src="${folderUrl}" class="drive-frame" title="Folder View" allowfullscreen="true"></iframe>
                         
-                        <!-- LAYER 2: IMAGE (Tries to load on top) -->
-                        <img src="${imgUrl}" class="direct-img" alt="" onerror="this.style.display='none'">
+                        <!-- GRID VIEW (If Multiple Links) -->
+                        ${allLinks.length > 1 ? `
+                            <div class="multi-photo-grid" style="display:grid;">
+                                ${allLinks.map(l => {
+                                    const did = getDriveId(l);
+                                    // Robust Thumbnail Logic: Tries thumbnail, falls back to folder icon on error
+                                    return `
+                                        <div class="grid-item" onclick="window.open('${l}','_blank')">
+                                            <img src="https://drive.google.com/thumbnail?id=${did}&sz=w400" 
+                                                 class="grid-img" 
+                                                 onerror="this.onerror=null; this.src='${folderIcon}'; this.style.objectFit='contain'; this.style.padding='20px';">
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                        ` : ''}
+
+                        <!-- SINGLE VIEW (If 1 Link) -->
+                        ${allLinks.length <= 1 ? `
+                            <!-- Layer 1: Iframe (Fallback) -->
+                            <iframe src="${folderUrl}" class="drive-frame" title="Folder View" allowfullscreen="true"></iframe>
+                            
+                            <!-- Layer 2: Image (Primary) -->
+                            <img src="${imgUrl}" class="direct-img" alt="" onerror="this.style.display='none'">
+                        ` : ''}
                         
-                        <!-- LAYER 3: Placeholder -->
+                        <!-- Layer 3: Placeholder -->
                         <div class="placeholder">📸 फोटो लोड हो रहा है...</div>
                     </div>
+                    
                     <a href="${cleanLink}" target="_blank" class="fallback-btn">📂 गूगल ड्राइव फोल्डर खोलें</a>
                 </div>
             </div>
@@ -284,10 +338,8 @@ dd { margin:0; font-weight:500; color:#333; font-size:15px; }
         filtered = rawData.filter(i => {
             const textMatch = (i.title+i.guests+i.district).toLowerCase().includes(s);
             const distMatch = !d || i.district === d;
-            // Date parsing for filter (YYYY-MM-DD)
             let dateMatch = true;
             if(dt) {
-                // Convert sheet date (d/m/y) to comparable
                 const p = i.date.split('/');
                 if(p.length===3) {
                     const sheetDate = new Date(p[2], p[1]-1, p[0]).toISOString().split('T')[0];
