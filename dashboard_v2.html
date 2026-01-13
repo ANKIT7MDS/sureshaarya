@@ -598,9 +598,9 @@
                 const limit = Math.min(photoCount, maxPhotos);
                 for(let i=0; i<limit; i++) {
                     const pid = item.photos[i];
-                    // USE PROXY TO FIX CORS/REDIRECTS for Display
-                    // wsrv.nl handles the Google Drive redirect perfectly
-                    const url = `https://wsrv.nl/?url=https://drive.google.com/uc?id=${pid}&w=800&output=jpg`;
+                    // USE DIRECT THUMBNAIL URL FOR DISPLAY (NO PROXY, NO CORS ISSUES)
+                    // Removing crossorigin="anonymous" allows browser to handle opaque redirect
+                    const url = `https://drive.google.com/thumbnail?id=${pid}&sz=w800`;
                     
                     let overlay = '';
                     if(i === 3 && photoCount > 4) {
@@ -609,7 +609,7 @@
                     
                     photosHtml += `
                     <div class="photo-card" onclick="openLightbox('${url}', '${item.event.replace(/'/g, "")}')">
-                        <img src="${url}" crossorigin="anonymous" onerror="this.src='https://placehold.co/400x300?text=Error'">
+                        <img src="${url}" referrerpolicy="no-referrer" onerror="this.src='https://placehold.co/400x300?text=Error'">
                         ${overlay}
                     </div>`;
                 }
@@ -658,9 +658,9 @@
         grid.innerHTML = '';
         
         filteredData.forEach((item, index) => {
-            // Proxy here too
+            // Direct link here too
             const thumb = item.photos.length > 0 
-                ? `https://wsrv.nl/?url=https://drive.google.com/uc?id=${item.photos[0]}&w=400&output=jpg` 
+                ? `https://drive.google.com/thumbnail?id=${item.photos[0]}&sz=w400` 
                 : 'https://placehold.co/400x300?text=No+Img';
             
             const div = document.createElement('div');
@@ -668,7 +668,7 @@
             div.onclick = () => { switchView('slide'); showSlide(index); };
             
             div.innerHTML = `
-                <img src="${thumb}" class="grid-img" loading="lazy" crossorigin="anonymous" onerror="this.src='https://placehold.co/400x300?text=Error'">
+                <img src="${thumb}" class="grid-img" loading="lazy" referrerpolicy="no-referrer" onerror="this.src='https://placehold.co/400x300?text=Error'">
                 <div class="grid-info">
                     <div class="grid-title">${item.event}</div>
                     <div class="grid-meta">
@@ -795,10 +795,11 @@
             // Get up to 4 images
             const max = Math.min(item.photos.length, 4);
             for(let i=0; i<max; i++){
-                // Use proxy for PDF generation to avoid CORS
-                // IMPORTANT: Encode the URL for wsrv.nl to handle special chars correctly
-                const encodedUrl = encodeURIComponent(`https://drive.google.com/uc?id=${item.photos[i]}`);
-                const src = `https://wsrv.nl/?url=${encodedUrl}&w=600&output=jpg`;
+                // PROXY TRICK FOR PDF ONLY:
+                // We use wsrv.nl to fetch the thumbnail link. This bypasses the direct browser restriction.
+                // We encode the Google thumbnail link and pass it to wsrv.nl
+                const encodedUrl = encodeURIComponent(`https://drive.google.com/thumbnail?id=${item.photos[i]}&sz=w600`);
+                const src = `https://wsrv.nl/?url=${encodedUrl}`;
                 imgs += `<img src="${src}" style="width:100%; height:180px; object-fit:cover; border-radius:5px; border:1px solid #ddd;" crossorigin="anonymous">`;
             }
             // Fill empty slots if less than 4 to keep layout stable
