@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>प्रवास कार्यक्रम – डैशबोर्ड (Smart View)</title>
+<title>प्रवास कार्यक्रम – डैशबोर्ड (Live)</title>
 <!-- Fix for Favicon 404 -->
 <link rel="icon" href="data:;base64,iVBORw0KGgo=">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;600;700&family=Hind:wght@400;600&display=swap" rel="stylesheet">
@@ -163,14 +163,14 @@ dd { margin:0; font-weight: 500; font-size: 1rem; color: #333; }
 
 <script>
     // --- Data Configuration ---
-    // User's Sheet ID: 1wyr0gt061UT5IVxT1JBYUEUJw1GYcBpzxDKEQmvcXXY
-    const SHEET_ID = "1wyr0gt061UT5IVxT1JBYUEUJw1GYcBpzxDKEQmvcXXY";
+    // User Provided Published Link:
+    // https://docs.google.com/spreadsheets/d/e/2PACX-1vQdH6jHfrBQbsAi78xZ9nIfJjajjInnbBEi6ZonuP3kP8AIkbf6aWBKnzCLpS5tTJFQOqXBS3gvzDT_/pubhtml
     
-    // Using Google Visualization API endpoint which is more reliable for shared sheets
-    const GVIZ_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv`;
+    // We convert it to CSV output format for fetching
+    const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQdH6jHfrBQbsAi78xZ9nIfJjajjInnbBEi6ZonuP3kP8AIkbf6aWBKnzCLpS5tTJFQOqXBS3gvzDT_/pub?output=csv";
     
     // We use a CORS proxy to ensure fetching works from a static file environment
-    const PROXY_URL = "https://corsproxy.io/?" + encodeURIComponent(GVIZ_URL);
+    const PROXY_URL = "https://corsproxy.io/?" + encodeURIComponent(CSV_URL);
 
     // --- State ---
     let rawData = [];
@@ -222,7 +222,7 @@ dd { margin:0; font-weight: 500; font-size: 1rem; color: #333; }
     async function fetchData() {
         try {
             statusEl.textContent = "Fetching...";
-            let response = await fetch(GVIZ_URL);
+            let response = await fetch(CSV_URL);
             
             if (!response.ok) {
                 console.log("Direct fetch failed, trying proxy...");
@@ -379,20 +379,12 @@ dd { margin:0; font-weight: 500; font-size: 1rem; color: #333; }
             </div>
         `;
         
-        // Smart Toggle Logic: 
-        // We initially assume it MIGHT be an image and try to load it in #directImg
-        // If #directImg fails (onError), we hide it and show #folderFrame
-        // If multiple links exist, we show grid instead.
-
         if (links.length > 1) {
-            // Priority to Grid
             document.getElementById('directImg').style.display = 'none';
             document.getElementById('folderFrame').classList.remove('active');
         } else {
-            // Try single image first
             const img = document.getElementById('directImg');
-            img.style.display = 'block'; // Start visible
-            // Note: If it fails, the inline onerror handler switches to iframe
+            img.style.display = 'block'; 
         }
 
         // Update Controls
