@@ -598,19 +598,18 @@
                 const limit = Math.min(photoCount, maxPhotos);
                 for(let i=0; i<limit; i++) {
                     const pid = item.photos[i];
-                    // FIX: Using wsrv.nl to proxy the image + removing crossorigin below
-                    // This bypasses the Google Drive CORS block
-                    const url = `https://wsrv.nl/?url=https://lh3.googleusercontent.com/d/${pid}=s1000`; 
+                    // FIX: Using drive.google.com/uc format inside wsrv.nl proxy
+                    // This avoids the lh3 403 HTML error that causes ORB blocking
+                    const url = `https://wsrv.nl/?url=https://drive.google.com/uc?id=${pid}&w=1000&output=jpg`; 
                     
                     let overlay = '';
                     if(i === 3 && photoCount > 4) {
                         overlay = `<div class="more-overlay">+${photoCount - 3}</div>`;
                     }
                     
-                    // REMOVED crossorigin="anonymous" to fix CORS error
                     photosHtml += `
                     <div class="photo-card" onclick="openLightbox('${url}', '${item.event.replace(/'/g, "")}')">
-                        <img src="${url}" onerror="this.src='https://placehold.co/400x300?text=Error'">
+                        <img src="${url}" crossorigin="anonymous" onerror="this.src='https://placehold.co/400x300?text=Error'">
                         ${overlay}
                     </div>`;
                 }
@@ -659,16 +658,15 @@
         grid.innerHTML = '';
         
         filteredData.forEach((item, index) => {
-            // FIX: Using wsrv.nl proxy here too for consistency
-            const thumb = item.photos.length > 0 ? `https://wsrv.nl/?url=https://lh3.googleusercontent.com/d/${item.photos[0]}=s500` : 'https://placehold.co/400x300?text=No+Img';
+            // FIX: Using standard drive link format in proxy
+            const thumb = item.photos.length > 0 ? `https://wsrv.nl/?url=https://drive.google.com/uc?id=${item.photos[0]}&w=500&output=jpg` : 'https://placehold.co/400x300?text=No+Img';
             
             const div = document.createElement('div');
             div.className = 'grid-item';
             div.onclick = () => { switchView('slide'); showSlide(index); };
             
-            // REMOVED crossorigin="anonymous" here as well
             div.innerHTML = `
-                <img src="${thumb}" class="grid-img" loading="lazy" onerror="this.src='https://placehold.co/400x300?text=Error'">
+                <img src="${thumb}" class="grid-img" loading="lazy" crossorigin="anonymous" onerror="this.src='https://placehold.co/400x300?text=Error'">
                 <div class="grid-info">
                     <div class="grid-title">${item.event}</div>
                     <div class="grid-meta">
@@ -796,7 +794,7 @@
             const max = Math.min(item.photos.length, 4);
             for(let i=0; i<max; i++){
                 // Use proxy for PDF generation to ENSURE CORS success in canvas
-                const src = `https://wsrv.nl/?url=https://lh3.googleusercontent.com/d/${item.photos[i]}=s600&output=jpg`;
+                const src = `https://wsrv.nl/?url=https://drive.google.com/uc?id=${item.photos[i]}&w=600&output=jpg`;
                 imgs += `<img src="${src}" style="width:100%; height:180px; object-fit:cover; border-radius:5px; border:1px solid #ddd;" crossorigin="anonymous">`;
             }
             // Fill empty slots if less than 4 to keep layout stable
