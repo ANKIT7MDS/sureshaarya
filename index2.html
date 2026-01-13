@@ -13,7 +13,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
-    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script> <!-- Added Excel Lib -->
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
     <style>
@@ -147,7 +147,7 @@
             position: absolute;
             right: 0;
             background-color: var(--bg-panel);
-            min-width: 220px;
+            min-width: 240px;
             box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.5);
             z-index: 101;
             border-radius: 10px;
@@ -190,10 +190,10 @@
             display: none;
             opacity: 0;
             transition: opacity 0.4s;
-            overflow-y: auto; /* Enable scroll for grid/analytics */
+            overflow-y: auto;
         }
         .view-section.active {
-            display: flex; /* Default flex, specific views override */
+            display: flex;
             opacity: 1;
         }
 
@@ -202,7 +202,7 @@
             flex-direction: row;
             align-items: center;
             justify-content: center;
-            overflow: hidden; /* Slides manage their own overflow */
+            overflow: hidden;
         }
         
         .slide-wrapper {
@@ -336,7 +336,7 @@
             position: relative;
         }
 
-        /* --- Navigation Controls (Slide View) --- */
+        /* --- Navigation Controls --- */
         .controls-floating {
             position: absolute;
             bottom: 30px;
@@ -388,32 +388,17 @@
             .nav-item i { font-size: 20px; margin: 0; }
             .sidebar:hover .nav-item { padding-left: 0; justify-content: center; }
             .sidebar:hover .nav-text { display: block; font-size: 10px; }
-            
             .main-content { margin-bottom: 60px; }
-            
-            .top-bar { 
-                flex-direction: column; 
-                height: auto; 
-                padding: 15px; 
-                gap: 10px;
-                background: var(--bg-panel);
-            }
-            .filter-group { 
-                width: 100%; 
-                justify-content: space-between; 
-                overflow-x: auto;
-                padding-bottom: 5px;
-            }
+            .top-bar { flex-direction: column; height: auto; padding: 15px; gap: 10px; background: var(--bg-panel); }
+            .filter-group { width: 100%; justify-content: space-between; overflow-x: auto; padding-bottom: 5px; }
             #search-input { width: 100% !important; }
-            
             .slide-container { flex-direction: column; padding: 15px; overflow-y: auto; gap: 15px; }
             .info-panel { height: auto; flex: none; padding: 20px; }
             .info-panel h1 { font-size: 1.5em; }
             .photo-panel { flex: none; height: 350px; }
-            
             .chart-container { flex-direction: column; height: auto; }
             .chart-box { height: 300px; }
-            .controls-floating { bottom: 80px; } /* Lift controls above bottom nav */
+            .controls-floating { bottom: 80px; }
         }
     </style>
 </head>
@@ -461,7 +446,6 @@
         <div class="filter-group">
             <select id="district-filter" class="input-style" onchange="applyFilters()">
                 <option value="">All Districts</option>
-                <!-- Options populated by JS -->
             </select>
             
             <button class="action-btn" id="tv-mode-btn" onclick="toggleTVMode()">
@@ -478,11 +462,11 @@
                     <i class='bx bxs-download'></i> Download <i class='bx bx-chevron-down'></i>
                 </button>
                 <div class="dropdown-content">
-                    <a onclick="downloadFullPDF()"><i class='bx bxs-file-pdf'></i> PDF Booklet (Book)</a>
+                    <a onclick="downloadFullPDF()"><i class='bx bxs-file-pdf'></i> Slides to PDF</a>
                     <a onclick="downloadPPT()"><i class='bx bxs-slideshow'></i> PowerPoint (PPT)</a>
                     <a onclick="downloadExcel()"><i class='bx bxs-spreadsheet'></i> Excel Export</a>
                     <a onclick="downloadCurrentImage()"><i class='bx bxs-image'></i> Current Slide (Img)</a>
-                    <a onclick="downloadScreenshot()"><i class='bx bxs-camera'></i> Screenshot</a>
+                    <a onclick="downloadScreenshot()"><i class='bx bxs-camera'></i> Full Screenshot</a>
                 </div>
             </div>
         </div>
@@ -490,26 +474,17 @@
 
     <!-- Views Area -->
     <div class="views-container">
-        
         <!-- 1. SLIDE VIEW -->
         <div id="view-slide" class="view-section active">
-            <div class="slide-wrapper" id="slides-wrapper">
-                <!-- Slides injected here -->
-            </div>
-            
-            <!-- Controls only visible in slide view -->
+            <div class="slide-wrapper" id="slides-wrapper"></div>
             <div class="controls-floating">
                 <button class="control-btn" onclick="prevSlide()"><i class='bx bx-chevron-left'></i></button>
                 <div class="slide-counter"><span id="curr-idx">1</span> / <span id="total-count">0</span></div>
                 <button class="control-btn" onclick="nextSlide()"><i class='bx bx-chevron-right'></i></button>
             </div>
         </div>
-
         <!-- 2. GRID VIEW -->
-        <div id="view-grid" class="view-section">
-            <!-- Grid Items injected here -->
-        </div>
-
+        <div id="view-grid" class="view-section"></div>
         <!-- 3. ANALYTICS VIEW -->
         <div id="view-analytics" class="view-section">
             <div class="stats-row">
@@ -526,34 +501,25 @@
                     <div class="stat-label">Total Attendance</div>
                 </div>
             </div>
-            
             <div class="chart-container">
-                <div class="chart-box">
-                    <canvas id="districtChart"></canvas>
-                </div>
-                <div class="chart-box">
-                    <canvas id="attendanceChart"></canvas>
-                </div>
+                <div class="chart-box"><canvas id="districtChart"></canvas></div>
+                <div class="chart-box"><canvas id="attendanceChart"></canvas></div>
             </div>
         </div>
-
     </div>
 </div>
 
 <script>
-    // --- Configuration ---
     const SHEET_ID = '1wyr0gt061UT5IVxT1JBYUEUJw1GYcBpzxDKEQmvcXXY';
     const GID = '1839722438';
     const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&gid=${GID}`;
 
-    // --- State ---
     let rawData = [];
     let filteredData = [];
     let currentIndex = 0;
     let tvInterval = null;
-    let charts = {}; // To store Chart.js instances
+    let charts = {};
 
-    // --- Initialization ---
     window.onload = fetchSheetData;
 
     async function fetchSheetData() {
@@ -565,15 +531,11 @@
             rawData = json.table.rows.map(row => {
                 const c = row.c;
                 if (!c) return null;
-                
-                // Parsing safe values
                 const date = c[1] ? (c[1].f || c[1].v) : 'N/A';
                 const district = c[2] ? c[2].v : 'Unknown';
                 const event = c[3] ? c[3].v : 'Untitled Event';
                 const attendance = c[4] ? (parseInt(c[4].v) || 0) : 0;
                 const guests = c[5] ? c[5].v : '-';
-                
-                // Photo extraction
                 let photos = [];
                 for (let i = 6; i < c.length; i++) {
                     if (c[i] && c[i].v) {
@@ -581,21 +543,18 @@
                         if (ids) photos.push(...ids);
                     }
                 }
-
                 return { date, district, event, attendance, guests, photos };
             }).filter(item => item && item.event !== 'Untitled Event');
 
             populateDistrictFilter();
             applyFilters();
             document.getElementById('loader').style.display = 'none';
-
         } catch (error) {
             console.error(error);
             document.getElementById('loader').innerHTML = "<div style='color:red'>Data Load Failed. Check Console.</div>";
         }
     }
 
-    // --- Filter Logic ---
     function populateDistrictFilter() {
         const districts = [...new Set(rawData.map(d => d.district))].sort();
         const select = document.getElementById('district-filter');
@@ -610,14 +569,12 @@
     function applyFilters() {
         const query = document.getElementById('search-input').value.toLowerCase();
         const distFilter = document.getElementById('district-filter').value;
-
         filteredData = rawData.filter(item => {
             const matchesSearch = item.event.toLowerCase().includes(query) || 
                                   item.guests.toLowerCase().includes(query);
             const matchesDist = distFilter ? item.district === distFilter : true;
             return matchesSearch && matchesDist;
         });
-
         currentIndex = 0;
         renderSlides();
         renderGrid();
@@ -625,49 +582,37 @@
         updateCounter();
     }
 
-    // --- Rendering: Slides ---
+    // --- DISPLAY LOGIC (Use Google Links, NO PROXY for reliability in UI) ---
     function renderSlides() {
         const wrapper = document.getElementById('slides-wrapper');
         wrapper.innerHTML = '';
-
         if (filteredData.length === 0) {
             wrapper.innerHTML = '<div style="height:100%; display:flex; justify-content:center; align-items:center;">No Data Found</div>';
             return;
         }
-
         filteredData.forEach((item, index) => {
             const div = document.createElement('div');
             div.className = `slide-container ${index === 0 ? '' : 'hidden'}`;
             div.id = `slide-${index}`;
-            
-            // Photo Grid
             let photosHtml = '';
             const maxPhotos = 4;
             const photoCount = item.photos.length;
-            
             if(photoCount > 0) {
                 const limit = Math.min(photoCount, maxPhotos);
                 for(let i=0; i<limit; i++) {
                     const pid = item.photos[i];
-                    // FIX: Using drive.google.com/thumbnail for reliable display
+                    // USE RELIABLE DRIVE LINK FOR DISPLAY
                     const url = `https://drive.google.com/thumbnail?id=${pid}&sz=w1000`; 
-                    
-                    let overlay = '';
-                    if(i === 3 && photoCount > 4) {
-                        overlay = `<div class="more-overlay">+${photoCount - 3}</div>`;
-                    }
-                    
-                    // Simple img tag with placeholder onerror, no loop
+                    let overlay = (i === 3 && photoCount > 4) ? `<div class="more-overlay">+${photoCount - 3}</div>` : '';
                     photosHtml += `
                     <div class="photo-card" onclick="openLightbox('${url}', '${item.event.replace(/'/g, "")}')">
-                        <img src="${url}" referrerpolicy="no-referrer" loading="lazy" onerror="this.src='https://placehold.co/400x300?text=No+Image'">
+                        <img src="${url}" loading="lazy" referrerpolicy="no-referrer" onerror="this.src='https://placehold.co/400x300?text=Error'">
                         ${overlay}
                     </div>`;
                 }
             } else {
                 photosHtml = '<div style="grid-column:span 2; display:flex; justify-content:center; align-items:center; color:#666;">No Photos</div>';
             }
-
             div.innerHTML = `
                 <div class="info-panel">
                     <h1>${item.event}</h1>
@@ -676,46 +621,21 @@
                     <div class="info-item"><i class='bx bx-group'></i> <span class="info-label">Attend:</span> ${item.attendance}</div>
                     <div class="info-item" style="align-items:flex-start"><i class='bx bx-microphone'></i> <span class="info-label">Guests:</span> <span>${item.guests}</span></div>
                 </div>
-                <div class="photo-panel">
-                    ${photosHtml}
-                </div>
+                <div class="photo-panel">${photosHtml}</div>
             `;
             wrapper.appendChild(div);
         });
     }
 
-    function showSlide(index) {
-        if(index < 0 || index >= filteredData.length) return;
-        document.querySelectorAll('.slide-container').forEach(el => el.classList.add('hidden'));
-        document.getElementById(`slide-${index}`).classList.remove('hidden');
-        currentIndex = index;
-        updateCounter();
-    }
-
-    function nextSlide() {
-        if (currentIndex < filteredData.length - 1) showSlide(currentIndex + 1);
-        else if (tvInterval) showSlide(0); 
-    }
-    function prevSlide() { if (currentIndex > 0) showSlide(currentIndex - 1); }
-    
-    function updateCounter() {
-        document.getElementById('curr-idx').innerText = filteredData.length ? currentIndex + 1 : 0;
-        document.getElementById('total-count').innerText = filteredData.length;
-    }
-
-    // --- Rendering: Grid ---
     function renderGrid() {
         const grid = document.getElementById('view-grid');
         grid.innerHTML = '';
-        
         filteredData.forEach((item, index) => {
-            // FIX: Using drive.google.com/thumbnail for Grid as well
+            // USE RELIABLE DRIVE LINK FOR GRID
             const thumb = item.photos.length > 0 ? `https://drive.google.com/thumbnail?id=${item.photos[0]}&sz=w500` : 'https://placehold.co/400x300?text=No+Img';
-            
             const div = document.createElement('div');
             div.className = 'grid-item';
             div.onclick = () => { switchView('slide'); showSlide(index); };
-            
             div.innerHTML = `
                 <img src="${thumb}" class="grid-img" loading="lazy" referrerpolicy="no-referrer" onerror="this.src='https://placehold.co/400x300?text=Error'">
                 <div class="grid-info">
@@ -730,53 +650,28 @@
         });
     }
 
-    // --- Rendering: Analytics ---
     function renderAnalytics() {
         document.getElementById('stat-total-events').innerText = filteredData.length;
         document.getElementById('stat-total-districts').innerText = [...new Set(filteredData.map(d=>d.district))].length;
         const totalAtt = filteredData.reduce((acc, curr) => acc + curr.attendance, 0);
         document.getElementById('stat-total-attendance').innerText = totalAtt.toLocaleString();
-
         const districtCounts = {};
         const districtAttendance = {};
-
         filteredData.forEach(d => {
             districtCounts[d.district] = (districtCounts[d.district] || 0) + 1;
             districtAttendance[d.district] = (districtAttendance[d.district] || 0) + d.attendance;
         });
-
-        const labels = Object.keys(districtCounts);
-        const countData = Object.values(districtCounts);
-        const attData = Object.values(districtAttendance);
-
         if(charts.dist) charts.dist.destroy();
         charts.dist = new Chart(document.getElementById('districtChart'), {
             type: 'bar',
-            data: {
-                labels: labels,
-                datasets: [{ label: 'Events', data: countData, backgroundColor: '#66fcf1', borderRadius: 5 }]
-            },
-            options: {
-                responsive: true, maintainAspectRatio: false,
-                plugins: { legend: { labels: { color: 'white' } } },
-                scales: { y: { ticks: { color: '#c5c6c7' }, grid: { color: '#333' } }, x: { ticks: { color: '#c5c6c7' } } }
-            }
+            data: { labels: Object.keys(districtCounts), datasets: [{ label: 'Events', data: Object.values(districtCounts), backgroundColor: '#66fcf1', borderRadius: 5 }] },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: 'white' } } }, scales: { y: { ticks: { color: '#c5c6c7' }, grid: { color: '#333' } }, x: { ticks: { color: '#c5c6c7' } } } }
         });
-
         if(charts.att) charts.att.destroy();
         charts.att = new Chart(document.getElementById('attendanceChart'), {
             type: 'doughnut',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: 'Attendance', data: attData,
-                    backgroundColor: ['#45a29e', '#66fcf1', '#1f2833', '#c5c6c7', '#ff4757'], borderColor: '#0b0c10'
-                }]
-            },
-            options: {
-                responsive: true, maintainAspectRatio: false,
-                plugins: { legend: { position: 'right', labels: { color: 'white' } } }
-            }
+            data: { labels: Object.keys(districtCounts), datasets: [{ label: 'Attendance', data: Object.values(districtAttendance), backgroundColor: ['#45a29e', '#66fcf1', '#1f2833', '#c5c6c7', '#ff4757'], borderColor: '#0b0c10' }] },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { color: 'white' } } } }
         });
     }
 
@@ -787,7 +682,22 @@
         const map = {'slide':0, 'grid':1, 'analytics':2};
         document.querySelectorAll('.nav-item')[map[viewName]].classList.add('active');
     }
-
+    function showSlide(index) {
+        if(index < 0 || index >= filteredData.length) return;
+        document.querySelectorAll('.slide-container').forEach(el => el.classList.add('hidden'));
+        document.getElementById(`slide-${index}`).classList.remove('hidden');
+        currentIndex = index;
+        updateCounter();
+    }
+    function nextSlide() {
+        if (currentIndex < filteredData.length - 1) showSlide(currentIndex + 1);
+        else if (tvInterval) showSlide(0); 
+    }
+    function prevSlide() { if (currentIndex > 0) showSlide(currentIndex - 1); }
+    function updateCounter() {
+        document.getElementById('curr-idx').innerText = filteredData.length ? currentIndex + 1 : 0;
+        document.getElementById('total-count').innerText = filteredData.length;
+    }
     function toggleTVMode() {
         const btn = document.getElementById('tv-mode-btn');
         if (tvInterval) {
@@ -803,8 +713,9 @@
         }
     }
 
-    // --- SMART DOWNLOAD HELPER (FROM MANDAL FILE) ---
-    // This is the Magic Function: Converts images to Base64 using a CORS proxy
+    // --- DOWNLOAD LOGIC ------------------------------------------
+
+    // 1. SMART IMAGE INLINER (Using Proxy for Downloads)
     async function inlineImagesToDataURL(root, { concurrency=6 } = {}){
       const imgs = Array.from(root.querySelectorAll('img')).filter(img=>img.src);
       let i=0;
@@ -812,7 +723,7 @@
         while(i<imgs.length){
           const img = imgs[i++];
           try{
-            // Use wsrv.nl proxy (same logic as mandal dashboard)
+            // Use wsrv.nl to proxy image and return it CORS-enabled
             const prox = `https://wsrv.nl/?url=${encodeURIComponent(img.src)}&output=jpg`;
             const res = await fetch(prox, { cache:'no-store' });
             const blob = await res.blob();
@@ -821,261 +732,179 @@
               fr.onloadend=()=>{ img.src=fr.result; r(); };
               fr.readAsDataURL(blob);
             });
-          }catch(e){ 
-              console.warn("Img inline failed", e); 
-          }
+          } catch(e){ console.warn("Img inline failed", e); }
         }
       }
       await Promise.all(Array.from({length:Math.min(concurrency, imgs.length)}, worker));
     }
 
-    // --- CSV Download ---
     function downloadDataCSV() {
-        if(filteredData.length === 0) return alert("No data to export");
-        let csvContent = "data:text/csv;charset=utf-8,";
-        csvContent += "Date,District,Event,Attendance,Guests,Photo_Count\n";
-        filteredData.forEach(row => {
-            const cleanEvent = `"${row.event.replace(/"/g, '""')}"`; 
-            const cleanGuests = `"${row.guests.replace(/"/g, '""')}"`;
-            csvContent += `${row.date},${row.district},${cleanEvent},${row.attendance},${cleanGuests},${row.photos.length}\n`;
-        });
-        const encodedUri = encodeURI(csvContent);
+        if(filteredData.length === 0) return alert("No data");
+        let csv = "Date,District,Event,Attendance,Guests\n";
+        filteredData.forEach(r => csv += `${r.date},${r.district},"${r.event.replace(/"/g,'""')}",${r.attendance},"${r.guests.replace(/"/g,'""')}"\n`);
         const link = document.createElement("a");
-        link.setAttribute("href", encodedUri);
-        link.setAttribute("download", "karyakram_data.csv");
-        document.body.appendChild(link); link.click(); document.body.removeChild(link);
+        link.href = encodeURI("data:text/csv;charset=utf-8,"+csv);
+        link.download = "karyakram_data.csv";
+        link.click();
     }
 
-    // --- EXCEL Download ---
     function downloadExcel() {
-        if(filteredData.length === 0) return alert("No data to export");
-        
-        // Prepare Data for SheetJS
-        const dataForExcel = filteredData.map(item => ({
-            "दिनांक": item.date,
-            "जिला": item.district,
-            "कार्यक्रम": item.event,
-            "उपस्थिति": item.attendance,
-            "अतिथि": item.guests,
-            "फोटो संख्या": item.photos.length
-        }));
-
-        const ws = XLSX.utils.json_to_sheet(dataForExcel);
+        if(filteredData.length === 0) return alert("No data");
+        const data = filteredData.map(item => ({ "दिनांक": item.date, "जिला": item.district, "कार्यक्रम": item.event, "उपस्थिति": item.attendance, "अतिथि": item.guests }));
+        const ws = XLSX.utils.json_to_sheet(data);
         const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Karyakram Data");
+        XLSX.utils.book_append_sheet(wb, ws, "Data");
         XLSX.writeFile(wb, "Karyakram_Report.xlsx");
     }
 
-    // --- PDF Download (PPT STYLE - SMART) ---
+    // --- "SCREENSHOT WALA PDF" (Slides to PDF) ---
     async function downloadFullPDF() {
         if (filteredData.length === 0) return;
         const btn = document.getElementById('download-main-btn');
         const originalText = btn.innerHTML;
-        btn.innerHTML = '⏳ Processing Images...';
+        btn.innerHTML = '⏳ Generating PDF...';
         btn.disabled = true;
         
-        // 1. Create a CLEAN container off-screen
+        // Build a container off-screen that looks EXACTLY like the slide view
         const container = document.createElement('div');
-        container.style.width = '1123px'; // Landscape A4 width
-        container.style.background = '#0b0c10'; // Dark Theme Background
-        container.style.color = '#ffffff';
+        container.style.width = '1123px'; // A4 Landscape width in px (approx)
         container.style.position = 'absolute'; 
         container.style.top = '-99999px';
         container.style.left = '0';
+        container.style.background = '#0b0c10'; // Dark bg
+        container.style.color = '#fff';
         container.style.fontFamily = "'Noto Sans Devanagari', sans-serif";
-        
-        // 2. Build HTML
+
         for (const item of filteredData) {
             let imgs = '';
             const max = Math.min(item.photos.length, 4);
-            
             for(let i=0; i<max; i++){
-                // Use standard drive thumbnail link here, inlineImagesToDataURL will upgrade it later
+                // Use Standard link here, inliner will proxy it
                 const src = `https://drive.google.com/thumbnail?id=${item.photos[i]}&sz=w800`;
-                imgs += `
-                <div style="border:1px solid rgba(255,255,255,0.2); border-radius:10px; overflow:hidden; background:#000;">
-                    <img src="${src}" style="width:100%; height:100%; object-fit:cover;">
-                </div>`;
+                imgs += `<div style="border:1px solid rgba(255,255,255,0.2); border-radius:10px; overflow:hidden; background:#000;"><img src="${src}" style="width:100%; height:100%; object-fit:cover;"></div>`;
             }
-            // Fill empty slots
-            for(let i=max; i<4; i++){
-                 imgs += `<div style="border:1px dashed rgba(255,255,255,0.1); border-radius:10px;"></div>`;
-            }
+            for(let i=max; i<4; i++){ imgs += `<div style="border:1px dashed rgba(255,255,255,0.1); border-radius:10px;"></div>`; }
             
+            // Slide Layout
             container.innerHTML += `
                 <div style="width: 1123px; height: 794px; padding: 50px; page-break-after: always; box-sizing: border-box; display: flex; gap: 40px; border: 1px solid #333;">
                     <div style="flex: 1; display: flex; flex-direction: column; justify-content: center;">
                         <h1 style="font-size: 42px; color: #66fcf1; margin-bottom: 30px; line-height: 1.2;">${item.event}</h1>
-                        <div style="font-size: 24px; color: #c5c6c7; margin-bottom: 20px;">
-                            <span style="color: #45a29e; font-size: 30px;">📅</span> <strong>Date:</strong> ${item.date}
-                        </div>
-                        <div style="font-size: 24px; color: #c5c6c7; margin-bottom: 20px;">
-                            <span style="color: #45a29e; font-size: 30px;">📍</span> <strong>District:</strong> ${item.district}
-                        </div>
-                        <div style="font-size: 24px; color: #c5c6c7; margin-bottom: 20px;">
-                            <span style="color: #45a29e; font-size: 30px;">👥</span> <strong>Attend:</strong> ${item.attendance}
-                        </div>
-                        <div style="font-size: 24px; color: #c5c6c7;">
-                            <span style="color: #45a29e; font-size: 30px;">🎤</span> <strong>Guests:</strong><br>${item.guests}
-                        </div>
+                        <div style="font-size: 24px; color: #c5c6c7; margin-bottom: 20px;"><span style="color: #45a29e; font-size: 30px;">📅</span> <strong>Date:</strong> ${item.date}</div>
+                        <div style="font-size: 24px; color: #c5c6c7; margin-bottom: 20px;"><span style="color: #45a29e; font-size: 30px;">📍</span> <strong>District:</strong> ${item.district}</div>
+                        <div style="font-size: 24px; color: #c5c6c7; margin-bottom: 20px;"><span style="color: #45a29e; font-size: 30px;">👥</span> <strong>Attend:</strong> ${item.attendance}</div>
+                        <div style="font-size: 24px; color: #c5c6c7;"><span style="color: #45a29e; font-size: 30px;">🎤</span> <strong>Guests:</strong><br>${item.guests}</div>
                     </div>
-                    <div style="flex: 1; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 20px; height: 100%;">
-                        ${imgs}
-                    </div>
-                </div>
-            `;
+                    <div style="flex: 1; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 20px; height: 100%;">${imgs}</div>
+                </div>`;
         }
-        
         document.body.appendChild(container);
-        
-        // 3. MAGIC STEP: Inline images using proxy BEFORE html2pdf
+
+        // 1. INLINE IMAGES (Convert to Base64 via Proxy)
         await inlineImagesToDataURL(container);
 
-        // 4. Generate PDF
-        btn.innerHTML = '⏳ Saving PDF...';
-        const opt = {
-            margin: 0,
-            filename: 'Karyakram_Booklet.pdf',
-            image: { type: 'jpeg', quality: 0.95 },
-            html2canvas: { scale: 1.5, scrollY: 0, backgroundColor: '#0b0c10', useCORS: true },
-            jsPDF: { unit: 'px', format: [1123, 794], orientation: 'landscape' }
-        };
-
+        // 2. Generate PDF
         try {
-            await html2pdf().set(opt).from(container).save();
+            await html2pdf().set({
+                margin: 0,
+                filename: 'Karyakram_Slides.pdf',
+                image: { type: 'jpeg', quality: 0.95 },
+                html2canvas: { scale: 1.5, scrollY: 0, backgroundColor: '#0b0c10', useCORS: true },
+                jsPDF: { unit: 'px', format: [1123, 794], orientation: 'landscape' }
+            }).from(container).save();
         } catch(e) { console.error(e); alert("PDF Error"); } 
-        finally { 
-            document.body.removeChild(container); 
-            btn.innerHTML = originalText;
-            btn.disabled = false; 
-        }
+        finally { document.body.removeChild(container); btn.innerHTML = originalText; btn.disabled = false; }
     }
 
-    // --- PPT Download ---
-    async function downloadPPT() {
-        if (filteredData.length === 0) return;
+    // --- PPT ---
+    function downloadPPT() {
         const btn = document.getElementById('download-main-btn');
-        const originalText = btn.innerHTML;
         btn.innerHTML = '⏳ Creating PPT...';
-        btn.disabled = true;
-
-        try {
-            let pptx = new PptxGenJS();
-            pptx.layout = 'LAYOUT_WIDE';
-            pptx.background = { color: '0b0c10' };
-
-            for (const item of filteredData) {
-                let slide = pptx.addSlide();
-                const colorTitle = '66fcf1';
-                const colorText = 'c5c6c7';
-
-                slide.addText(item.event, { x: 0.5, y: 0.5, w: '90%', fontSize: 28, bold: true, color: colorTitle });
-                slide.addText(`Date: ${item.date}`, { x: 0.5, y: 1.5, fontSize: 16, color: colorText });
-                slide.addText(`District: ${item.district}`, { x: 0.5, y: 2.0, fontSize: 16, color: colorText });
-                slide.addText(`Guests: ${item.guests}`, { x: 0.5, y: 3.0, w: 4, h: 2, fontSize: 14, color: colorText, valign: 'top' });
-
-                const max = Math.min(item.photos.length, 4);
-                const positions = [{x:5.5,y:1},{x:9.2,y:1},{x:5.5,y:3.7},{x:9.2,y:3.7}];
-
-                // Manual fetch for PPT (since it doesn't use HTML container)
-                for(let i=0; i<max; i++){
-                    try {
-                        const originalUrl = `https://drive.google.com/thumbnail?id=${item.photos[i]}&sz=w800`;
-                        const proxyUrl = `https://wsrv.nl/?url=${encodeURIComponent(originalUrl)}&output=jpg`;
-                        // PptxGenJS can take remote URLs if CORS allows, but let's be safe
-                        slide.addImage({ path: proxyUrl, x: positions[i].x, y: positions[i].y, w: 3.5, h: 2.5 });
-                    } catch(e){}
-                }
-            }
-            pptx.writeFile({ fileName: `Karyakram.pptx` });
-        } catch (e) { alert("PPT Error"); } 
-        finally { btn.innerHTML = originalText; btn.disabled = false; }
+        let pptx = new PptxGenJS();
+        pptx.layout = 'LAYOUT_WIDE';
+        pptx.background = { color: '0b0c10' };
+        filteredData.forEach(item => {
+            let slide = pptx.addSlide();
+            slide.addText(item.event, { x: 0.5, y: 0.5, w: '90%', fontSize: 28, bold: true, color: '66fcf1' });
+            slide.addText(`Date: ${item.date}`, { x: 0.5, y: 1.5, fontSize: 16, color: 'c5c6c7' });
+            slide.addText(`District: ${item.district}`, { x: 0.5, y: 2.0, fontSize: 16, color: 'c5c6c7' });
+            slide.addText(`Guests: ${item.guests}`, { x: 0.5, y: 3.0, w: 4, h: 2, fontSize: 14, color: 'c5c6c7' });
+            const pos = [{x:5.5,y:1},{x:9.2,y:1},{x:5.5,y:3.7},{x:9.2,y:3.7}];
+            item.photos.slice(0,4).forEach((pid, i) => {
+                // Use proxy for PPT images too to ensure they render
+                slide.addImage({ path: `https://wsrv.nl/?url=drive.google.com/thumbnail?id=${pid}&sz=w800&output=jpg`, x: pos[i].x, y: pos[i].y, w: 3.5, h: 2.5 });
+            });
+        });
+        pptx.writeFile({ fileName: `Karyakram.pptx` });
+        btn.innerHTML = 'Download';
     }
 
-    // --- Current Slide Image Download ---
+    // --- Current Slide Image ---
     async function downloadCurrentImage() {
         const activeSlide = document.getElementById(`slide-${currentIndex}`);
-        if (!activeSlide || activeSlide.classList.contains('hidden')) {
-            alert("Please switch to Presentation View.");
-            switchView('slide');
-            return;
-        }
-
+        if (!activeSlide || activeSlide.classList.contains('hidden')) return alert("Go to Presentation View");
         const btn = document.getElementById('download-main-btn');
-        const originalText = btn.innerHTML;
+        const orig = btn.innerHTML;
         btn.innerHTML = '⏳ Saving Img...';
-        btn.disabled = true;
-
+        
         try {
+            // Clone & Inline
             const clone = activeSlide.cloneNode(true);
             clone.style.position='fixed'; clone.style.top='0'; clone.style.left='0'; 
             clone.style.width='1200px'; clone.style.height='800px'; clone.style.zIndex='-9999';
             clone.style.background='#0b0c10'; clone.style.display='flex';
             document.body.appendChild(clone);
-
-            // MAGIC STEP
+            
             await inlineImagesToDataURL(clone);
-
+            
             const canvas = await html2canvas(clone, { backgroundColor: '#0b0c10', useCORS: true, scale: 1.5 });
             const link = document.createElement('a');
-            link.download = `Event_${currentIndex + 1}.png`;
+            link.download = `Slide_${currentIndex+1}.png`;
             link.href = canvas.toDataURL("image/png");
             link.click();
             document.body.removeChild(clone);
-        } catch (err) { alert("Capture Failed"); } 
-        finally { btn.innerHTML = originalText; btn.disabled = false; }
+        } catch(e) { console.error(e); } 
+        finally { btn.innerHTML = orig; }
     }
 
-    // --- Screenshot ---
+    // --- Full Screenshot ---
     async function downloadScreenshot() {
         const btn = document.getElementById('download-main-btn');
-        const originalText = btn.innerHTML;
+        const orig = btn.innerHTML;
         btn.innerHTML = '📸 Capturing...';
         
         try {
-            // Need to process images in body before capture?
-            // Doing entire body is heavy, but let's try a clone approach for safety
-            // Or just capture as is (images on screen are already loaded via lh3, might be tainted)
-            // SAFEST: Clone body, inline images, capture clone.
-            // BUT simpler: Use allowTaint: true (might block download) OR useCORS: true (needs proxy)
+            // Clone Body to ensure clean capture without "tainted" live images
+            const clone = document.body.cloneNode(true);
+            // Hide interactive elements in screenshot
+            const dropdowns = clone.querySelectorAll('.dropdown, #tv-mode-btn, .sidebar');
+            dropdowns.forEach(el => el.style.display = 'none');
             
-            // For screenshot, what's on screen (lh3) might not be CORS-exportable.
-            // So we really should clone the visible area.
-            
-            html2canvas(document.body, {
-                backgroundColor: '#0b0c10',
-                useCORS: true, // Attempt to use CORS
-                allowTaint: true,
-                ignoreElements: (element) => element.classList.contains('dropdown')
-            }).then(canvas => {
-                const link = document.createElement('a');
-                link.download = `Dashboard_Screenshot.png`;
-                link.href = canvas.toDataURL("image/png");
-                link.click();
-                btn.innerHTML = originalText;
-            }).catch(err => {
-                console.error(err);
-                alert("Screenshot might be blocked by browser due to image security.");
-                btn.innerHTML = originalText;
-            });
-        } catch(e) { btn.innerHTML = originalText; }
+            clone.style.width = '1280px'; // Force standard width
+            clone.style.height = 'auto';
+            clone.style.position = 'fixed'; clone.style.top = '-9999px'; clone.style.left = '-9999px';
+            document.documentElement.appendChild(clone);
+
+            await inlineImagesToDataURL(clone);
+
+            const canvas = await html2canvas(clone, { backgroundColor: '#0b0c10', useCORS: true });
+            const link = document.createElement('a');
+            link.download = `Dashboard_Shot.png`;
+            link.href = canvas.toDataURL("image/png");
+            link.click();
+            document.documentElement.removeChild(clone);
+        } catch(e) { console.error(e); alert("Screenshot Error"); }
+        finally { btn.innerHTML = orig; }
     }
 
-    // --- Lightbox ---
     function openLightbox(url, caption) {
         document.getElementById('lightbox-img').src = url;
         document.getElementById('lightbox-caption').innerText = caption;
         document.getElementById('lightbox').style.display = 'flex';
         if(tvInterval) toggleTVMode();
     }
-    function closeLightbox() {
-        document.getElementById('lightbox').style.display = 'none';
-    }
-    document.addEventListener('keydown', e => {
-        if(e.key === 'Escape') closeLightbox();
-        if(e.key === 'ArrowRight') nextSlide();
-        if(e.key === 'ArrowLeft') prevSlide();
-    });
+    function closeLightbox() { document.getElementById('lightbox').style.display = 'none'; }
+    document.addEventListener('keydown', e => { if(e.key==='Escape')closeLightbox(); if(e.key==='ArrowRight')nextSlide(); if(e.key==='ArrowLeft')prevSlide(); });
 
 </script>
 </body>
