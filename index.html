@@ -776,47 +776,47 @@
         if (filteredData.length === 0) return;
         const btn = document.getElementById('pdf-btn');
         const originalText = btn.innerHTML;
-        btn.innerHTML = '⏳ Processing...';
+        btn.innerHTML = '⏳ Prep Images...'; // Update status
         btn.disabled = true;
         
         // 1. Create Container
         const container = document.createElement('div');
+        container.id = 'pdf-container';
         container.style.width = '800px'; 
-        container.style.position = 'absolute'; 
-        container.style.top = '-9999px';
+        // Important: Don't move it too far off-screen, just hide it behind
+        container.style.position = 'fixed'; 
         container.style.left = '0';
-        container.style.zIndex = '-1';
-        container.style.background = '#fff'; // White bg for PDF
-        container.style.color = '#000';      // Black text
-        container.style.fontFamily = "'Noto Sans Devanagari', sans-serif"; // Hindi Font
+        container.style.top = '0';
+        container.style.zIndex = '-9999';
+        container.style.background = '#ffffff'; 
+        container.style.color = '#000';      
+        container.style.fontFamily = "'Noto Sans Devanagari', sans-serif"; 
         
         // 2. Build Content
         let contentHtml = '';
         filteredData.forEach(item => {
             let photoGrid = '';
-            // Max 4 photos
             item.photos.slice(0, 4).forEach(pid => {
-                // Using weserv.nl to proxy the Google Drive Thumbnail image
-                // This converts it to a CORS-friendly JPG
                 const originalUrl = `https://drive.google.com/thumbnail?id=${pid}&sz=w500`;
                 const proxyUrl = `https://images.weserv.nl/?url=${encodeURIComponent(originalUrl)}&output=jpg&q=80`;
                 
                 photoGrid += `
-                    <div style="height: 150px; overflow: hidden; border: 1px solid #ccc; border-radius: 4px;">
+                    <div style="height: 150px; overflow: hidden; border: 1px solid #ccc; border-radius: 4px; background: #f9f9f9;">
                         <img src="${proxyUrl}" crossorigin="anonymous" 
                              style="width: 100%; height: 100%; object-fit: cover;" 
-                             onerror="this.style.display='none'">
+                             onload="this.setAttribute('data-loaded', 'true')"
+                             onerror="this.setAttribute('data-loaded', 'true'); this.style.display='none'">
                     </div>
                 `;
             });
 
-            // Fallback for no photos
             if(!photoGrid) {
                 photoGrid = '<div style="grid-column: 1/-1; text-align:center; color:#999; padding:20px;">No Photos</div>';
             }
 
+            // Using page-break-inside: avoid to prevent cutting
             contentHtml += `
-                <div style="padding: 40px; page-break-after: always; min-height: 1000px; box-sizing: border-box;">
+                <div style="padding: 40px; margin-bottom: 20px; page-break-after: always; min-height: 1000px; box-sizing: border-box; background: #fff; border-bottom: 1px dashed #eee;">
                     <h2 style="color: #2c3e50; border-bottom: 2px solid #45a29e; padding-bottom: 10px; margin-bottom: 20px; font-size: 24px;">
                         ${item.event}
                     </h2>
@@ -855,16 +855,37 @@
         container.innerHTML = contentHtml;
         document.body.appendChild(container);
 
-        // 3. Generate PDF
+        // 3. Wait for images to load
+        btn.innerHTML = '⏳ Loading Images...';
+        const images = container.querySelectorAll('img');
+        const promises = Array.from(images).map(img => {
+            if (img.complete) return Promise.resolve();
+            return new Promise(resolve => {
+                img.onload = resolve;
+                img.onerror = resolve;
+                // Timeout fallback
+                setTimeout(resolve, 5000); 
+            });
+        });
+        
+        await Promise.all(promises);
+
+        // 4. Generate PDF
+        btn.innerHTML = '⏳ Creating PDF...';
+        
+        // Wait a small buffer for rendering
+        await new Promise(r => setTimeout(r, 500));
+
         const opt = {
             margin: 0,
-            filename: `Report_${new Date().toISOString().slice(0,10)}.pdf`,
+            filename: `Karyakram_Report_${new Date().toISOString().slice(0,10)}.pdf`,
             image: { type: 'jpeg', quality: 0.95 },
             html2canvas: { 
-                scale: 1.5, // Good balance of quality and size
+                scale: 1.5, 
                 useCORS: true, 
-                scrollY: 0,
-                backgroundColor: '#ffffff' // Ensure white background
+                logging: false,
+                backgroundColor: '#ffffff',
+                windowWidth: 800
             },
             jsPDF: { unit: 'px', format: [800, 1150], orientation: 'portrait' }
         };
@@ -873,7 +894,7 @@
             await html2pdf().set(opt).from(container).save();
         } catch (err) {
             console.error(err);
-            alert("PDF Generation Failed. Please try again.");
+            alert("PDF Generation Limit Reached. Try filtering fewer events.");
         } finally {
             document.body.removeChild(container);
             btn.innerHTML = originalText;
