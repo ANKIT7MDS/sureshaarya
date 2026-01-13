@@ -315,6 +315,29 @@ dd { margin:0; font-weight: 500; font-size: 1rem; color: #333; }
         return null;
     }
 
+    // --- IMAGE LOADING STRATEGY ---
+    // This logic mimics the robust "candidates" approach from your other project
+    window.handleImageError = function(imgEl, driveId) {
+        const currentSrc = imgEl.src;
+        
+        // Candidate 1: lh3.googleusercontent.com (Best for files)
+        const cand1 = `https://lh3.googleusercontent.com/d/${driveId}=w1000`;
+        // Candidate 2: drive.google.com/thumbnail (Standard)
+        const cand2 = `https://drive.google.com/thumbnail?id=${driveId}&sz=w1000`;
+        // Candidate 3: drive.google.com/uc (Download/View view)
+        const cand3 = `https://drive.google.com/uc?export=view&id=${driveId}`;
+
+        if (currentSrc === cand1) {
+            imgEl.src = cand2;
+        } else if (currentSrc === cand2) {
+            imgEl.src = cand3;
+        } else {
+            // All image attempts failed. Hide image, show iframe.
+            imgEl.style.display = 'none';
+            document.getElementById('folderFrame').classList.add('active');
+        }
+    };
+
     // --- Render Single Slide ---
     function renderCurrent() {
         if (!filtered.length) {
@@ -329,7 +352,9 @@ dd { margin:0; font-weight: 500; font-size: 1rem; color: #333; }
         
         // Setup URLs
         const folderUrl = driveId ? `https://drive.google.com/embeddedfolderview?id=${driveId}#grid` : "";
-        const imgUrl = driveId ? `https://drive.google.com/thumbnail?id=${driveId}&sz=w800` : "";
+        
+        // Initial Candidate (Try the most robust one first: lh3)
+        const initialImgUrl = driveId ? `https://lh3.googleusercontent.com/d/${driveId}=w1000` : "";
         const cleanLink = firstLink.match(/https?:\/\/[^\s,]+/)?.[0] || firstLink;
 
         pageEl.innerHTML = `
@@ -357,15 +382,15 @@ dd { margin:0; font-weight: 500; font-size: 1rem; color: #333; }
                 <div class="card-gallery">
                     <h3 class="section-title" style="border-left-color: #1f3b73; margin-bottom:10px;">फोटो एल्बम</h3>
                     <div class="gallery-container">
-                        <!-- Direct Image -->
-                        <img id="directImg" src="${imgUrl}" class="direct-img" alt="View" 
-                             onerror="this.style.display='none'; document.getElementById('folderFrame').classList.add('active');">
+                        <!-- Direct Image (Starts with Candidate 1) -->
+                        <img id="directImg" src="${initialImgUrl}" class="direct-img" alt="View" 
+                             onerror="window.handleImageError(this, '${driveId}')">
                         
-                        <!-- Folder Iframe -->
+                        <!-- Folder Iframe (Hidden initially) -->
                         <iframe id="folderFrame" src="${folderUrl}" class="drive-frame" title="Photo Gallery" allowfullscreen="true" referrerpolicy="no-referrer"></iframe>
                         
                         <!-- Multi-link Grid -->
-                        ${links.length > 1 ? `<div class="multi-photo-grid active">${links.map(l => { const did=getDriveId(l); return did?`<img src="https://drive.google.com/thumbnail?id=${did}&sz=w400" class="grid-img" onclick="window.open('${l}','_blank')">`:''; }).join('')}</div>` : ''}
+                        ${links.length > 1 ? `<div class="multi-photo-grid active">${links.map(l => { const did=getDriveId(l); return did?`<img src="https://lh3.googleusercontent.com/d/${did}=w400" class="grid-img" onerror="this.src='https://drive.google.com/thumbnail?id=${did}&sz=w400'" onclick="window.open('${l}','_blank')">`:''; }).join('')}</div>` : ''}
                         
                         <!-- Placeholder -->
                         <div class="placeholder-content"><span class="placeholder-icon">📁</span><p>लोड हो रहा है...</p></div>
@@ -378,16 +403,15 @@ dd { margin:0; font-weight: 500; font-size: 1rem; color: #333; }
             </div>
         `;
         
-        // Always try to show the image first!
+        // Reset View State
         const imgEl = document.getElementById('directImg');
         const frameEl = document.getElementById('folderFrame');
 
         if (links.length > 1) {
-            // If multiple links, show grid
             imgEl.style.display = 'none';
             frameEl.classList.remove('active');
         } else {
-            // Default to trying image. If it fails, onerror will switch to iframe.
+            // Try image first
             imgEl.style.display = 'block';
             frameEl.classList.remove('active');
         }
@@ -406,7 +430,7 @@ dd { margin:0; font-weight: 500; font-size: 1rem; color: #333; }
             const links = item.link.split(/[\n,]/).map(l => l.trim()).filter(Boolean);
             const firstLink = links[0] || "";
             const driveId = getDriveId(firstLink);
-            const imgUrl = driveId ? `https://drive.google.com/thumbnail?id=${driveId}&sz=w500` : "";
+            const imgUrl = driveId ? `https://lh3.googleusercontent.com/d/${driveId}=w500` : "";
 
             printHTML += `
                 <div class="print-card">
@@ -422,7 +446,7 @@ dd { margin:0; font-weight: 500; font-size: 1rem; color: #333; }
                         </dl>
                     </div>
                     <div class="print-gallery">
-                        ${driveId ? `<img src="${imgUrl}" class="print-img" alt="Photo">` : `<span style="color:#ccc;">No Photo</span>`}
+                        ${driveId ? `<img src="${imgUrl}" class="print-img" alt="Photo" onerror="this.style.display='none'">` : `<span style="color:#ccc;">No Photo</span>`}
                     </div>
                 </div>
             `;
