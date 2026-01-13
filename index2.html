@@ -582,7 +582,7 @@
         updateCounter();
     }
 
-    // --- DISPLAY LOGIC (Use Google Links, NO PROXY for reliability in UI) ---
+    // --- DISPLAY LOGIC ---
     function renderSlides() {
         const wrapper = document.getElementById('slides-wrapper');
         wrapper.innerHTML = '';
@@ -601,12 +601,11 @@
                 const limit = Math.min(photoCount, maxPhotos);
                 for(let i=0; i<limit; i++) {
                     const pid = item.photos[i];
-                    // USE RELIABLE DRIVE THUMBNAIL LINK FOR DISPLAY
                     const url = `https://drive.google.com/thumbnail?id=${pid}&sz=w1000`; 
-                    let overlay = (i === 3 && photoCount > 4) ? `<div class="more-overlay">+${photoCount - 3}</div>` : '';
+                    let overlay = (i === limit-1 && photoCount > maxPhotos) ? `<div class="more-overlay">+${photoCount - maxPhotos}</div>` : '';
                     photosHtml += `
-                    <div class="photo-card" onclick="openLightbox('${url}', '${item.event.replace(/'/g, "")}')">
-                        <img src="${url}" loading="lazy" referrerpolicy="no-referrer" onerror="this.src='https://placehold.co/400x300?text=Error'">
+                    <div class="photo-card" onclick="openLightbox('${url}', '${item.event.replace(/'/g, "\\'")}')">
+                        <img src="${url}" loading="lazy" onerror="this.src='https://placehold.co/400x300?text=Error'">
                         ${overlay}
                     </div>`;
                 }
@@ -631,13 +630,12 @@
         const grid = document.getElementById('view-grid');
         grid.innerHTML = '';
         filteredData.forEach((item, index) => {
-            // USE RELIABLE DRIVE THUMBNAIL LINK FOR GRID
             const thumb = item.photos.length > 0 ? `https://drive.google.com/thumbnail?id=${item.photos[0]}&sz=w500` : 'https://placehold.co/400x300?text=No+Img';
             const div = document.createElement('div');
             div.className = 'grid-item';
             div.onclick = () => { switchView('slide'); showSlide(index); };
             div.innerHTML = `
-                <img src="${thumb}" class="grid-img" loading="lazy" referrerpolicy="no-referrer" onerror="this.src='https://placehold.co/400x300?text=Error'">
+                <img src="${thumb}" class="grid-img" loading="lazy" onerror="this.src='https://placehold.co/400x300?text=Error'">
                 <div class="grid-info">
                     <div class="grid-title">${item.event}</div>
                     <div class="grid-meta">
@@ -713,43 +711,47 @@
         }
     }
 
-    // --- DOWNLOAD LOGIC (ROBUST FALLBACKS FROM UPLOADED FILE) -------------------
-
-    // 1. Helpers for fetching with Fallbacks
+    // --- IMPROVED DOWNLOAD LOGIC ---
     function candidates(id) { 
         if(!id) return []; 
         return [
+            `https://drive.google.com/uc?id=${id}`,
+            `https://drive.google.com/uc?id=${id}&export=view`,
             `https://drive.google.com/uc?export=view&id=${id}`,
-            `https://drive.google.com/thumbnail?id=${id}&sz=w1200`,
-            `https://lh3.googleusercontent.com/d/${id}=w1200`
+            `https://drive.google.com/thumbnail?id=${id}&sz=w2000`,
+            `https://drive.google.com/thumbnail?id=${id}&sz=w1600`
         ]; 
     }
 
-    async function fetchAsDataURL(url, timeoutMs=20000){
-      if(!url) throw new Error("empty url");
-      const ctrl = new AbortController();
-      const to = setTimeout(()=>ctrl.abort(), timeoutMs);
-      try{
-        // Using corsproxy.io as in the uploaded file, as it handles redirects well
-        const proxyUrl = "https://corsproxy.io/?" + encodeURIComponent(url);
-        const res = await fetch(proxyUrl, {cache:'no-store', signal: ctrl.signal});
-        if(!res.ok) throw new Error("HTTP " + res.status);
-        const blob = await res.blob();
-        return await new Promise((resolve,reject)=>{
-          const fr = new FileReader();
-          fr.onload = () => resolve(fr.result);
-          fr.onerror = reject;
-          fr.readAsDataURL(blob);
-        });
-      } finally { clearTimeout(to); }
+    async function fetchAsDataURL(url, timeoutMs = 30000) {
+        if (!url) throw new Error("empty url");
+        const ctrl = new AbortController();
+        const to = setTimeout(() => ctrl.abort(), timeoutMs);
+        try {
+            const res = await fetch(url, { signal: ctrl.signal, cache: 'no-cache' });
+            if (!res.ok) throw new Error("HTTP " + res.status);
+            const blob = await res.blob();
+            // Safety: agar HTML page (login/redirect) aaya to reject
+            if (blob.type.startsWith('text/html') || blob.size < 2000) throw new Error("Not an image");
+            return await new Promise((resolve, reject) => {
+                const fr = new FileReader();
+                fr.onload = () => resolve(fr.result);
+                fr.onerror = reject;
+                fr.readAsDataURL(blob);
+            });
+        } finally {
+            clearTimeout(to);
+        }
     }
 
-    async function loadImageAsDataURLWithFallbacks(photoId){
-      const tries = candidates(photoId);
-      for (let i=0; i<tries.length; i++){
-        try{ return await fetchAsDataURL(tries[i]); } catch(e){ /* try next */ }
-      }
-      return null;
+    async function loadImageAsDataURLWithFallbacks(photoId) {
+        const tries = candidates(photoId);
+        for (let i = 0; i < tries.length; i++) {
+            try {
+                return await fetchAsDataURL(tries[i]);
+            } catch (e) { /* try next */ }
+        }
+        return null;
     }
 
     function downloadDataCSV() {
@@ -771,7 +773,7 @@
         XLSX.writeFile(wb, "Karyakram_Report.xlsx");
     }
 
-    // --- "SCREENSHOT WALA PDF" (Slides to PDF) ---
+    // --- Slides to PDF ---
     async function downloadFullPDF() {
         if (filteredData.length === 0) return;
         const btn = document.getElementById('download-main-btn');
@@ -779,7 +781,6 @@
         btn.innerHTML = '⏳ Generating PDF...';
         btn.disabled = true;
         
-        // Build a container off-screen
         const container = document.createElement('div');
         container.style.width = '1123px'; 
         container.style.position = 'absolute'; 
@@ -789,25 +790,19 @@
         container.style.color = '#fff';
         container.style.fontFamily = "'Noto Sans Devanagari', sans-serif";
 
-        // Generate all slides
-        // We use a loop with await to process images sequentially (safer) or Promise.all (faster)
-        // Given the logic, let's build HTML first with placeholders, then swap srcs
-        
         let htmlContent = '';
         
         for (const item of filteredData) {
             let imgsHtml = '';
             const max = Math.min(item.photos.length, 4);
             
-            // We will fill src later
             for(let i=0; i<max; i++){
-                // Use a temporary data attribute to store ID
                 imgsHtml += `<div style="border:1px solid rgba(255,255,255,0.2); border-radius:10px; overflow:hidden; background:#000;"><img data-id="${item.photos[i]}" style="width:100%; height:100%; object-fit:cover;"></div>`;
             }
-            for(let i=max; i<4; i++){ imgsHtml += `<div style="border:1px dashed rgba(255,255,255,0.1); border-radius:10px;"></div>`; }
+            for(let i=max; i<4; i++){ imgsHtml += `<div style="border:1px dashed rgba(255,255,255,0.1); border-radius:10px; background:#111;"></div>`; }
             
             htmlContent += `
-                <div style="width: 1123px; height: 794px; padding: 50px; page-break-after: always; box-sizing: border-box; display: flex; gap: 40px; border: 1px solid #333;">
+                <div style="width: 1123px; height: 794px; padding: 50px; page-break-after: always; box-sizing: border-box; display: flex; gap: 40px; background:#0b0c10;">
                     <div style="flex: 1; display: flex; flex-direction: column; justify-content: center;">
                         <h1 style="font-size: 42px; color: #66fcf1; margin-bottom: 30px; line-height: 1.2;">${item.event}</h1>
                         <div style="font-size: 24px; color: #c5c6c7; margin-bottom: 20px;"><span style="color: #45a29e; font-size: 30px;">📅</span> <strong>Date:</strong> ${item.date}</div>
@@ -821,35 +816,37 @@
         container.innerHTML = htmlContent;
         document.body.appendChild(container);
 
-        // Now process images using the robust fallback logic
         const images = container.querySelectorAll('img[data-id]');
-        // Process in chunks to avoid overwhelming browser
-        const chunk = 5;
-        for (let i=0; i<images.length; i+=chunk) {
-            const batch = Array.from(images).slice(i, i+chunk);
+        const chunk = 6;
+        for (let i = 0; i < images.length; i += chunk) {
+            const batch = Array.from(images).slice(i, i + chunk);
             await Promise.all(batch.map(async (img) => {
                 const id = img.getAttribute('data-id');
                 const b64 = await loadImageAsDataURLWithFallbacks(id);
                 if (b64) {
                     img.src = b64;
                 } else {
-                    // Fallback visual if all fail
-                    img.parentElement.innerHTML = '<div style="display:flex;justify-content:center;align-items:center;height:100%;color:#555">Image N/A</div>';
+                    img.parentElement.innerHTML = '<div style="display:flex;justify-content:center;align-items:center;height:100%;color:#555;font-size:14px">Image Not Available</div>';
                 }
             }));
         }
 
-        // Generate PDF
         try {
             await html2pdf().set({
                 margin: 0,
                 filename: 'Karyakram_Slides.pdf',
                 image: { type: 'jpeg', quality: 0.95 },
-                html2canvas: { scale: 1.5, scrollY: 0, backgroundColor: '#0b0c10', useCORS: true },
+                html2canvas: { scale: 2, backgroundColor: '#0b0c10', useCORS: true },
                 jsPDF: { unit: 'px', format: [1123, 794], orientation: 'landscape' }
             }).from(container).save();
-        } catch(e) { console.error(e); alert("PDF Error"); } 
-        finally { document.body.removeChild(container); btn.innerHTML = originalText; btn.disabled = false; }
+        } catch(e) { 
+            console.error(e); 
+            alert("PDF generation failed – check console"); 
+        } finally { 
+            document.body.removeChild(container); 
+            btn.innerHTML = originalText; 
+            btn.disabled = false; 
+        }
     }
 
     // --- PPT ---
@@ -874,7 +871,6 @@
                 const pos = [{x:5.5,y:1},{x:9.2,y:1},{x:5.5,y:3.7},{x:9.2,y:3.7}];
                 const max = Math.min(item.photos.length, 4);
                 
-                // For PPT, we also need Base64 to avoid CORS in some viewers, using same logic
                 for(let i=0; i<max; i++){
                     const b64 = await loadImageAsDataURLWithFallbacks(item.photos[i]);
                     if(b64) {
@@ -883,8 +879,13 @@
                 }
             }
             pptx.writeFile({ fileName: `Karyakram.pptx` });
-        } catch(e) { console.error(e); alert("PPT Error"); }
-        finally { btn.innerHTML = originalText; btn.disabled = false; }
+        } catch(e) { 
+            console.error(e); 
+            alert("PPT Error"); 
+        } finally { 
+            btn.innerHTML = originalText; 
+            btn.disabled = false; 
+        }
     }
 
     // --- Current Slide Image ---
@@ -903,9 +904,8 @@
             clone.style.background='#0b0c10'; clone.style.display='flex';
             document.body.appendChild(clone);
             
-            // Process images in clone
             const images = clone.querySelectorAll('img');
-            const currentPhotos = filteredData[currentIndex].photos;
+            const currentPhotos = filteredData[currentIndex].photos.slice(0,4);
             
             await Promise.all(Array.from(images).map(async (img, i) => {
                 if(currentPhotos[i]) {
@@ -914,7 +914,7 @@
                 }
             }));
             
-            const canvas = await html2canvas(clone, { backgroundColor: '#0b0c10', useCORS: true, scale: 1.5 });
+            const canvas = await html2canvas(clone, { backgroundColor: '#0b0c10', scale: 2 });
             const link = document.createElement('a');
             link.download = `Slide_${currentIndex+1}.png`;
             link.href = canvas.toDataURL("image/png");
@@ -932,30 +932,24 @@
         btn.disabled = true;
         
         try {
-            // Need to handle onscreen images which might be tainted
-            // Best approach: clone visible body, replace images with base64
-            // Since on-screen images are already loaded, we can try to fetch them again as B64
-            
-            // For simplicity in this demo, we'll assume html2canvas + useCORS works if the displayed images
-            // are from a CORS-friendly source (lh3 usually is).
-            // But to be safe, let's use the clone approach + B64 replacement if possible.
-            // Since replacing ALL images on screen is heavy, let's try standard capture first.
-            // If that fails (black images), we'd need the heavy approach.
-            
-            // Reverting to standard capture but enabling allowTaint
             const canvas = await html2canvas(document.body, {
                 backgroundColor: '#0b0c10',
                 useCORS: true,
                 allowTaint: true,
-                ignoreElements: (element) => element.classList.contains('dropdown')
+                ignoreElements: (element) => element.classList?.contains('dropdown') || element.id === 'loader'
             });
             
             const link = document.createElement('a');
             link.download = `Dashboard_Shot.png`;
             link.href = canvas.toDataURL("image/png");
             link.click();
-        } catch(e) { console.error(e); alert("Screenshot Error"); }
-        finally { btn.innerHTML = orig; btn.disabled = false; }
+        } catch(e) { 
+            console.error(e); 
+            alert("Screenshot Error"); 
+        } finally { 
+            btn.innerHTML = orig; 
+            btn.disabled = false; 
+        }
     }
 
     function openLightbox(url, caption) {
@@ -965,6 +959,12 @@
         if(tvInterval) toggleTVMode();
     }
     function closeLightbox() { document.getElementById('lightbox').style.display = 'none'; }
-    document.addEventListener('keydown', e => { if(e.key==='Escape')closeLightbox(); if(e.key==='ArrowRight')nextSlide(); if(e.key==='ArrowLeft')prevSlide(); });
+    document.addEventListener('keydown', e => { 
+        if(e.key==='Escape') closeLightbox(); 
+        if(e.key==='ArrowRight') nextSlide(); 
+        if(e.key==='ArrowLeft') prevSlide(); 
+    });
 
 </script>
+</body>
+</html>
