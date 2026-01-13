@@ -42,11 +42,11 @@ dd { margin:0; font-weight: 500; font-size: 1rem; color: #333; }
 
 /* Right Side: Drive Embed */
 .card-gallery { background:#fff; border:1px solid #e8e9ee; border-radius:14px; padding:10px; display: flex; flex-direction: column; }
-.gallery-container { flex-grow: 1; border-radius: 8px; overflow: hidden; border: 1px solid #eee; background: #fafafa url('https://ssl.gstatic.com/docs/doclist/images/drive_icon_128.png') no-repeat center center; background-size: 50px; position: relative; min-height: 350px; }
+.gallery-container { flex-grow: 1; border-radius: 8px; overflow: hidden; border: 1px solid #eee; background: #fafafa url('https://ssl.gstatic.com/docs/doclist/images/drive_icon_128.png') no-repeat center center; background-size: 64px; position: relative; min-height: 350px; }
 .drive-frame { width: 100%; height: 100%; border: 0; position: absolute; top: 0; left: 0; z-index: 2; background: transparent; }
 .fallback-link { text-align: center; margin-top: 10px; font-size: 0.85rem; }
-.fallback-btn { display: inline-block; background: #e77019; color: white; padding: 10px 20px; border-radius: 5px; text-decoration: none; margin-top: 5px; font-size: 0.9rem; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: transform 0.1s; }
-.fallback-btn:hover { background: #d35400; transform: translateY(-2px); }
+.fallback-btn { display: inline-block; background: #e77019; color: white; padding: 12px 25px; border-radius: 5px; text-decoration: none; margin-top: 5px; font-size: 1rem; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: transform 0.1s; border: 2px solid #e77019; }
+.fallback-btn:hover { background: #fff; color: #e77019; transform: translateY(-2px); }
 
 /* Status Bar */
 .status-bar { font-size: 0.9rem; color: #666; margin-top: 5px; display: flex; gap: 15px; }
@@ -104,13 +104,11 @@ dd { margin:0; font-weight: 500; font-size: 1rem; color: #333; }
 
 <script>
     // --- Data Configuration ---
-    // User's Sheet ID: 1wyr0gt061UT5IVxT1JBYUEUJw1GYcBpzxDKEQmvcXXY
+    // User's Sheet ID
     const SHEET_ID = "1wyr0gt061UT5IVxT1JBYUEUJw1GYcBpzxDKEQmvcXXY";
     
-    // Using Google Visualization API endpoint which is more reliable for shared sheets
+    // Using Google Visualization API endpoint
     const GVIZ_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv`;
-    
-    // We use a CORS proxy to ensure fetching works from a static file environment
     const PROXY_URL = "https://corsproxy.io/?" + encodeURIComponent(GVIZ_URL);
 
     // --- State ---
@@ -180,11 +178,9 @@ dd { margin:0; font-weight: 500; font-size: 1rem; color: #333; }
     async function fetchData() {
         try {
             statusEl.textContent = "Fetching...";
-            // Try direct fetch first
             let response = await fetch(GVIZ_URL);
             
             if (!response.ok) {
-                // Fallback to proxy if direct fetch fails (CORS)
                 console.log("Direct fetch failed, trying proxy...");
                 response = await fetch(PROXY_URL);
             }
@@ -193,7 +189,6 @@ dd { margin:0; font-weight: 500; font-size: 1rem; color: #333; }
             
             const text = await response.text();
             
-            // Google sometimes returns HTML error pages with 200 OK via proxy
             if(text.trim().startsWith("<!DOCTYPE html") || text.includes("404")) {
                  throw new Error("Sheet Not Found or Access Denied");
             }
@@ -204,13 +199,9 @@ dd { margin:0; font-weight: 500; font-size: 1rem; color: #333; }
                 throw new Error("Sheet is empty or has no data rows");
             }
 
-            // Map Headers to Keys
-            // Expected headers roughly: Date, District, Title, Count, Guest, Link
-            // We will look for keywords in the header row (row 0)
             const headers = rows[0].map(h => h.toLowerCase());
             const dataRows = rows.slice(1);
 
-            // Helper to find index by keywords
             const findIdx = (keywords) => headers.findIndex(h => keywords.some(k => h.includes(k)));
 
             const idxDate = findIdx(['date', 'दिनांक', 'तारीख', 'कब']);
@@ -227,7 +218,7 @@ dd { margin:0; font-weight: 500; font-size: 1rem; color: #333; }
                 count: row[idxCount] || row[3] || "0",
                 guests: row[idxGuest] || row[4] || "-",
                 link: row[idxLink] || row[5] || ""
-            })).filter(item => item.title && item.date); // Basic validation
+            })).filter(item => item.title && item.date);
 
             initUI();
             
@@ -237,55 +228,28 @@ dd { margin:0; font-weight: 500; font-size: 1rem; color: #333; }
                 <div style="text-align:center; padding:40px; color:#d32f2f;">
                     <h2>⚠️ डेटा लोड नहीं हो सका</h2>
                     <p>${error.message}</p>
-                    <div style="margin-top:20px; text-align:left; display:inline-block; background:#fff; padding:20px; border:1px solid #ddd; border-radius:8px;">
-                        <strong>यह चेक करें:</strong>
-                        <ol>
-                            <li>अपनी Google Sheet खोलें।</li>
-                            <li><strong>File > Share > Publish to web</strong> पर क्लिक करें।</li>
-                            <li><strong>Link</strong> टैब में <strong>'Entire Document'</strong> और <strong>'Comma-separated values (.csv)'</strong> चुनें।</li>
-                            <li><strong>Publish</strong> बटन दबाएं।</li>
-                        </ol>
-                    </div>
+                    <p>कृपया सुनिश्चित करें कि Google Sheet "Public" है।</p>
                 </div>
             `;
             statusEl.textContent = "Error";
         }
     }
 
-    // --- Helpers ---
+    // --- ROBUST ID EXTRACTOR ---
     function getDriveId(rawUrl) {
         if (!rawUrl) return null;
         
-        // 1. EXTRACT FIRST VALID URL: Handles cases like "url1, url2" or "url1 url2"
-        const urlMatches = rawUrl.match(/https?:\/\/[^\s,]+/);
-        if (!urlMatches) return null; // No http link found
+        // This regex looks for specific Drive ID patterns (alphanumeric + underscore/dash, usually 25+ chars)
+        // It ignores everything else around it.
+        const idRegex = /[-\w]{25,}/;
+        const match = rawUrl.match(idRegex);
         
-        const url = urlMatches[0]; // Take the first clean URL
-        
-        let id = null;
-
-        // 2. EXTRACT ID based on pattern
-        if (url.includes('id=')) {
-            const parts = url.split('id=');
-            if (parts.length > 1) {
-                // Split by & or # or ?
-                id = parts[1].split(/[&?#]/)[0];
-            }
-        } 
-        else if (url.includes('/folders/')) {
-             const parts = url.split('/folders/');
-             if (parts.length > 1) {
-                 id = parts[1].split(/[/?#]/)[0];
-             }
+        if (match && match[0]) {
+            // Filter out common false positives if any (like "drive.google.com" matched as ID)
+            if (match[0].includes('google') || match[0].includes('http')) return null;
+            return match[0];
         }
-        else if (url.includes('/d/')) {
-            const parts = url.split('/d/');
-            if (parts.length > 1) {
-                id = parts[1].split(/[/?#]/)[0];
-            }
-        }
-
-        return id ? id.trim() : null;
+        return null;
     }
 
     // --- Render ---
@@ -299,10 +263,13 @@ dd { margin:0; font-weight: 500; font-size: 1rem; color: #333; }
 
         const item = filtered[idx];
         const driveId = getDriveId(item.link);
+        
+        // Use the embedded folder view. Note: This often requires the folder to be Public.
         const embedUrl = driveId ? `https://drive.google.com/embeddedfolderview?id=${driveId}#grid` : "";
 
-        // Determine if we show iframe or just fallback
-        const showIframe = !!driveId;
+        // Extract clean link for the button (take first http link found)
+        const cleanLinkMatch = item.link.match(/https?:\/\/[^\s,]+/);
+        const cleanLink = cleanLinkMatch ? cleanLinkMatch[0] : item.link;
 
         pageEl.innerHTML = `
             <div class="header">
@@ -333,22 +300,24 @@ dd { margin:0; font-weight: 500; font-size: 1rem; color: #333; }
                         <dd>${item.guests}</dd>
                         
                         <dt>लिंक</dt>
-                        <dd><a href="${item.link}" target="_blank" style="color:#e77019; text-decoration:none; font-size:0.9rem;">Drive Link ↗</a></dd>
+                        <dd><a href="${cleanLink}" target="_blank" style="color:#e77019; text-decoration:none; font-size:0.9rem;">Drive Link ↗</a></dd>
                     </dl>
                 </div>
 
                 <div class="card-gallery">
                     <h3 class="section-title" style="border-left-color: #1f3b73; margin-bottom:10px;">फोटो एल्बम</h3>
                     <div class="gallery-container">
-                        ${showIframe ? 
+                        ${driveId ? 
                           `<iframe src="${embedUrl}" class="drive-frame" title="Photo Gallery" allowfullscreen="true" referrerpolicy="no-referrer"></iframe>` 
                           : 
-                          `<div style="display:flex; justify-content:center; align-items:center; height:100%; color:#888;">No Preview Available</div>`
+                          `<div style="display:flex; justify-content:center; align-items:center; height:100%; color:#888; text-align:center;">
+                             <p>Preview Not Available<br><small>Click button below</small></p>
+                           </div>`
                         }
                     </div>
                     <div class="fallback-link">
-                        <a href="${item.link}" target="_blank" class="fallback-btn">📂 ओपन गैलरी (Open Folder)</a>
-                        <div style="margin-top:5px; color:#888; font-size:0.8rem;">(अगर ऊपर फोटो न दिखें, तो यह बटन दबाएं)</div>
+                        <a href="${cleanLink}" target="_blank" class="fallback-btn">📂 फोटो गैलरी खोलें (Open Gallery)</a>
+                        <div style="margin-top:10px; color:#666; font-size:0.8rem;">(अगर ऊपर खाली बॉक्स दिखे, तो बटन दबाएं)</div>
                     </div>
                 </div>
             </div>
