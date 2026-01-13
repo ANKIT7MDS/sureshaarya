@@ -55,27 +55,29 @@ dd { margin:0; font-weight: 500; font-size: 1rem; color: #333; }
     flex-direction: column;
 }
 
-/* Layering: Iframe at bottom (z-1), Image on top (z-10). If Image fails, it hides, revealing iframe. */
+/* 1. Iframe for Folders (Default Active for your data) */
 .drive-frame { 
     width: 100%; height: 100%; border: 0; 
     position: absolute; top: 0; left: 0; 
-    z-index: 1; /* Sit behind image */
+    z-index: 5; /* High priority */
     background: #fff; 
 }
 
+/* 2. Direct Image for Files (Only used if explicitly a file) */
 .direct-img { 
     width: 100%; height: 100%; 
     object-fit: contain; 
     position: absolute; top: 0; left: 0;
-    z-index: 10; /* Sit on top */
-    background: #fff; /* Hide iframe behind */
-    transition: opacity 0.3s;
+    z-index: 6; 
+    display: none; /* Hidden by default */
+    background: #fff;
 }
 
+/* 3. Placeholder */
 .placeholder-content {
     text-align: center;
     color: #888;
-    z-index: 0; /* Behind everything */
+    z-index: 0;
     padding: 20px;
     position: absolute;
     width: 100%;
@@ -90,7 +92,7 @@ dd { margin:0; font-weight: 500; font-size: 1rem; color: #333; }
     width: 100%; height: 100%;
     overflow-y: auto;
     display: none;
-    z-index: 20; /* Highest priority */
+    z-index: 10;
     background: #fff;
     position: absolute; top: 0; left: 0;
 }
@@ -248,7 +250,7 @@ dd { margin:0; font-weight: 500; font-size: 1rem; color: #333; }
 
     function getDriveId(url) {
         if (!url) return null;
-        // Robust splitter: grabs ID from /d/, id=, or folders/
+        // Robust splitter
         const parts = url.split(/\/d\/|id=|folders\//);
         return parts.length > 1 ? parts[1].split(/[/?&]/)[0] : null;
     }
@@ -262,10 +264,14 @@ dd { margin:0; font-weight: 500; font-size: 1rem; color: #333; }
         const driveId = getDriveId(firstLink);
         const cleanLink = firstLink.match(/https?:\/\/[^\s,]+/)?.[0] || firstLink;
 
+        // --- CORE LOGIC: DETECT FOLDER vs FILE ---
+        // Since your sheet has 'open?id=' which is usually ambiguous but mostly folders for you
+        // We will default to IFRAME (Folder View)
+        const isFolder = true; // FORCE FOLDER VIEW BY DEFAULT for safety
+        
         // URLs
-        // Note: thumbnail endpoint works for files. For folders it often returns 404, which is handled by onerror.
-        const imgUrl = driveId ? `https://drive.google.com/thumbnail?id=${driveId}&sz=w1000` : "";
         const folderUrl = driveId ? `https://drive.google.com/embeddedfolderview?id=${driveId}#grid` : "";
+        const imgUrl = driveId ? `https://drive.google.com/thumbnail?id=${driveId}&sz=w1000` : "";
 
         els.page.innerHTML = `
             <div class="header">
@@ -288,14 +294,11 @@ dd { margin:0; font-weight: 500; font-size: 1rem; color: #333; }
                     <h3 class="section-title" style="border-left-color:#1f3b73;margin-bottom:10px">फोटो एल्बम</h3>
                     <div class="gallery-container">
                         
-                        <!-- 1. IMAGE: Tries to load first. High Z-Index. On error -> Hides self. -->
-                        <img src="${imgUrl}" class="direct-img" alt="Photo" 
-                             onerror="this.style.display='none'">
-                        
-                        <!-- 2. IFRAME: Always present underneath. Visible if Image hides. -->
+                        <!-- 1. IFRAME (DEFAULT VISIBLE) -->
+                        <!-- This will show the grid of thumbnails inside the folder -->
                         <iframe src="${folderUrl}" class="drive-frame" title="Gallery" allowfullscreen="true"></iframe>
                         
-                        <!-- 3. GRID: Shows only if multiple links exist -->
+                        <!-- 2. GRID: Shows only if multiple links exist in CSV -->
                         ${links.length > 1 ? `<div class="multi-photo-grid active">${links.map(l=>{const d=getDriveId(l); return d?`<img src="https://drive.google.com/thumbnail?id=${d}&sz=w400" class="grid-img" onclick="window.open('${l}','_blank')">`:''}).join('')}</div>` : ''}
                         
                         <div class="placeholder-content"><span class="placeholder-icon">📁</span><p>लोड हो रहा है...</p></div>
@@ -306,12 +309,6 @@ dd { margin:0; font-weight: 500; font-size: 1rem; color: #333; }
                 </div>
             </div>
         `;
-
-        // If multiple links, force grid view (hide single img)
-        if (links.length > 1) {
-            const img = els.page.querySelector('.direct-img');
-            if(img) img.style.display = 'none';
-        }
 
         els.prev.disabled = idx === 0;
         els.next.disabled = idx >= filtered.length - 1;
