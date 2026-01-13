@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>प्रवास कार्यक्रम – डैशबोर्ड (Live)</title>
+<title>प्रवास कार्यक्रम – डैशबोर्ड (Sorted)</title>
 <!-- Fix for Favicon 404 -->
 <link rel="icon" href="data:;base64,iVBORw0KGgo=">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;600;700&family=Hind:wght@400;600&display=swap" rel="stylesheet">
@@ -208,6 +208,22 @@ dd { margin:0; font-weight: 500; font-size: 1rem; color: #333; }
     const totalAttEl = document.getElementById('total-attendance-display');
     const printViewEl = document.getElementById('print-view');
 
+    // --- Date Parser Helper ---
+    // Converts d/m/yyyy to JS Date object
+    function parseDate(dateStr) {
+        if (!dateStr) return new Date(0); // If empty, treat as very old
+        // Clean the string and split
+        const parts = dateStr.trim().split(/[/\-\.]/);
+        if (parts.length === 3) {
+            // Assuming d/m/yyyy which is common in India
+            const day = parseInt(parts[0], 10);
+            const month = parseInt(parts[1], 10) - 1; // JS months are 0-11
+            const year = parseInt(parts[2], 10);
+            return new Date(year, month, day);
+        }
+        return new Date(dateStr); // Fallback for other formats
+    }
+
     // --- CSV Parser ---
     function parseCSV(text) {
         const rows = [];
@@ -271,6 +287,13 @@ dd { margin:0; font-weight: 500; font-size: 1rem; color: #333; }
                 guests: row[idxGuest] || row[4] || "-",
                 link: row[idxLink] || row[5] || ""
             })).filter(item => item.title && item.date);
+
+            // SORTING LOGIC: Sort by Date Descending (Newest First)
+            rawData.sort((a, b) => {
+                const dateA = parseDate(a.date);
+                const dateB = parseDate(b.date);
+                return dateB - dateA; // Descending
+            });
 
             initUI();
             statusEl.textContent = "Live";
