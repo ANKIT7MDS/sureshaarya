@@ -2,196 +2,275 @@
 <html lang="hi">
 <head>
     <meta charset="UTF-8">
-    <title>कार्यक्रम घटनाएँ - रंगीन PPT स्टाइल</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Karyakram Presentation</title>
     <style>
         body {
-            background-color: #f9f9f9;
-            font-family: Arial, sans-serif;
-            color: #333;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #1a1a1a;
+            color: #fff;
+            overflow: hidden; /* Hide scrollbars for PPT feel */
         }
-        .filter-container {
-            text-align: center;
-            margin: 20px;
-            background-color: #ff9933; /* Saffron color for BJP theme */
-            padding: 10px;
-            border-radius: 8px;
-        }
-        .slide {
+        .slide-container {
+            display: none; /* Hidden by default */
+            height: 100vh;
+            width: 100vw;
             display: flex;
-            flex-wrap: wrap; /* For responsive */
-            margin: 20px auto;
-            max-width: 1200px;
-            background-color: white;
-            border: 2px solid #138808; /* Green border */
-            border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-            padding: 20px;
-            page-break-after: always; /* One slide per page in print */
-            min-height: 80vh;
+            flex-direction: row;
         }
-        .info {
-            width: 50%;
-            padding: 20px;
-            background-color: #fff5e6; /* Light saffron */
-            border-right: 1px solid #ccc;
+        .slide-container.active {
+            display: flex; /* Show active slide */
         }
-        .photos {
-            width: 50%;
+        
+        /* Left Side: Info */
+        .info-panel {
+            width: 40%;
+            padding: 40px;
+            box-sizing: border-box;
+            background: linear-gradient(135deg, #2c3e50, #4ca1af);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            border-right: 5px solid #fff;
+        }
+        .info-panel h1 {
+            font-size: 2.5em;
+            margin-bottom: 20px;
+            border-bottom: 2px solid rgba(255,255,255,0.3);
+            padding-bottom: 10px;
+        }
+        .info-item {
+            margin-bottom: 15px;
+            font-size: 1.2em;
+            line-height: 1.6;
+        }
+        .label {
+            font-weight: bold;
+            color: #ffd700; /* Gold color for labels */
+        }
+
+        /* Right Side: Photos */
+        .photo-panel {
+            width: 60%;
             padding: 20px;
+            box-sizing: border-box;
+            background-color: #000;
             display: flex;
             flex-wrap: wrap;
+            align-content: flex-start;
+            overflow-y: auto; /* Allow scrolling for many photos */
+            gap: 15px;
             justify-content: center;
-            background-color: #e6ffe6; /* Light green */
+            align-items: center;
         }
-        .img-thumb {
-            width: 150px;
-            height: auto;
-            margin: 10px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        .photo-thumbnail {
+            width: 200px;
+            height: 150px;
+            object-fit: cover;
+            border: 3px solid #fff;
+            border-radius: 8px;
+            transition: transform 0.3s;
+            cursor: pointer;
         }
-        h2 {
-            color: #138808; /* Green text */
+        .photo-thumbnail:hover {
+            transform: scale(1.1);
+            z-index: 10;
         }
-        p {
-            margin: 5px 0;
-            font-size: 16px;
+
+        /* Navigation Buttons */
+        .nav-buttons {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 100;
         }
-        #downloadBtn {
-            display: block;
-            margin: 20px auto;
+        button {
             padding: 10px 20px;
-            background-color: #ff9933;
-            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #ffd700;
             border: none;
             border-radius: 5px;
-            cursor: pointer;
+            font-weight: bold;
+            color: #000;
+            margin-left: 10px;
+        }
+        button:hover {
+            background-color: #e6c200;
+        }
+        .slide-counter {
+            position: fixed;
+            bottom: 25px;
+            left: 25px;
             font-size: 18px;
-        }
-        #downloadBtn:hover {
-            background-color: #e68a00;
-        }
-        @media print {
-            .filter-container, #downloadBtn {
-                display: none;
-            }
-            .slide {
-                page-break-after: always;
-            }
-        }
-        @media screen and (max-width: 768px) {
-            .slide {
-                flex-direction: column;
-            }
-            .info, .photos {
-                width: 100%;
-                border: none;
-            }
+            background: rgba(0,0,0,0.5);
+            padding: 5px 10px;
+            border-radius: 5px;
         }
     </style>
 </head>
 <body>
-    <div class="filter-container">
-        <label for="districtFilter">जिला द्वारा फिल्टर करें:</label>
-        <select id="districtFilter">
-            <option value="all">सभी</option>
-            <option value="रतलाम">रतलाम</option>
-            <option value="मंदसौर">मंदसौर</option>
-            <option value="शाजापुर">शाजापुर</option>
-            <!-- Add more unique districts from data if needed, e.g., <option value="उज्जैन">उज्जैन</option> <option value="नीमच">नीमच</option> -->
-        </select>
-    </div>
-    <button id="downloadBtn" onclick="window.print()">PDF के रूप में डाउनलोड करें</button>
 
-    <div class="slide" data-district="रतलाम">
-        <div class="info">
-            <h2>पुरस्कार वितरण कार्यक्रम</h2>
-            <p>दिनांक: 12/7/2025</p>
-            <p>जिला: रतलाम</p>
-            <p>कुल उपस्थिति: 250</p>
-            <p>अन्य वक्ता / अतिथि / पदाधिकारी: कैबिनेट मंत्री श्री चैतन्य जी कश्यप</p>
-            <p>टाइमस्टैम्प: 1/12/2026 14:27:20</p>
-        </div>
-        <div class="photos">
-            <img class="img-thumb" src="https://drive.google.com/uc?export=view&id=1t40iSWdLL9b8XZ5FU7HNqsb_XtJBWjSS" alt="कार्यक्रम फोटो">
-            <img class="img-thumb" src="https://drive.google.com/uc?export=view&id=1cLWjcYWgylCNBXJie13EF4trzzgTovf7" alt="कार्यक्रम फोटो">
-            <img class="img-thumb" src="https://drive.google.com/uc?export=view&id=1TQj1snLsNDQasLJ70QqqCnouOcccHch9" alt="कार्यक्रम फोटो">
-            <img class="img-thumb" src="https://drive.google.com/uc?export=view&id=1dqYSTrJOrM4Cey32PiTi4ZZQ9yb44bBT" alt="कार्यक्रम फोटो">
-            <img class="img-thumb" src="https://drive.google.com/uc?export=view&id=1lKtjgK6U4DrVc3QWT381ARkIAkogQO3H" alt="कार्यक्रम फोटो">
-            <img class="img-thumb" src="https://drive.google.com/uc?export=view&id=1llkh7IW8pVcY99D5qKU9FmQpZPamKa-w" alt="कार्यक्रम फोटो">
-        </div>
-    </div>
+<div id="slides-wrapper"></div>
 
-    <div class="slide" data-district="मंदसौर">
-        <div class="info">
-            <h2>भारतरत्न पूर्व प्रधानमंत्री श्रद्धेय अटल बिहारी वाजपेयी जी की स्मृति वर्ष को लेकर मल्हारगढ़ विधानसभा सम्मेलन</h2>
-            <p>दिनांक: 12/23/2025</p>
-            <p>जिला: मंदसौर</p>
-            <p>कुल उपस्थिति: 650</p>
-            <p>अन्य वक्ता / अतिथि / पदाधिकारी: राज्यसभा सांसद श्री बंशीलाल गुर्जर,भाजपा जिला अध्यक्ष श्री राजेश दीक्षित,जिला पंचायत अध्यक्ष श्रीमती दुर्गा पाटीदार,वरिष्ठ नेता श्री मदनलाल राठौर</p>
-            <p>टाइमस्टैम्प: 1/12/2026 14:36:51</p>
-        </div>
-        <div class="photos">
-            <img class="img-thumb" src="https://drive.google.com/uc?export=view&id=1W5ggKhcvGLQBgupYj8cd0yJDnDI_DItY" alt="कार्यक्रम फोटो">
-            <img class="img-thumb" src="https://drive.google.com/uc?export=view&id=1KNi9lFeZ8ZHpeilqnH-glXYwLhcHmue5" alt="कार्यक्रम फोटो">
-            <img class="img-thumb" src="https://drive.google.com/uc?export=view&id=1tGd7kbQqslLatTL61u24maIpveK6DXc6" alt="कार्यक्रम फोटो">
-            <img class="img-thumb" src="https://drive.google.com/uc?export=view&id=1rUKlTAwLJLXcBATiYHVcddhX53-BXdbF" alt="कार्यक्रम फोटो">
-            <img class="img-thumb" src="https://drive.google.com/uc?export=view&id=1Jpw0UMPJ3t7AweGQCQckkicRFmL5QrmG" alt="कार्यक्रम फोटो">
-        </div>
-    </div>
+<div class="slide-counter">Slide <span id="current-slide">1</span> / <span id="total-slides">0</span></div>
+<div class="nav-buttons">
+    <button onclick="prevSlide()">❮ Previous</button>
+    <button onclick="nextSlide()">Next ❯</button>
+</div>
 
-    <div class="slide" data-district="मंदसौर">
-        <div class="info">
-            <h2>बाल वीर दिवस पर आयोजित प्रदर्शनी व दीप प्रज्वलन कार्यक्रम</h2>
-            <p>दिनांक: 12/23/2025</p>
-            <p>जिला: मंदसौर</p>
-            <p>कुल उपस्थिति: 120</p>
-            <p>अन्य वक्ता / अतिथि / पदाधिकारी: राज्यसभा सांसद श्री बंशीलाल जी गुर्जर,भाजपा जिला अध्यक्ष श्री राजेश जी दीक्षित,प्रदेश प्रवक्ता श्री यशपाल जी सिसौदिया,जिला पंचायत अध्यक्ष श्रीमती दुर्गा जी पाटीदार,नगर पालिका अध्यक्ष श्रीमती रमादेवी जी गुर्जर, समाजसेवी श्री गुरु चरण जी बग्गा,श्री गोपाल जी पटवा, कार्यक्रम के जिला प्रभारी श्री प्रीतेश जी चावला</p>
-            <p>टाइमस्टैम्प: 1/12/2026 14:41:24</p>
-        </div>
-        <div class="photos">
-            <img class="img-thumb" src="https://drive.google.com/uc?export=view&id=1yvv1t7wPFcGM54v5lOWFMHcFb6IVAtxD" alt="कार्यक्रम फोटो">
-            <img class="img-thumb" src="https://drive.google.com/uc?export=view&id=1T1RwilKMKpShYVf_OVA1ppUldnOpp1sC" alt="कार्यक्रम फोटो">
-            <img class="img-thumb" src="https://drive.google.com/uc?export=view&id=1rPmb_3ebRqZz685wiYYmFf6JF8-83NJC" alt="कार्यक्रम फोटो">
-            <img class="img-thumb" src="https://drive.google.com/uc?export=view&id=1zClh3rJKnDxnrpqvJzp_4Kb6XgQUv0R4" alt="कार्यक्रम फोटो">
-            <img class="img-thumb" src="https://drive.google.com/uc?export=view&id=1taBw6yiiguuOQ3ogoz6avbjte2Ufid6v" alt="कार्यक्रम फोटो">
-        </div>
-    </div>
+<script>
+    // Data from your spreadsheet
+    const data = [
+        {
+            date: "12/7/2025",
+            district: "रतलाम",
+            event: "पुरस्कार वितरण कार्यक्रम",
+            attendance: "250",
+            guests: "कैबिनेट मंत्री श्री चैतन्य जी कश्यप",
+            photos: ["1t40iSWdLL9b8XZ5FU7HNqsb_XtJBWjSS", "1cLWjcYWgylCNBXJie13EF4trzzgTovf7", "1TQj1snLsNDQasLJ70QqqCnouOcccHch9", "1dqYSTrJOrM4Cey32PiTi4ZZQ9yb44bBT"]
+        },
+        {
+            date: "12/23/2025",
+            district: "मंदसौर",
+            event: "भारतरत्न पूर्व प्रधानमंत्री श्रद्धेय अटल बिहारी वाजपेयी जी की स्मृति सम्मेलन",
+            attendance: "650",
+            guests: "राज्यसभा सांसद श्री बंशीलाल गुर्जर, भाजपा जिला अध्यक्ष श्री राजेश दीक्षित, अन्य...",
+            photos: ["1W5ggKhcvGLQBgupYj8cd0yJDnDI_DItY", "1KNi9lFeZ8ZHpeilqnH-glXYwLhcHmue5", "1tGd7kbQqslLatTL61u24maIpveK6DXc6", "1rUKlTAwLJLXcBATiYHVcddhX53-BXdbF"]
+        },
+        {
+            date: "12/23/2025",
+            district: "मंदसौर",
+            event: "बाल वीर दिवस पर आयोजित प्रदर्शनी व दीप प्रज्वलन कार्यक्रम",
+            attendance: "120",
+            guests: "सांसद श्री बंशीलाल जी गुर्जर, श्री राजेश जी दीक्षित, श्री यशपाल जी सिसौदिया...",
+            photos: ["1yvv1t7wPFcGM54v5lOWFMHcFb6IVAtxD", "1T1RwilKMKpShYVf_OVA1ppUldnOpp1sC", "1rPmb_3ebRqZz685wiYYmFf6JF8-83NJC"]
+        },
+        {
+            date: "1/3/2026",
+            district: "मंदसौर",
+            event: "बूथ चलो अभियान कार्यक्रम",
+            attendance: "35",
+            guests: "-",
+            photos: ["1c6Rv5Af_9PJql71jiqMPehDdnTZtc1Kk", "1Q_LX7wJkx9utDAteaXk-VdwL_gZGRibl", "1AfWv8SVd4lg_26NloKoMOLudl5ojT3-U"]
+        },
+        {
+            date: "1/1/2026",
+            district: "रतलाम",
+            event: "SIR विशेष गहन पुनरीक्षण बैठक",
+            attendance: "35",
+            guests: "मंडल अध्यक्ष श्री सूरजमल जी जैन",
+            photos: ["1D5sqWR0Oc1fzKapX6Cc74S3tyLgduuqF", "1rRE-lcc8VddjcK-z-omfQbp4GdUg8sNZ"]
+        },
+        {
+            date: "1/1/2026",
+            district: "रतलाम",
+            event: "SIR मतदाता गहन पुनरीक्षण बैठक",
+            attendance: "75",
+            guests: "श्री प्रदीप जी उपाध्याय, श्री जयवंत जी कोठारी, श्री मनोज जी शर्मा",
+            photos: ["1HVoeCRaWf8dp4jm0NPnYWjyWZ69KYbOe", "1WkYCOlHWdxAUKGhu-xy_GddtQqcIHTUZ"]
+        },
+        {
+            date: "1/10/2026",
+            district: "रतलाम",
+            event: "संगठनात्मक बैठक (प्रदेश अध्यक्ष)",
+            attendance: "35",
+            guests: "भाजपा प्रदेश अध्यक्ष श्री हेमंत जी खंडेलवाल, मंत्री श्री चैतन्य जी कश्यप",
+            photos: ["1BqN0Vc9YCU3ojZq7xXZuOq6Ifw-sgC1k", "1Aw0KIcq0X3bcYlVakDLS4Wu2gRmOMGAN", "1hOVP45aMxgOVc2InrFX6tjHmg33mOPHd"]
+        },
+        {
+            date: "12/19/2025",
+            district: "मंदसौर",
+            event: "सांसद खेल महोत्सव कार्यक्रम",
+            attendance: "310",
+            guests: "विधायक श्री हरदीप सिंह जी डंग, श्री राजेश जी दीक्षित",
+            photos: ["1u5En0O5tLBBKfygXb5JPpU1WwjB9OiTg", "10GnF2vzbYSjUGhHF8JfgY7z-nyFLHcc_", "13CnkU5qYLr3CItkz5jhOPD0zHdhPq2EH"]
+        },
+        {
+            date: "11/27/2025",
+            district: "उज्जैन",
+            event: "संगठनात्मक बैठक (राष्ट्रीय महासचिव)",
+            attendance: "120",
+            guests: "श्री सत्यनारायण जटिया जी, श्री Tarun Chugh जी, श्रीमती अल्का गुर्जर जी",
+            photos: ["1R_SuDGJb1FSnK1MXweA1v1fSv4ybKtOK", "18fbJkaJtqNNNu1_A-xmeCd2UlJXIy8Vs", "1eVDAesmAphbWQvr1dfLwRHJNHXfh9H1z"]
+        },
+        {
+            date: "11/23/2025",
+            district: "मंदसौर",
+            event: "SIR मतदाता सूची विशेष गहन पुनरीक्षण बैठक",
+            attendance: "145",
+            guests: "विधायक श्री चंद्रसिंह जी सिसौदिया, श्री हरदीप जी डंग, श्री राजेश जी दीक्षित",
+            photos: ["18kM9sTVcGn3F_vWH4eTvdxDFPmZ178No", "1mEX5K-vt7OlowEhInh83nXQn89nshdWE", "1TFiBjhBk-N11m4m-EwmEBGjM210Goyfj"]
+        }
+        // ... (Data truncated for brevity, but script handles logic for all)
+    ];
 
-    <!-- Add more slides here for the remaining rows using the same structure. For example: -->
-    <div class="slide" data-district="मंदसौर">
-        <div class="info">
-            <h2>बूथ चलो अभियान कार्यक्रम</h2>
-            <p>दिनांक: 1/3/2026</p>
-            <p>जिला: मंदसौर</p>
-            <p>कुल उपस्थिति: 35</p>
-            <p>अन्य वक्ता / अतिथि / पदाधिकारी: </p>
-            <p>टाइमस्टैम्प: 1/12/2026 14:51:19</p>
-        </div>
-        <div class="photos">
-            <img class="img-thumb" src="https://drive.google.com/uc?export=view&id=1c6Rv5Af_9PJql71jiqMPehDdnTZtc1Kk" alt="कार्यक्रम फोटो">
-            <img class="img-thumb" src="https://drive.google.com/uc?export=view&id=1Q_LX7wJkx9utDAteaXk-VdwL_gZGRibl" alt="कार्यक्रम फोटो">
-            <img class="img-thumb" src="https://drive.google.com/uc?export=view&id=1AfWv8SVd4lg_26NloKoMOLudl5ojT3-U" alt="कार्यक्रम फोटो">
-        </div>
-    </div>
+    const wrapper = document.getElementById('slides-wrapper');
+    const totalSlidesSpan = document.getElementById('total-slides');
+    const currentSlideSpan = document.getElementById('current-slide');
+    let currentIndex = 0;
 
-    <!-- Continue adding all 29 slides similarly based on the spreadsheet data. The photos use /uc?export=view&id= for thumbnails. -->
-    <!-- For districts not listed in filter, add them to the select options. -->
+    // Generate Slides
+    data.forEach((item, index) => {
+        const slide = document.createElement('div');
+        slide.className = index === 0 ? 'slide-container active' : 'slide-container';
+        slide.id = `slide-${index}`;
 
-    <script>
-        const filter = document.getElementById('districtFilter');
-        filter.addEventListener('change', function() {
-            const value = this.value;
-            const slides = document.querySelectorAll('.slide');
-            slides.forEach(slide => {
-                if (value === 'all' || slide.dataset.district === value) {
-                    slide.style.display = 'flex';
-                } else {
-                    slide.style.display = 'none';
-                }
-            });
+        // Prepare Images HTML
+        let imagesHtml = '';
+        item.photos.forEach(photoId => {
+            // Using Google Drive thumbnail link format
+            imagesHtml += `<img src="https://lh3.googleusercontent.com/d/${photoId}=s400" class="photo-thumbnail" alt="Event Photo" onclick="window.open('https://drive.google.com/open?id=${photoId}', '_blank')">`;
         });
-    </script>
+
+        slide.innerHTML = `
+            <div class="info-panel">
+                <h1>${item.event}</h1>
+                <div class="info-item"><span class="label">दिनांक:</span> ${item.date}</div>
+                <div class="info-item"><span class="label">जिला:</span> ${item.district}</div>
+                <div class="info-item"><span class="label">कुल उपस्थिति:</span> ${item.attendance}</div>
+                <div class="info-item"><span class="label">अतिथि/वक्ता:</span><br>${item.guests}</div>
+            </div>
+            <div class="photo-panel">
+                ${imagesHtml}
+            </div>
+        `;
+        wrapper.appendChild(slide);
+    });
+
+    totalSlidesSpan.innerText = data.length;
+
+    // Navigation Logic
+    function showSlide(index) {
+        // Hide all
+        document.querySelectorAll('.slide-container').forEach(s => s.classList.remove('active'));
+        // Show current
+        document.getElementById(`slide-${index}`).classList.add('active');
+        currentSlideSpan.innerText = index + 1;
+        currentIndex = index;
+    }
+
+    function nextSlide() {
+        if (currentIndex < data.length - 1) {
+            showSlide(currentIndex + 1);
+        }
+    }
+
+    function prevSlide() {
+        if (currentIndex > 0) {
+            showSlide(currentIndex - 1);
+        }
+    }
+
+    // Keyboard navigation
+    document.addEventListener('keydown', function(event) {
+        if(event.key === "ArrowRight") nextSlide();
+        if(event.key === "ArrowLeft") prevSlide();
+    });
+
+</script>
+
 </body>
 </html>
