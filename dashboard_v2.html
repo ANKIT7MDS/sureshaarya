@@ -4,14 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Karyakram Presentation</title>
+    <!-- Importing a nice font -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
         body {
-            font-family: 'Segoe UI', 'Roboto', Helvetica, Arial, sans-serif;
+            font-family: 'Poppins', sans-serif;
             margin: 0;
             padding: 0;
-            background-color: #000;
+            background: radial-gradient(circle at center, #1f2833, #0b0c10); /* Modern Dark Background */
             color: #fff;
             overflow: hidden; 
+            height: 100vh;
+            width: 100vw;
         }
 
         /* Loading Screen */
@@ -21,14 +25,24 @@
             left: 0;
             width: 100vw;
             height: 100vh;
-            background: #121212;
+            background: #0b0c10;
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
             z-index: 2000;
-            font-size: 24px;
-            color: #ffd700;
+            color: #66fcf1;
         }
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(102, 252, 241, 0.3);
+            border-top: 4px solid #66fcf1;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
         /* Slide Animation Container */
         .slide-container {
@@ -38,120 +52,141 @@
             display: flex;
             flex-direction: row;
             opacity: 0;
-            transition: opacity 0.5s ease-in-out;
+            transition: opacity 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+            padding: 40px; /* Outer padding for the whole slide */
+            box-sizing: border-box;
+            gap: 30px; /* Gap between panels */
         }
         .slide-container.active {
             display: flex; 
             opacity: 1;
         }
         
-        /* Left Side: Info (Strict 50%) */
+        /* Left Side: Info (Card Style) */
         .info-panel {
-            flex: 1; /* Takes exactly 50% space */
-            padding: 50px;
+            flex: 1;
+            padding: 40px;
             box-sizing: border-box;
-            background: #1e1e1e;
+            background: rgba(31, 40, 51, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
             display: flex;
             flex-direction: column;
             justify-content: center;
-            border-right: 2px solid #333; /* Divider line */
             position: relative;
+            border: 1px solid rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
         }
         
-        /* Gold Accent Line */
-        .info-panel::before {
+        /* Decorative Top Border */
+        .info-panel::after {
             content: '';
             position: absolute;
-            left: 0;
             top: 0;
-            bottom: 0;
-            width: 6px;
-            background: #ffd700;
+            left: 20px;
+            right: 20px;
+            height: 4px;
+            background: linear-gradient(90deg, #45a29e, #66fcf1);
+            border-radius: 0 0 4px 4px;
         }
 
         .info-panel h1 {
-            font-size: 2.5em;
-            margin: 0 0 40px 0;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-            padding-bottom: 20px;
+            font-size: 2.2em;
+            margin: 0 0 30px 0;
             color: #fff;
             line-height: 1.3;
+            font-weight: 700;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
         }
         
         .info-item {
-            margin-bottom: 20px;
-            font-size: 1.2em;
+            margin-bottom: 15px;
+            font-size: 1.1em;
             line-height: 1.5;
-            color: #ddd;
+            color: #c5c6c7;
             display: flex;
-            align-items: baseline;
-            background: rgba(255,255,255,0.05);
-            padding: 15px;
-            border-radius: 8px;
-            border-left: 4px solid transparent;
-            transition: border-color 0.3s;
+            align-items: center;
+            background: rgba(255,255,255,0.03);
+            padding: 12px 15px;
+            border-radius: 10px;
+            transition: transform 0.2s, background 0.2s;
         }
         
         .info-item:hover {
-            border-left-color: #ffd700;
             background: rgba(255,255,255,0.08);
+            transform: translateX(5px);
+        }
+
+        .icon {
+            font-size: 1.2em;
+            margin-right: 15px;
+            width: 30px;
+            text-align: center;
         }
 
         .label {
-            font-weight: 700;
-            color: #ffd700;
-            min-width: 140px; 
+            font-weight: 600;
+            color: #66fcf1; /* Teal accent */
+            min-width: 100px; 
             text-transform: uppercase;
-            font-size: 0.85em;
-            letter-spacing: 0.5px;
+            font-size: 0.8em;
+            letter-spacing: 1px;
         }
 
         .value {
             flex: 1;
-            word-wrap: break-word;
+            font-weight: 400;
+            color: #fff;
         }
 
-        /* Right Side: Photos (Strict 50%) */
+        /* Right Side: Photos (Card Style) */
         .photo-panel {
-            flex: 1; /* Takes exactly 50% space */
-            padding: 40px;
+            flex: 1;
+            padding: 20px;
             box-sizing: border-box;
-            background-color: #121212;
+            background: rgba(31, 40, 51, 0.5);
+            border-radius: 20px;
+            border: 1px solid rgba(255,255,255,0.05);
             display: flex;
             justify-content: center;
-            align-items: center; /* Center the grid vertically */
+            align-items: center;
             overflow-y: auto;
+            position: relative;
         }
 
-        /* Grid Layout for Photos */
+        /* Grid Layout */
         .photo-grid-container {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); /* Auto-fit small cards */
-            gap: 20px;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 15px;
             width: 100%;
-            max-height: 100%;
+            height: 100%;
+            align-content: start; /* Start from top */
+            padding-right: 5px; /* Space for scrollbar */
         }
 
         .photo-panel::-webkit-scrollbar { width: 6px; }
-        .photo-panel::-webkit-scrollbar-thumb { background-color: #444; border-radius: 3px; }
+        .photo-panel::-webkit-scrollbar-thumb { background-color: #45a29e; border-radius: 3px; }
+        .photo-panel::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); }
 
-        /* Image Card Styling - Compact & Clean */
+        /* Image Card Styling */
         .photo-card {
-            aspect-ratio: 4/3; /* Standard photo ratio */
+            aspect-ratio: 4/3;
             position: relative;
-            border-radius: 6px;
+            border-radius: 12px;
             overflow: hidden;
-            background: #222;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            background: #000;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
             cursor: pointer;
-            border: 1px solid #333;
+            border: 2px solid transparent;
         }
 
         .photo-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 8px 15px rgba(0,0,0,0.5);
-            border-color: #ffd700;
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.4);
+            border-color: #66fcf1;
+            z-index: 10;
         }
 
         .photo-thumbnail {
@@ -159,9 +194,9 @@
             height: 100%;
             object-fit: cover;
             display: block;
+            transition: opacity 0.3s;
         }
         
-        /* Fallback */
         .img-error {
             display: flex;
             flex-direction: column;
@@ -172,78 +207,72 @@
             background: #2a2a2a;
             color: #888;
             text-align: center;
-            padding: 10px;
-            box-sizing: border-box;
         }
 
         /* Controls */
         .controls-area {
             position: fixed;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            height: 70px;
-            background: linear-gradient(to top, rgba(0,0,0,0.95), transparent);
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            padding: 0 30px;
-            box-sizing: border-box;
-            pointer-events: none;
+            gap: 20px;
+            background: rgba(11, 12, 16, 0.8);
+            padding: 10px 25px;
+            border-radius: 50px;
+            border: 1px solid rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            z-index: 1000;
         }
 
         .slide-counter {
-            font-size: 16px;
-            color: rgba(255,255,255,0.9);
-            background: rgba(0,0,0,0.6);
-            padding: 6px 15px;
-            border-radius: 20px;
-            pointer-events: auto;
-            border: 1px solid rgba(255,255,255,0.1);
+            font-size: 14px;
+            color: #c5c6c7;
+            font-weight: 600;
         }
-
-        .nav-buttons {
-            display: flex;
-            gap: 15px;
-            pointer-events: auto;
-        }
+        .slide-counter span { color: #66fcf1; }
 
         button {
-            padding: 8px 25px;
-            font-size: 14px;
-            cursor: pointer;
-            background-color: #ffd700;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
             border: none;
-            border-radius: 4px;
-            font-weight: 700;
-            color: #000;
-            transition: background 0.2s;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            background: #45a29e;
+            color: #fff;
+            font-size: 18px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
         }
-        button:hover { background-color: #fff; }
+        button:hover { background: #66fcf1; color: #0b0c10; transform: scale(1.1); }
+        button:active { transform: scale(0.95); }
 
-        @media (max-width: 768px) {
-            .slide-container { flex-direction: column; overflow-y: auto; }
-            .info-panel, .photo-panel { flex: none; width: 100%; height: auto; }
-            .info-panel { padding: 30px; border-right: none; border-bottom: 2px solid #333; }
-            .photo-panel { padding: 20px; padding-bottom: 100px; }
-            .photo-grid-container { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
+        @media (max-width: 900px) {
+            .slide-container { flex-direction: column; padding: 20px; gap: 15px; }
+            .info-panel { height: auto; flex: 0 0 auto; padding: 25px; }
+            .info-panel h1 { font-size: 1.5em; margin-bottom: 15px; }
+            .photo-panel { flex: 1; }
+            .controls-area { bottom: 10px; padding: 8px 20px; }
         }
     </style>
 </head>
 <body>
 
-<div id="loader">Loading Data from Sheet...</div>
+<div id="loader">
+    <div class="spinner"></div>
+    <div>Loading Data...</div>
+</div>
 <div id="slides-wrapper"></div>
 
 <!-- Floating Controls -->
 <div class="controls-area">
-    <div class="slide-counter">Slide <span id="current-slide">1</span> / <span id="total-slides">0</span></div>
-    <div class="nav-buttons">
-        <button onclick="prevSlide()">❮ Previous</button>
-        <button onclick="nextSlide()">Next ❯</button>
-    </div>
+    <button onclick="prevSlide()">❮</button>
+    <div class="slide-counter"><span id="current-slide">1</span> / <span id="total-slides">0</span></div>
+    <button onclick="nextSlide()">❯</button>
 </div>
 
 <script>
@@ -258,8 +287,6 @@
         try {
             const response = await fetch(SHEET_URL);
             const text = await response.text();
-            
-            // Clean up Google API wrapper
             const jsonText = text.substring(47).slice(0, -2);
             const json = JSON.parse(jsonText);
             
@@ -296,7 +323,7 @@
 
         } catch (error) {
             console.error("Error fetching data:", error);
-            document.getElementById('loader').innerText = "Error loading data. Check console.";
+            document.getElementById('loader').innerHTML = "<div style='color:red'>Failed to load data.<br>Check internet or sheet permissions.</div>";
         }
     }
 
@@ -314,47 +341,58 @@
             let imagesHtml = '';
             if (item.photos.length > 0) {
                 item.photos.forEach(photoId => {
-                    // Try to get a medium size thumbnail
                     const imgSrc = `https://drive.google.com/thumbnail?id=${photoId}&sz=w400`;
                     const viewLink = `https://drive.google.com/file/d/${photoId}/view?usp=sharing`;
                     
                     imagesHtml += `
-                    <div class="photo-card" onclick="window.open('${viewLink}', '_blank')">
+                    <div class="photo-card" onclick="window.open('${viewLink}', '_blank')" title="View Full Image">
                         <img 
                             src="${imgSrc}" 
                             class="photo-thumbnail" 
-                            alt="Event" 
+                            alt="Event Photo" 
                             referrerpolicy="no-referrer"
                             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
                         >
                         <div class="img-error" style="display:none;">
-                            <span style="font-size:20px;">📷</span>
-                            <p style="font-size:10px; margin-top:5px;">View</p>
+                            <span style="font-size:24px;">📷</span>
+                            <p style="font-size:10px; margin-top:5px;">Click to View</p>
                         </div>
                     </div>`;
                 });
             } else {
-                imagesHtml = '<div style="color:#666; width:100%; text-align:center; grid-column: 1/-1;">No Photos Available</div>';
+                imagesHtml = '<div style="color:#888; width:100%; text-align:center; padding: 20px;">No Photos Available</div>';
             }
 
             slide.innerHTML = `
                 <div class="info-panel">
                     <h1>${item.event}</h1>
                     <div class="info-item">
-                        <span class="label">दिनांक</span> 
-                        <span class="value">${item.date}</span>
+                        <span class="icon">📅</span>
+                        <div>
+                            <span class="label">दिनांक</span>
+                            <div class="value">${item.date}</div>
+                        </div>
                     </div>
                     <div class="info-item">
-                        <span class="label">जिला</span> 
-                        <span class="value">${item.district}</span>
+                        <span class="icon">📍</span>
+                        <div>
+                            <span class="label">जिला</span>
+                            <div class="value">${item.district}</div>
+                        </div>
                     </div>
                     <div class="info-item">
-                        <span class="label">उपस्थिति</span> 
-                        <span class="value">${item.attendance}</span>
+                        <span class="icon">👥</span>
+                        <div>
+                            <span class="label">उपस्थिति</span>
+                            <div class="value">${item.attendance}</div>
+                        </div>
                     </div>
-                    <div class="info-item">
-                        <span class="label">अतिथि</span> 
-                        <span class="value">${item.guests}</span>
+                    <div class="info-item" style="align-items: flex-start;">
+                        <span class="icon" style="margin-top:5px;">🎤</span>
+                        <div>
+                            <span class="label">अतिथि</span>
+                            <div class="value">${item.guests}</div>
+                        </div>
                     </div>
                 </div>
                 <div class="photo-panel">
@@ -386,7 +424,6 @@
         const current = document.getElementById(`slide-${index}`);
         if(current) {
             current.style.display = 'flex';
-            // Trigger reflow
             void current.offsetWidth; 
             current.classList.add('active');
             updateCounter(index);
