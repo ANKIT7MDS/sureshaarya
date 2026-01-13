@@ -306,8 +306,15 @@
                 const c = row.c;
                 if (!c) return null;
 
-                // FIX: Column indices shifted by +1 to correct mismatch
-                // Assuming Col 0 is Serial No/Timestamp
+                // Column indices
+                // 0: Timestamp (Usually)
+                // 1: Date
+                // 2: District
+                // 3: Event
+                // 4: Attendance
+                // 5: Guests
+                // 6: Photos (Can contain multiple comma separated URLs)
+                
                 const date = c[1] ? (c[1].f || c[1].v) : '';
                 const district = c[2] ? c[2].v : '';
                 const event = c[3] ? c[3].v : '';
@@ -315,13 +322,14 @@
                 const guests = c[5] ? c[5].v : '';
 
                 let photos = [];
-                // Photos start from index 6 now (shifted from 5)
+                // Look through column 6 and onwards for photo links
                 for (let i = 6; i < c.length; i++) {
                     if (c[i] && c[i].v) {
                         const val = String(c[i].v);
-                        const idMatch = val.match(/[-\w]{25,}/);
-                        if (idMatch) {
-                            photos.push(idMatch[0]);
+                        // Use Global Match (g) to find ALL file IDs in a single cell
+                        const allIds = val.match(/[-\w]{25,}/g);
+                        if (allIds) {
+                            photos.push(...allIds);
                         }
                     }
                 }
@@ -367,17 +375,11 @@
                     if (i === 3 && totalPhotos > 4) {
                         const remaining = totalPhotos - 4; // Count hidden photos
                         overlay = `<div class="more-overlay">+${remaining + 1}</div>`; 
-                        // +1 because we are counting the current one as part of the "more" group visually? 
-                        // Actually, usually it's "how many more besides these visible ones". 
-                        // If I show 4 tiles, and the last tile has an overlay.
-                        // Standard UX: The last tile shows one image, but implies there are X more BEHIND it.
-                        // Let's say Total = 6. 
-                        // Tile 1, Tile 2, Tile 3. Tile 4 (shows Image 4 + overlay saying "+2").
-                        // So remaining = Total - 4 (visible slots). 
-                        // If remaining is 2, text is "+2".
-                         overlay = `<div class="more-overlay">+${totalPhotos - 3}</div>`;
-                         // Wait, if I cover the 4th image, I am technically hiding it too?
-                         // Let's keep it simple: "+N" where N is total - 3 (the 3 fully clear ones).
+                        // Simplified logic: +N means N more items available.
+                        // Here we cover the 4th image, so it implies "This one plus X others" or "X more beyond the 3 visible".
+                        // Let's use "+(Total-3)" logic, so if there are 6 total:
+                        // 1, 2, 3 are visible. 4th slot shows +3 (meaning 4,5,6).
+                        overlay = `<div class="more-overlay">+${totalPhotos - 3}</div>`;
                     }
 
                     imagesHtml += `
@@ -397,7 +399,7 @@
                     </div>`;
                 }
             } else {
-                imagesHtml = '<div style="color:#888; width:100%; text-align:center; padding: 20px; grid-column: span 2;">No Photos Available</div>';
+                imagesHtml = '<div style="color:#888; width:100%; height:100%; display:flex; align-items:center; justify-content:center; grid-column: span 2;">No Photos Available</div>';
             }
 
             slide.innerHTML = `
