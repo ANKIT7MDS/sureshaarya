@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Karyakram Dashboard</title>
+    <title>Karyakram Dashboard - Final</title>
     <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;600&display=swap" rel="stylesheet">
@@ -582,7 +582,7 @@
         updateCounter();
     }
 
-    // --- DISPLAY LOGIC (Use Google Links, NO PROXY for reliability in UI) ---
+    // --- DISPLAY LOGIC (UPDATED FOR IMAGE FIX) ---
     function renderSlides() {
         const wrapper = document.getElementById('slides-wrapper');
         wrapper.innerHTML = '';
@@ -601,12 +601,12 @@
                 const limit = Math.min(photoCount, maxPhotos);
                 for(let i=0; i<limit; i++) {
                     const pid = item.photos[i];
-                    // USE RELIABLE LH3 LINK FOR DISPLAY
-                    const url = `https://lh3.googleusercontent.com/d/${pid}=s1000`; 
+                    // Using drive thumbnail endpoint which is more reliable
+                    const url = `https://drive.google.com/thumbnail?id=${pid}&sz=w1000`; 
                     let overlay = (i === 3 && photoCount > 4) ? `<div class="more-overlay">+${photoCount - 3}</div>` : '';
                     photosHtml += `
                     <div class="photo-card" onclick="openLightbox('${url}', '${item.event.replace(/'/g, "")}')">
-                        <img src="${url}" loading="lazy" referrerpolicy="no-referrer" onerror="this.src='https://placehold.co/400x300?text=Error'">
+                        <img src="${url}" loading="lazy" referrerpolicy="no-referrer" onerror="this.onerror=null;this.src='https://placehold.co/400x300?text=No+Image'">
                         ${overlay}
                     </div>`;
                 }
@@ -631,13 +631,13 @@
         const grid = document.getElementById('view-grid');
         grid.innerHTML = '';
         filteredData.forEach((item, index) => {
-            // USE RELIABLE LH3 LINK FOR GRID
-            const thumb = item.photos.length > 0 ? `https://lh3.googleusercontent.com/d/${item.photos[0]}=s500` : 'https://placehold.co/400x300?text=No+Img';
+            // Using drive thumbnail endpoint
+            const thumb = item.photos.length > 0 ? `https://drive.google.com/thumbnail?id=${item.photos[0]}&sz=w500` : 'https://placehold.co/400x300?text=No+Img';
             const div = document.createElement('div');
             div.className = 'grid-item';
             div.onclick = () => { switchView('slide'); showSlide(index); };
             div.innerHTML = `
-                <img src="${thumb}" class="grid-img" loading="lazy" referrerpolicy="no-referrer" onerror="this.src='https://placehold.co/400x300?text=Error'">
+                <img src="${thumb}" class="grid-img" loading="lazy" referrerpolicy="no-referrer" onerror="this.onerror=null;this.src='https://placehold.co/400x300?text=Error'">
                 <div class="grid-info">
                     <div class="grid-title">${item.event}</div>
                     <div class="grid-meta">
@@ -718,9 +718,9 @@
     function candidates(id) { 
         if(!id) return []; 
         return [
-            `https://drive.google.com/uc?export=view&id=${id}`,
             `https://drive.google.com/thumbnail?id=${id}&sz=w1200`,
-            `https://lh3.googleusercontent.com/d/${id}=w1200`
+            `https://lh3.googleusercontent.com/d/${id}=w1200`,
+            `https://drive.google.com/uc?export=view&id=${id}`
         ]; 
     }
 
@@ -948,5 +948,4 @@
 </script>
 </body>
 </html>
-
 
