@@ -188,6 +188,7 @@ dd { margin:0; font-weight: 500; font-size: 1rem; color: #333; }
         if (db && firebaseConfig.apiKey !== "API_KEY_HERE") {
             try {
                 console.log("Attempting to fetch from Firestore...");
+                statusEl.textContent = "Connecting to DB...";
                 const q = query(collection(db, "visits")); // Assuming collection name is 'visits'
                 const querySnapshot = await getDocs(q);
                 
@@ -205,6 +206,7 @@ dd { margin:0; font-weight: 500; font-size: 1rem; color: #333; }
                         });
                     });
                     console.log("Loaded from Firestore");
+                    statusEl.textContent = "🟢 Mode: Live DB";
                     initUI();
                     return; // Exit if Firestore works
                 }
@@ -216,6 +218,7 @@ dd { margin:0; font-weight: 500; font-size: 1rem; color: #333; }
         // 2. Fallback to Google Sheet
         try {
             console.log("Fetching from Google Sheet...");
+            statusEl.textContent = "Fetching Sheet...";
             let response = await fetch(GVIZ_URL);
             if (!response.ok) response = await fetch(PROXY_URL);
             
@@ -247,6 +250,7 @@ dd { margin:0; font-weight: 500; font-size: 1rem; color: #333; }
                 link: row[idxLink] || row[5] || ""
             })).filter(i => i.title);
 
+            statusEl.textContent = "📄 Mode: Google Sheet";
             initUI();
 
         } catch (error) {
