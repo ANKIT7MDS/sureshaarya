@@ -3,177 +3,131 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>प्रवास कार्यक्रम – डैशबोर्ड (Fixed)</title>
+<title>प्रवास कार्यक्रम – डैशबोर्ड (Final Version)</title>
 <link rel="icon" href="data:;base64,iVBORw0KGgo=">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;600;700&family=Hind:wght@400;600&display=swap" rel="stylesheet">
 <style>
-/* --- Theme A CSS --- */
+/* --- Theme Styles --- */
 body { margin:0; font-family:"Noto Sans Devanagari","Hind",system-ui,Arial,sans-serif; background:#f7f8fb; color:#1b2941; }
 .wrap { max-width:1200px; margin:0 auto; padding:16px; }
 
-/* Top Bar & Filters */
-.topbar, .filters, .extras { display:flex; flex-wrap:wrap; gap:8px; align-items:center; justify-content:space-between; margin-bottom: 10px; }
-.btn { border:1px solid #1f3b73; background:#eef3ff; color:#1f3b73; padding:8px 12px; border-radius:10px; cursor:pointer; font-weight:600; transition: all 0.2s; }
+/* Top Bar */
+.topbar, .filters { display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:space-between; margin-bottom: 15px; }
+.btn { border:1px solid #1f3b73; background:#eef3ff; color:#1f3b73; padding:8px 15px; border-radius:8px; cursor:pointer; font-weight:600; transition:0.2s; }
 .btn:hover { background: #1f3b73; color: white; }
-.btn:disabled { opacity:.5; cursor:default; background:#eef3ff; color:#1f3b73; }
+.btn:disabled { opacity:0.5; cursor:not-allowed; }
 
-input, select, label { padding:8px 10px; border:1px solid #d6d9e0; border-radius:10px; background:#fff; font-family: inherit; }
+/* Inputs */
+input, select { padding:10px; border:1px solid #d6d9e0; border-radius:8px; background:#fff; font-family:inherit; font-size:14px; }
 .search-box { flex-grow: 1; max-width: 300px; }
 
 /* Main Card */
-.page { background:#fff; border:1px solid #e8e9ee; border-radius:16px; box-shadow:0 6px 18px rgba(0,0,0,.05); padding:20px; min-height: 500px; }
+.page { background:#fff; border:1px solid #e8e9ee; border-radius:16px; box-shadow:0 6px 20px rgba(0,0,0,0.06); padding:25px; min-height: 550px; }
 
-.header { display:grid; grid-template-columns:80px 1fr 100px; gap:15px; align-items:center; border-bottom:4px solid #e77019; padding-bottom:15px; margin-bottom: 20px; }
-.logo { width:80px; height:80px; border-radius:50%; background:radial-gradient(circle at 35% 30%, #fff, #ffe7d6); border:2px solid #e77019; display:flex; align-items:center; justify-content:center; color:#9a3e00; font-weight:800; font-size: 1.2rem; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-.title h1 { margin:0; color:#183566; font-size:24px; line-height: 1.2; }
-.subtitle { color:#5c6a86; margin-top: 5px; font-weight: 500; }
-.meta { justify-self:end; color:#5c6a86; font-weight:600; text-align: right; }
+.header { display:flex; justify-content:space-between; align-items:center; border-bottom:4px solid #e77019; padding-bottom:15px; margin-bottom: 25px; flex-wrap:wrap; gap:15px; }
+.header-left { display:flex; align-items:center; gap:15px; }
+.logo { width:60px; height:60px; border-radius:50%; background:#fff; border:2px solid #e77019; display:flex; align-items:center; justify-content:center; font-size:24px; }
+.title h1 { margin:0; color:#183566; font-size:24px; line-height:1.2; }
+.subtitle { color:#5c6a86; margin-top:5px; font-weight:500; font-size:14px; }
+.meta { font-weight:700; color:#e77019; background:#fff5eb; padding:5px 10px; border-radius:6px; }
 
-.content { display:grid; grid-template-columns:1fr 1.2fr; gap:20px; }
+.content { display:grid; grid-template-columns:1fr 1.4fr; gap:30px; }
 
-/* Left Side: Info */
-.card-info { background:#fbfbfc; border:1px solid #e8e9ee; border-radius:14px; padding:20px; }
-.section-title { margin:0 0 15px; color:#183566; border-left:5px solid #e77019; padding-left:10px; font-size: 1.1rem; }
-dl { margin:0; display:grid; grid-template-columns:140px 1fr; row-gap:12px; }
-dt { color:#5c6a86; font-weight: 600; font-size: 0.9rem; } 
-dd { margin:0; font-weight: 500; font-size: 1rem; color: #333; }
-.highlight-val { color: #e77019; font-weight: 700; font-size: 1.2rem; }
+/* Info Section */
+.card-info { background:#f8f9fa; border-radius:12px; padding:20px; border:1px solid #eee; }
+.section-title { margin:0 0 15px; color:#183566; font-size:16px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; border-bottom:1px solid #ddd; padding-bottom:5px; }
+dl { display:grid; grid-template-columns:100px 1fr; row-gap:15px; margin:0; }
+dt { color:#666; font-size:14px; font-weight:600; } 
+dd { margin:0; font-weight:500; color:#333; font-size:15px; }
+.highlight-val { color:#e77019; font-weight:800; font-size:18px; }
 
-/* Right Side: Gallery Container */
-.card-gallery { background:#fff; border:1px solid #e8e9ee; border-radius:14px; padding:10px; display: flex; flex-direction: column; }
+/* Gallery Section */
+.card-gallery { display:flex; flex-direction:column; gap:10px; }
 .gallery-container { 
-    flex-grow: 1; 
-    border-radius: 8px; 
-    overflow: hidden; 
-    border: 1px solid #eee; 
-    background: #fafafa; 
-    position: relative; 
-    min-height: 350px; 
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    flex-direction: column;
+    flex-grow:1; border-radius:12px; overflow:hidden; border:1px solid #ddd; 
+    background:#fafafa; position:relative; min-height:400px; 
+    display:flex; justify-content:center; align-items:center; 
 }
 
-/* --- LAYERING LOGIC --- */
+/* --- THE MAGIC LAYERS --- */
 
-/* Layer 1: Placeholder (Bottom) */
-.placeholder-content {
-    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-    display: flex; flex-direction: column; justify-content: center; align-items: center;
-    color: #888; z-index: 0;
-}
-.placeholder-icon { font-size: 40px; margin-bottom: 10px; opacity: 0.5; }
-
-/* Layer 2: Iframe (Middle) - Always loaded as fallback */
+/* 1. IFRAME (Grid View) - Always there at bottom */
 .drive-frame { 
-    width: 100%; height: 100%; border: 0; 
-    position: absolute; top: 0; left: 0; 
-    z-index: 5; 
-    background: #fff; 
+    width:100%; height:100%; border:0; position:absolute; inset:0; z-index:1; 
+    background:#fff; 
 }
 
-/* Layer 3: Direct Image (Top) - Hides if error */
+/* 2. IMAGE (Thumbnail) - On top. Hides if broken. */
 .direct-img { 
-    width: 100%; height: 100%; 
-    object-fit: contain; 
-    position: absolute; top: 0; left: 0;
-    z-index: 10; 
-    background: #fff;
+    width:100%; height:100%; object-fit:contain; position:absolute; inset:0; z-index:2; 
+    background:#fff; transition: opacity 0.3s;
 }
 
-/* Layer 4: Multi-Grid (Highest) */
-.multi-photo-grid {
-    display: grid; grid-template-columns: repeat(2, 1fr); gap: 5px;
-    width: 100%; height: 100%; overflow-y: auto;
-    position: absolute; top: 0; left: 0;
-    z-index: 20; background: #fff;
-    display: none;
-}
-.multi-photo-grid.active { display: grid; }
-.grid-img { width: 100%; height: 150px; object-fit: cover; border-radius: 4px; cursor: pointer; }
+/* 3. Placeholder (Behind everything) */
+.placeholder { position:absolute; z-index:0; color:#999; text-align:center; }
 
-.fallback-link { text-align: center; margin-top: 10px; font-size: 0.85rem; }
 .fallback-btn { 
-    display: inline-block; background: #e77019; color: white; padding: 12px 25px; 
-    border-radius: 5px; text-decoration: none; margin-top: 5px; font-size: 1rem; font-weight: bold; 
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1); border: 2px solid #e77019; 
+    display:block; text-align:center; background:#e77019; color:white; 
+    padding:12px; border-radius:8px; text-decoration:none; font-weight:bold; 
+    box-shadow:0 4px 10px rgba(231,112,25,0.2); transition:0.2s;
 }
-.fallback-btn:hover { background: #fff; color: #e77019; }
+.fallback-btn:hover { background:#d35400; transform:translateY(-2px); }
 
-.status-bar { font-size: 0.9rem; color: #666; margin-top: 5px; display: flex; gap: 15px; }
-
-/* PRINT STYLES */
-#print-view { display: none; }
+/* Print View */
+#print-view { display:none; }
 @media print {
-    body { background: white; }
-    .topbar, .filters, .extras, .wrap > .page { display: none !important; }
-    .wrap { padding: 0; margin: 0; max-width: 100%; }
-    #print-view { display: block !important; padding: 20px; }
-    .print-card { border: 1px solid #ccc; border-radius: 8px; padding: 20px; margin-bottom: 30px; page-break-inside: avoid; display: flex; gap: 20px; background: #fff; }
-    .print-header { border-bottom: 2px solid #e77019; margin-bottom: 15px; padding-bottom: 10px; }
-    .print-title { font-size: 18px; font-weight: bold; color: #1b2941; }
-    .print-meta { font-size: 12px; color: #666; margin-top: 5px; }
-    .print-info { flex: 1; font-size: 12px; }
-    .print-gallery { flex: 1; display: flex; align-items: center; justify-content: center; background: #f9f9f9; border: 1px solid #eee; height: 250px; overflow: hidden; }
-    .print-img { max-width: 100%; max-height: 100%; object-fit: contain; }
-    dl { display: grid; grid-template-columns: 100px 1fr; gap: 5px; margin: 0; }
-    dt { font-weight: bold; color: #555; } dd { margin: 0; }
-    * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    body, .wrap { background:white; padding:0; margin:0; max-width:100%; }
+    .topbar, .filters, .page { display:none !important; }
+    #print-view { display:block !important; padding:20px; }
+    .p-card { border:1px solid #ccc; padding:15px; margin-bottom:20px; page-break-inside:avoid; display:flex; gap:20px; }
+    .p-img { width:150px; height:150px; object-fit:cover; border:1px solid #eee; }
 }
 
-@media (max-width: 768px) {
-  .content { grid-template-columns: 1fr; }
-  .header { grid-template-columns: 60px 1fr; }
-  .gallery-container { min-height: 300px; }
-}
+@media (max-width: 768px) { .content { grid-template-columns:1fr; } .gallery-container { min-height:300px; } }
 </style>
 </head>
 <body>
 
 <div class="wrap">
+  <!-- Controls -->
   <div class="topbar">
     <div>
       <button class="btn" id="prev">◀︎ पिछला</button>
       <button class="btn" id="next">अगला ▶︎</button>
-      <select id="jump"></select>
+      <select id="jump" style="width:60px"></select>
     </div>
-    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+    <div style="flex-grow:1; display:flex; gap:10px; justify-content:flex-end;">
       <input id="search" class="search-box" type="search" placeholder="🔍 खोजें..." />
-      <button class="btn" onclick="printAllData()" style="background: #e77019; color: white; border: none;">🖨️ पूरी शीट डाउनलोड (PDF)</button>
-      <span id="status" style="font-weight: 600; color: #1f3b73;">Connecting...</span>
+      <button class="btn" onclick="printAllData()" style="background:#e77019; color:white;">🖨️ PDF डाउनलोड</button>
     </div>
   </div>
 
+  <!-- Filters -->
   <div class="filters">
-    <div>
-      <select id="fDistrict"><option value="">📍 सभी (All)</option></select>
-      <input type="date" id="fDate">
-    </div>
-    <div class="status-bar">
-        <span id="total-visits-display">कुल विजिट: 0</span>
-        <span id="total-attendance-display">कुल उपस्थिति: 0</span>
-    </div>
+    <select id="fDistrict" style="min-width:150px"><option value="">📍 सभी जिले (All)</option></select>
+    <input type="date" id="fDate">
+    <span id="status" style="font-size:14px; color:#666; margin-left:auto;">Loading...</span>
   </div>
 
+  <!-- Main Slide -->
   <div id="page" class="page">
-    <div style="display: flex; justify-content: center; align-items: center; height: 400px; color: #666;">
-        <div><h2>⏳ डेटा लोड हो रहा है...</h2></div>
+    <div style="height:400px; display:flex; justify-content:center; align-items:center; color:#666;">
+        <h2>⏳ डेटा लोड हो रहा है...</h2>
     </div>
   </div>
 </div>
 
+<!-- Print Container -->
 <div id="print-view"></div>
 
 <script>
-    // --- Configuration ---
-    const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQdH6jHfrBQbsAi78xZ9nIfJjajjInnbBEi6ZonuP3kP8AIkbf6aWBKnzCLpS5tTJFQOqXBS3gvzDT_/pub?output=csv";
+    // --- Config ---
+    const SHEET_ID = "1wyr0gt061UT5IVxT1JBYUEUJw1GYcBpzxDKEQmvcXXY";
+    const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv`;
     const PROXY_URL = "https://corsproxy.io/?" + encodeURIComponent(CSV_URL);
 
-    // --- State ---
     let rawData = [], filtered = [], idx = 0;
 
-    // --- Elements ---
     const els = {
         page: document.getElementById('page'),
         status: document.getElementById('status'),
@@ -183,35 +137,33 @@ dd { margin:0; font-weight: 500; font-size: 1rem; color: #333; }
         search: document.getElementById('search'),
         dist: document.getElementById('fDistrict'),
         date: document.getElementById('fDate'),
-        tv: document.getElementById('total-visits-display'),
-        ta: document.getElementById('total-attendance-display'),
         print: document.getElementById('print-view')
     };
 
-    function parseDate(dateStr) {
-        if (!dateStr) return new Date(0);
-        const parts = dateStr.trim().split(/[/\-\.]/);
-        if (parts.length === 3) return new Date(parseInt(parts[2]), parseInt(parts[1])-1, parseInt(parts[0]));
-        return new Date(dateStr);
+    // --- Helpers ---
+    function parseDate(d) {
+        if(!d) return new Date(0);
+        const p = d.trim().split(/[/\-\.]/);
+        return p.length===3 ? new Date(p[2], p[1]-1, p[0]) : new Date(d);
     }
 
     function parseCSV(text) {
-        const rows = []; let row = []; let cell = ""; let q = false;
+        const r = []; let row = [], c = "", q = false;
         for (let i = 0; i < text.length; i++) {
-            const c = text[i];
-            if (q) { if (c === '"' && text[i+1] === '"') { cell += '"'; i++; } else if (c === '"') q = false; else cell += c; }
-            else { if (c === '"') q = true; else if (c === ',') { row.push(cell.trim()); cell = ""; } else if (c === '\n' || c === '\r') { row.push(cell.trim()); if (row.length) rows.push(row); row = []; cell = ""; } else cell += c; }
+            let ch = text[i];
+            if (q) { if (ch === '"' && text[i+1] === '"') { c += '"'; i++; } else if (ch === '"') q = false; else c += ch; }
+            else { if (ch === '"') q = true; else if (ch === ',') { row.push(c.trim()); c = ""; } else if (ch === '\n' || ch === '\r') { row.push(c.trim()); if(row.length) r.push(row); row = []; c = ""; } else c += ch; }
         }
-        if (cell || row.length) { row.push(cell.trim()); rows.push(row); }
-        return rows;
+        if (c || row.length) { row.push(c.trim()); r.push(row); }
+        return r;
     }
 
     async function fetchData() {
         try {
-            els.status.textContent = "Fetching...";
+            els.status.textContent = "Connecting...";
             let res = await fetch(CSV_URL);
             if (!res.ok) res = await fetch(PROXY_URL);
-            if (!res.ok) throw new Error("CSV Fetch Failed");
+            if (!res.ok) throw new Error("Connection Failed");
             
             const text = await res.text();
             if(text.includes("<!DOCTYPE html")) throw new Error("Access Denied");
@@ -220,25 +172,25 @@ dd { margin:0; font-weight: 500; font-size: 1rem; color: #333; }
             const headers = rows[0].map(h => h.toLowerCase());
             const data = rows.slice(1);
 
-            const findIdx = (kw) => headers.findIndex(h => kw.some(k => h.includes(k)));
-            const iD = findIdx(['date','दिनांक','तारीख']);
-            const iLoc = findIdx(['district','place','जिला']);
-            const iTi = findIdx(['title','program','कार्यक्रम']);
-            const iC = findIdx(['count','attendance','संख्या']);
-            const iG = findIdx(['guest','chief','अतिथि']);
-            const iL = findIdx(['link','url','photo']);
+            const getIdx = (k) => headers.findIndex(h => k.some(w => h.includes(w)));
+            const iDate = getIdx(['date','दिनांक','तारीख']);
+            const iDist = getIdx(['district','place','जिला']);
+            const iTitle = getIdx(['title','event','कार्यक्रम']);
+            const iCount = getIdx(['count','attendance','संख्या']);
+            const iGuest = getIdx(['guest','chief','अतिथि']);
+            const iLink = getIdx(['link','url','photo']);
 
             rawData = data.map(r => ({
-                date: r[iD]||"", district: r[iLoc]||"", title: r[iTi]||"Program",
-                count: r[iC]||"0", guests: r[iG]||"-", link: r[iL]||""
+                date: r[iDate]||"", district: r[iDist]||"", title: r[iTitle]||"Unknown",
+                count: r[iCount]||"0", guests: r[iGuest]||"-", link: r[iLink]||""
             })).filter(i => i.title && i.date);
 
             rawData.sort((a,b) => parseDate(b.date) - parseDate(a.date));
             
             initUI();
-            els.status.textContent = "Live";
+            els.status.textContent = `कुल: ${rawData.length} रिकॉर्ड्स`;
         } catch (e) {
-            els.page.innerHTML = `<div style="text-align:center;padding:40px;color:red">Error: ${e.message}</div>`;
+            els.page.innerHTML = `<div style="text-align:center;padding:50px;color:red"><h3>Error</h3><p>${e.message}</p></div>`;
         }
     }
 
@@ -248,59 +200,53 @@ dd { margin:0; font-weight: 500; font-size: 1rem; color: #333; }
         return parts.length > 1 ? parts[1].split(/[/?&]/)[0] : null;
     }
 
+    // --- RENDER ---
     function renderCurrent() {
-        if (!filtered.length) { els.page.innerHTML = `<div style="text-align:center;padding:50px">No Data</div>`; return; }
+        if (!filtered.length) { els.page.innerHTML = `<div style="text-align:center;padding:50px">कोई डेटा नहीं मिला</div>`; return; }
         
         const item = filtered[idx];
-        const links = item.link.split(/[\n,]/).map(l => l.trim()).filter(Boolean);
-        const firstLink = links[0] || "";
-        const driveId = getDriveId(firstLink);
-        const cleanLink = firstLink.match(/https?:\/\/[^\s,]+/)?.[0] || firstLink;
-        
-        // --- URLS ---
-        // 1. Folder Iframe URL
+        const driveId = getDriveId(item.link);
+        const cleanLink = item.link.match(/https?:\/\/[^\s,]+/)?.[0] || item.link;
+
+        // URLs
         const folderUrl = driveId ? `https://drive.google.com/embeddedfolderview?id=${driveId}#grid` : "";
-        // 2. Direct Image URL (The most reliable one for Files)
-        const imgUrl = driveId ? `https://lh3.googleusercontent.com/d/${driveId}=w1000` : "";
+        const imgUrl = driveId ? `https://lh3.googleusercontent.com/d/${driveId}=w800` : "";
 
         els.page.innerHTML = `
             <div class="header">
-                <div class="logo">Visit</div>
-                <div class="title"><h1>${item.title}</h1><div class="subtitle">📍 ${item.district} • 📅 ${item.date}</div></div>
+                <div class="header-left">
+                    <div class="logo">🚩</div>
+                    <div>
+                        <h1 class="title">${item.title}</h1>
+                        <div class="subtitle">📍 ${item.district} • 📅 ${item.date}</div>
+                    </div>
+                </div>
                 <div class="meta">${idx+1} / ${filtered.length}</div>
             </div>
+
             <div class="content">
                 <div class="card-info">
-                    <h3 class="section-title">कार्यक्रम विवरण</h3>
+                    <h3 class="section-title">विवरण</h3>
                     <dl>
-                        <dt>तारीख</dt><dd>${item.date}</dd>
-                        <dt>स्थान/जिला</dt><dd>${item.district}</dd>
-                        <dt>उपस्थिति</dt><dd class="highlight-val">${item.count}</dd>
-                        <dt>मुख्य अतिथि</dt><dd>${item.guests}</dd>
-                        <dt>लिंक</dt><dd><a href="${cleanLink}" target="_blank" style="color:#e77019">Drive Link ↗</a></dd>
+                        <dt>📅 तारीख</dt><dd>${item.date}</dd>
+                        <dt>📍 जिला</dt><dd>${item.district}</dd>
+                        <dt>👥 उपस्थिति</dt><dd class="highlight-val">${item.count}</dd>
+                        <dt>🎤 मुख्य अतिथि</dt><dd>${item.guests}</dd>
                     </dl>
                 </div>
-                <div class="card-gallery">
-                    <h3 class="section-title" style="border-left-color:#1f3b73;margin-bottom:10px">फोटो एल्बम</h3>
-                    <div class="gallery-container">
-                        
-                        <!-- MULTI GRID (If >1 links) -->
-                        ${links.length > 1 ? `<div class="multi-photo-grid active">${links.map(l=>{const d=getDriveId(l); return d?`<img src="https://lh3.googleusercontent.com/d/${d}=w400" class="grid-img" onerror="this.src='https://drive.google.com/thumbnail?id=${d}&sz=w400'" onclick="window.open('${l}','_blank')">`:''}).join('')}</div>` : ''}
 
-                        <!-- DIRECT IMAGE (Top Layer) -->
-                        <!-- Tries to load. If error (404/403), it hides itself, revealing the iframe below -->
-                        ${links.length <= 1 ? `<img src="${imgUrl}" class="direct-img" alt="Photo" onerror="this.style.display='none'">` : ''}
+                <div class="card-gallery">
+                    <div class="gallery-container">
+                        <!-- LAYER 1: IFRAME (FOLDER GRID) -->
+                        <iframe src="${folderUrl}" class="drive-frame" title="Folder View" allowfullscreen="true"></iframe>
                         
-                        <!-- IFRAME (Middle Layer) -->
-                        <!-- Always there, waiting to be revealed if image fails -->
-                        ${links.length <= 1 ? `<iframe src="${folderUrl}" class="drive-frame" title="Gallery" allowfullscreen="true"></iframe>` : ''}
+                        <!-- LAYER 2: IMAGE (Tries to load on top) -->
+                        <img src="${imgUrl}" class="direct-img" alt="" onerror="this.style.display='none'">
                         
-                        <!-- PLACEHOLDER (Bottom Layer) -->
-                        <div class="placeholder-content"><span class="placeholder-icon">📁</span><p>लोड हो रहा है...</p></div>
+                        <!-- LAYER 3: Placeholder -->
+                        <div class="placeholder">📸 फोटो लोड हो रहा है...</div>
                     </div>
-                    <div class="fallback-link">
-                        <a href="${cleanLink}" target="_blank" class="fallback-btn">📂 गैलरी खोलें (Open Gallery)</a>
-                    </div>
+                    <a href="${cleanLink}" target="_blank" class="fallback-btn">📂 गूगल ड्राइव फोल्डर खोलें</a>
                 </div>
             </div>
         `;
@@ -310,40 +256,60 @@ dd { margin:0; font-weight: 500; font-size: 1rem; color: #333; }
         els.jump.value = idx;
     }
 
+    // --- PRINT PDF ---
     window.printAllData = function() {
-        let html = `<div style="text-align:center;margin-bottom:30px"><h1>Report</h1><p>Total: ${filtered.length}</p></div>`;
+        let html = `<div style="text-align:center;margin-bottom:30px"><h1>प्रवास कार्यक्रम रिपोर्ट</h1><p>कुल कार्यक्रम: ${filtered.length}</p></div>`;
         filtered.forEach(item => {
-            const driveId = getDriveId(item.link);
-            html += `<div class="print-card">
-                <div class="print-info"><div class="print-header"><div class="print-title">${item.title}</div><div class="print-meta">${item.district} | ${item.date}</div></div>
-                <dl><dt>Count:</dt><dd>${item.count}</dd><dt>Guest:</dt><dd>${item.guests}</dd></dl></div>
-                <div class="print-gallery">${driveId ? `<img src="https://lh3.googleusercontent.com/d/${driveId}=w500" class="print-img">` : 'No Photo'}</div>
+            const did = getDriveId(item.link);
+            html += `<div class="p-card" style="page-break-inside:avoid; border:1px solid #ccc; padding:15px; margin-bottom:15px; display:flex;">
+                <div style="flex:1">
+                    <h3>${item.title}</h3>
+                    <p>📍 ${item.district} | 📅 ${item.date}</p>
+                    <p>👥 उपस्थिति: <b>${item.count}</b></p>
+                    <p>🎤 अतिथि: ${item.guests}</p>
+                </div>
+                ${did ? `<img src="https://lh3.googleusercontent.com/d/${did}=w200" style="width:150px;height:150px;object-fit:cover;border:1px solid #eee;">` : ''}
             </div>`;
         });
         els.print.innerHTML = html;
         window.print();
-    };
+    }
 
+    // --- Logic ---
     function applyFilters() {
         const s = els.search.value.toLowerCase();
         const d = els.dist.value;
-        filtered = rawData.filter(i => (i.title+i.guests+i.district).toLowerCase().includes(s) && (!d || i.district === d));
-        els.tv.textContent = `कुल विजिट: ${filtered.length}`;
-        let sum = 0; filtered.forEach(i => sum += parseInt(i.count)||0);
-        els.ta.textContent = `कुल उपस्थिति: ${sum}`;
+        const dt = els.date.value;
         
+        filtered = rawData.filter(i => {
+            const textMatch = (i.title+i.guests+i.district).toLowerCase().includes(s);
+            const distMatch = !d || i.district === d;
+            // Date parsing for filter (YYYY-MM-DD)
+            let dateMatch = true;
+            if(dt) {
+                // Convert sheet date (d/m/y) to comparable
+                const p = i.date.split('/');
+                if(p.length===3) {
+                    const sheetDate = new Date(p[2], p[1]-1, p[0]).toISOString().split('T')[0];
+                    dateMatch = sheetDate === dt;
+                }
+            }
+            return textMatch && distMatch && dateMatch;
+        });
+
         els.jump.innerHTML = "";
         filtered.forEach((item, i) => {
             const o = document.createElement("option"); o.value = i;
-            o.textContent = `${i+1}. ${item.title.substring(0,40)}...`;
+            o.textContent = `${i+1}. ${item.title.substring(0,30)}...`;
             els.jump.appendChild(o);
         });
+        
         idx = 0; renderCurrent();
     }
 
     function initUI() {
         const dists = [...new Set(rawData.map(i => i.district))].sort();
-        els.dist.innerHTML = '<option value="">📍 सभी (All)</option>';
+        els.dist.innerHTML = '<option value="">📍 सभी जिले (All)</option>';
         dists.forEach(d => {
             const o = document.createElement("option"); o.value = d; o.textContent = d;
             els.dist.appendChild(o);
@@ -356,6 +322,7 @@ dd { margin:0; font-weight: 500; font-size: 1rem; color: #333; }
     els.jump.onchange = (e) => { idx = parseInt(e.target.value); renderCurrent(); };
     els.search.oninput = applyFilters;
     els.dist.onchange = applyFilters;
+    els.date.onchange = applyFilters;
 
     fetchData();
 </script>
