@@ -6,6 +6,8 @@
     <title>Karyakram Presentation</title>
     <!-- Importing a nice font -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <!-- PDF Generation Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
         body {
             font-family: 'Poppins', sans-serif;
@@ -43,6 +45,37 @@
             margin-bottom: 20px;
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* Search / Filter Bar */
+        .top-bar {
+            position: fixed;
+            top: 20px;
+            right: 40px;
+            z-index: 1000;
+            display: flex;
+            gap: 10px;
+        }
+
+        .search-input {
+            padding: 10px 20px;
+            border-radius: 30px;
+            border: 1px solid rgba(102, 252, 241, 0.3);
+            background: rgba(11, 12, 16, 0.8);
+            color: #fff;
+            font-family: 'Poppins', sans-serif;
+            outline: none;
+            width: 250px;
+            backdrop-filter: blur(5px);
+            transition: all 0.3s;
+        }
+        .search-input:focus {
+            border-color: #66fcf1;
+            box-shadow: 0 0 10px rgba(102, 252, 241, 0.2);
+            width: 300px;
+        }
+        .search-input::placeholder {
+            color: #aaa;
+        }
 
         /* Slide Animation Container */
         .slide-container {
@@ -260,6 +293,27 @@
         }
         button:hover { background: #66fcf1; color: #0b0c10; transform: scale(1.1); }
         button:active { transform: scale(0.95); }
+        
+        /* Specific style for PDF download button */
+        .pdf-btn {
+            background: #ff4757;
+            margin-left: 10px;
+        }
+        .pdf-btn:hover {
+            background: #ff6b81;
+        }
+
+        /* Message when no results found */
+        .no-results {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 1.5em;
+            color: #666;
+            text-align: center;
+            display: none;
+        }
 
         @media (max-width: 900px) {
             .slide-container { flex-direction: column; padding: 20px; gap: 15px; }
@@ -267,6 +321,8 @@
             .info-panel h1 { font-size: 1.5em; margin-bottom: 15px; }
             .photo-panel { flex: 1; max-height: 400px; }
             .controls-area { bottom: 10px; padding: 8px 20px; }
+            .top-bar { top: 10px; right: 20px; left: 20px; }
+            .search-input { width: 100%; }
         }
     </style>
 </head>
@@ -276,13 +332,20 @@
     <div class="spinner"></div>
     <div>Loading Data...</div>
 </div>
+
+<div class="top-bar">
+    <input type="text" id="search-input" class="search-input" placeholder="Search District or Event..." onkeyup="filterSlides()">
+</div>
+
 <div id="slides-wrapper"></div>
+<div id="no-results" class="no-results">No events found matching your search.</div>
 
 <!-- Floating Controls -->
 <div class="controls-area">
     <button onclick="prevSlide()">❮</button>
     <div class="slide-counter"><span id="current-slide">1</span> / <span id="total-slides">0</span></div>
     <button onclick="nextSlide()">❯</button>
+    <button onclick="downloadPDF()" class="pdf-btn" title="Download Slide as PDF">⬇</button>
 </div>
 
 <script>
@@ -290,7 +353,8 @@
     const GID = '1839722438';
     const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&gid=${GID}`;
 
-    let slideData = [];
+    let allSlideData = []; // Store all data here
+    let filteredData = []; // Store currently filtered data
     let currentIndex = 0;
 
     async function fetchSheetData() {
@@ -302,19 +366,10 @@
             
             const rows = json.table.rows;
             
-            slideData = rows.map(row => {
+            allSlideData = rows.map(row => {
                 const c = row.c;
                 if (!c) return null;
 
-                // Column indices
-                // 0: Timestamp (Usually)
-                // 1: Date
-                // 2: District
-                // 3: Event
-                // 4: Attendance
-                // 5: Guests
-                // 6: Photos (Can contain multiple comma separated URLs)
-                
                 const date = c[1] ? (c[1].f || c[1].v) : '';
                 const district = c[2] ? c[2].v : '';
                 const event = c[3] ? c[3].v : '';
@@ -322,11 +377,9 @@
                 const guests = c[5] ? c[5].v : '';
 
                 let photos = [];
-                // Look through column 6 and onwards for photo links
                 for (let i = 6; i < c.length; i++) {
                     if (c[i] && c[i].v) {
                         const val = String(c[i].v);
-                        // Use Global Match (g) to find ALL file IDs in a single cell
                         const allIds = val.match(/[-\w]{25,}/g);
                         if (allIds) {
                             photos.push(...allIds);
@@ -339,6 +392,8 @@
                 };
             }).filter(item => item && item.event);
 
+            // Initial load: Filtered data is same as all data
+            filteredData = [...allSlideData];
             initSlides();
             document.getElementById('loader').style.display = 'none';
 
@@ -351,9 +406,21 @@
     function initSlides() {
         const wrapper = document.getElementById('slides-wrapper');
         const totalSlidesSpan = document.getElementById('total-slides');
-        wrapper.innerHTML = '';
+        const noResultsMsg = document.getElementById('no-results');
 
-        slideData.forEach((item, index) => {
+        wrapper.innerHTML = '';
+        currentIndex = 0;
+
+        if (filteredData.length === 0) {
+            noResultsMsg.style.display = 'block';
+            totalSlidesSpan.innerText = '0';
+            updateCounter(-1);
+            return;
+        } else {
+            noResultsMsg.style.display = 'none';
+        }
+
+        filteredData.forEach((item, index) => {
             const slide = document.createElement('div');
             slide.className = index === 0 ? 'slide-container active' : 'slide-container';
             slide.id = `slide-${index}`;
@@ -367,19 +434,14 @@
             if (totalPhotos > 0) {
                 for(let i = 0; i < displayCount; i++) {
                     let photoId = item.photos[i];
-                    const imgSrc = `https://drive.google.com/thumbnail?id=${photoId}&sz=w400`;
+                    // Requesting 600px width for better PDF quality
+                    const imgSrc = `https://drive.google.com/thumbnail?id=${photoId}&sz=w600`;
                     const viewLink = `https://drive.google.com/file/d/${photoId}/view?usp=sharing`;
                     
                     let overlay = '';
-                    // If this is the 4th photo (index 3) AND there are more than 4 total
                     if (i === 3 && totalPhotos > 4) {
-                        const remaining = totalPhotos - 4; // Count hidden photos
-                        overlay = `<div class="more-overlay">+${remaining + 1}</div>`; 
-                        // Simplified logic: +N means N more items available.
-                        // Here we cover the 4th image, so it implies "This one plus X others" or "X more beyond the 3 visible".
-                        // Let's use "+(Total-3)" logic, so if there are 6 total:
-                        // 1, 2, 3 are visible. 4th slot shows +3 (meaning 4,5,6).
-                        overlay = `<div class="more-overlay">+${totalPhotos - 3}</div>`;
+                        const remaining = totalPhotos - 4; 
+                        overlay = `<div class="more-overlay" data-html2canvas-ignore="true">+${totalPhotos - 3}</div>`;
                     }
 
                     imagesHtml += `
@@ -388,6 +450,7 @@
                             src="${imgSrc}" 
                             class="photo-thumbnail" 
                             alt="Event Photo" 
+                            crossorigin="anonymous"
                             referrerpolicy="no-referrer"
                             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
                         >
@@ -443,17 +506,77 @@
             wrapper.appendChild(slide);
         });
 
-        totalSlidesSpan.innerText = slideData.length;
+        totalSlidesSpan.innerText = filteredData.length;
         updateCounter(0);
+    }
+
+    // Filter Logic
+    function filterSlides() {
+        const query = document.getElementById('search-input').value.toLowerCase();
+        
+        filteredData = allSlideData.filter(item => {
+            return (
+                item.event.toLowerCase().includes(query) ||
+                item.district.toLowerCase().includes(query) ||
+                item.guests.toLowerCase().includes(query)
+            );
+        });
+
+        initSlides();
+    }
+
+    // PDF Download Logic
+    function downloadPDF() {
+        if (filteredData.length === 0) return;
+
+        const element = document.getElementById(`slide-${currentIndex}`);
+        
+        // Options for pdf generation
+        const opt = {
+            margin:       [0, 0, 0, 0],
+            filename:     `${filteredData[currentIndex].event.substring(0, 15)}_report.pdf`,
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { 
+                scale: 2, 
+                useCORS: true, // Critical for Google Drive images
+                allowTaint: true,
+                backgroundColor: '#1f2833' // Match body bg
+            },
+            jsPDF:        { unit: 'in', format: 'a4', orientation: 'landscape' }
+        };
+
+        // Temporary styling change for PDF capture to ensure it looks good
+        const originalDisplay = element.style.display;
+        element.style.display = 'flex'; // Ensure it's visible for capture
+        
+        // Show loading state
+        const btn = document.querySelector('.pdf-btn');
+        const originalText = btn.innerText;
+        btn.innerText = '⏳';
+
+        html2pdf().set(opt).from(element).save().then(() => {
+            btn.innerText = originalText;
+        }).catch(err => {
+            console.error(err);
+            btn.innerText = '❌';
+            setTimeout(() => btn.innerText = originalText, 2000);
+            alert("Error downloading PDF. Images might be blocked by browser security.");
+        });
     }
 
     const currentSlideSpan = document.getElementById('current-slide');
 
     function updateCounter(index) {
-        currentSlideSpan.innerText = index + 1;
+        if(index === -1) {
+            currentSlideSpan.innerText = '0';
+        } else {
+            currentSlideSpan.innerText = index + 1;
+        }
     }
 
     function showSlide(index) {
+        if (filteredData.length === 0) return;
+
         const slides = document.querySelectorAll('.slide-container');
         slides.forEach(s => {
             s.classList.remove('active');
@@ -471,7 +594,7 @@
     }
 
     function nextSlide() {
-        if (currentIndex < slideData.length - 1) {
+        if (currentIndex < filteredData.length - 1) {
             showSlide(currentIndex + 1);
         }
     }
