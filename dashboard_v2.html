@@ -9,7 +9,7 @@
             font-family: 'Segoe UI', 'Roboto', Helvetica, Arial, sans-serif;
             margin: 0;
             padding: 0;
-            background-color: #121212;
+            background-color: #000;
             color: #fff;
             overflow: hidden; 
         }
@@ -45,98 +45,113 @@
             opacity: 1;
         }
         
-        /* Left Side: Info (50% Width now for balance) */
+        /* Left Side: Info (Strict 50%) */
         .info-panel {
-            width: 50%;
-            padding: 60px;
+            flex: 1; /* Takes exactly 50% space */
+            padding: 50px;
             box-sizing: border-box;
-            background: linear-gradient(160deg, #1e3c72 0%, #2a5298 100%);
+            background: #1e1e1e;
             display: flex;
             flex-direction: column;
             justify-content: center;
-            box-shadow: 10px 0 20px rgba(0,0,0,0.3);
-            z-index: 10;
+            border-right: 2px solid #333; /* Divider line */
             position: relative;
         }
         
+        /* Gold Accent Line */
         .info-panel::before {
             content: '';
             position: absolute;
             left: 0;
             top: 0;
             bottom: 0;
-            width: 10px;
+            width: 6px;
             background: #ffd700;
         }
 
         .info-panel h1 {
-            font-size: 2.8em;
-            margin: 0 0 30px 0;
-            border-bottom: 2px solid rgba(255,255,255,0.2);
-            padding-bottom: 15px;
-            color: #ffffff;
-            line-height: 1.2;
+            font-size: 2.5em;
+            margin: 0 0 40px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding-bottom: 20px;
+            color: #fff;
+            line-height: 1.3;
         }
         
         .info-item {
-            margin-bottom: 25px;
-            font-size: 1.3em;
-            line-height: 1.6;
-            color: #e0e0e0;
+            margin-bottom: 20px;
+            font-size: 1.2em;
+            line-height: 1.5;
+            color: #ddd;
             display: flex;
-            align-items: flex-start;
+            align-items: baseline;
+            background: rgba(255,255,255,0.05);
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid transparent;
+            transition: border-color 0.3s;
+        }
+        
+        .info-item:hover {
+            border-left-color: #ffd700;
+            background: rgba(255,255,255,0.08);
         }
 
         .label {
-            font-weight: 600;
+            font-weight: 700;
             color: #ffd700;
-            min-width: 150px; /* Fixed width for labels to align text */
+            min-width: 140px; 
             text-transform: uppercase;
-            letter-spacing: 1px;
-            font-size: 0.8em;
-            margin-top: 5px;
+            font-size: 0.85em;
+            letter-spacing: 0.5px;
         }
 
         .value {
             flex: 1;
+            word-wrap: break-word;
         }
 
-        /* Right Side: Photos (50% Width) */
+        /* Right Side: Photos (Strict 50%) */
         .photo-panel {
-            width: 50%;
-            padding: 30px;
+            flex: 1; /* Takes exactly 50% space */
+            padding: 40px;
             box-sizing: border-box;
-            background-color: #1a1a1a;
+            background-color: #121212;
             display: flex;
-            flex-wrap: wrap;
-            align-content: center;
             justify-content: center;
-            overflow-y: auto; 
-            gap: 15px; /* Reduced gap */
+            align-items: center; /* Center the grid vertically */
+            overflow-y: auto;
         }
-        
-        .photo-panel::-webkit-scrollbar { width: 8px; }
-        .photo-panel::-webkit-scrollbar-thumb { background-color: #555; border-radius: 4px; }
 
-        /* Image Card Styling - Smaller Size */
+        /* Grid Layout for Photos */
+        .photo-grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); /* Auto-fit small cards */
+            gap: 20px;
+            width: 100%;
+            max-height: 100%;
+        }
+
+        .photo-panel::-webkit-scrollbar { width: 6px; }
+        .photo-panel::-webkit-scrollbar-thumb { background-color: #444; border-radius: 3px; }
+
+        /* Image Card Styling - Compact & Clean */
         .photo-card {
-            width: 180px; /* Smaller width */
-            height: 135px; /* Smaller height */
+            aspect-ratio: 4/3; /* Standard photo ratio */
             position: relative;
-            border-radius: 8px;
+            border-radius: 6px;
             overflow: hidden;
-            background: #2c2c2c;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-            transition: all 0.3s ease;
+            background: #222;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
             cursor: pointer;
-            border: 1px solid #444;
+            border: 1px solid #333;
         }
 
         .photo-card:hover {
-            transform: translateY(-5px) scale(1.05);
-            box-shadow: 0 10px 20px rgba(0,0,0,0.7);
+            transform: translateY(-4px);
+            box-shadow: 0 8px 15px rgba(0,0,0,0.5);
             border-color: #ffd700;
-            z-index: 5;
         }
 
         .photo-thumbnail {
@@ -146,6 +161,7 @@
             display: block;
         }
         
+        /* Fallback */
         .img-error {
             display: flex;
             flex-direction: column;
@@ -153,13 +169,12 @@
             justify-content: center;
             height: 100%;
             width: 100%;
-            background: #333;
-            color: #aaa;
+            background: #2a2a2a;
+            color: #888;
             text-align: center;
-            padding: 5px;
+            padding: 10px;
+            box-sizing: border-box;
         }
-        .img-error span { font-size: 24px; }
-        .img-error p { font-size: 10px; margin: 0; }
 
         /* Controls */
         .controls-area {
@@ -167,23 +182,24 @@
             bottom: 0;
             left: 0;
             width: 100%;
-            height: 80px;
-            background: linear-gradient(to top, rgba(0,0,0,0.9), transparent);
+            height: 70px;
+            background: linear-gradient(to top, rgba(0,0,0,0.95), transparent);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 0 40px;
+            padding: 0 30px;
             box-sizing: border-box;
             pointer-events: none;
         }
 
         .slide-counter {
-            font-size: 18px;
-            color: rgba(255,255,255,0.8);
-            background: rgba(0,0,0,0.5);
-            padding: 5px 15px;
+            font-size: 16px;
+            color: rgba(255,255,255,0.9);
+            background: rgba(0,0,0,0.6);
+            padding: 6px 15px;
             border-radius: 20px;
             pointer-events: auto;
+            border: 1px solid rgba(255,255,255,0.1);
         }
 
         .nav-buttons {
@@ -193,26 +209,26 @@
         }
 
         button {
-            padding: 10px 25px;
+            padding: 8px 25px;
             font-size: 14px;
             cursor: pointer;
             background-color: #ffd700;
             border: none;
             border-radius: 4px;
             font-weight: 700;
-            color: #1a1a1a;
+            color: #000;
             transition: background 0.2s;
             text-transform: uppercase;
-            letter-spacing: 1px;
+            letter-spacing: 0.5px;
         }
         button:hover { background-color: #fff; }
 
         @media (max-width: 768px) {
             .slide-container { flex-direction: column; overflow-y: auto; }
-            .info-panel, .photo-panel { width: 100%; height: auto; }
-            .photo-panel { padding-bottom: 100px; }
-            .info-item { flex-direction: column; }
-            .label { margin-bottom: 2px; }
+            .info-panel, .photo-panel { flex: none; width: 100%; height: auto; }
+            .info-panel { padding: 30px; border-right: none; border-bottom: 2px solid #333; }
+            .photo-panel { padding: 20px; padding-bottom: 100px; }
+            .photo-grid-container { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
         }
     </style>
 </head>
@@ -231,46 +247,38 @@
 </div>
 
 <script>
-    // Configuration for Google Sheet
     const SHEET_ID = '1wyr0gt061UT5IVxT1JBYUEUJw1GYcBpzxDKEQmvcXXY';
     const GID = '1839722438';
-    // Using Google Visualization API to get JSON
     const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&gid=${GID}`;
 
     let slideData = [];
     let currentIndex = 0;
 
-    // Fetch and Parse Data
     async function fetchSheetData() {
         try {
             const response = await fetch(SHEET_URL);
             const text = await response.text();
             
-            // Clean up the response text from Google API wrapper
+            // Clean up Google API wrapper
             const jsonText = text.substring(47).slice(0, -2);
             const json = JSON.parse(jsonText);
             
             const rows = json.table.rows;
             
-            // Map rows to our data structure
-            // Assuming Columns: A=Date, B=District, C=Event, D=Attendance, E=Guests, F onwards=Photos
             slideData = rows.map(row => {
                 const c = row.c;
                 if (!c) return null;
 
-                // Extract basic info safely
                 const date = c[0] ? (c[0].f || c[0].v) : '';
                 const district = c[1] ? c[1].v : '';
                 const event = c[2] ? c[2].v : '';
                 const attendance = c[3] ? c[3].v : '';
                 const guests = c[4] ? c[4].v : '';
 
-                // Extract Photos (Column F onwards, index 5+)
                 let photos = [];
                 for (let i = 5; i < c.length; i++) {
                     if (c[i] && c[i].v) {
                         const val = String(c[i].v);
-                        // Extract ID from URL if it's a link, or use value if it's just ID
                         const idMatch = val.match(/[-\w]{25,}/);
                         if (idMatch) {
                             photos.push(idMatch[0]);
@@ -281,7 +289,7 @@
                 return {
                     date, district, event, attendance, guests, photos
                 };
-            }).filter(item => item && item.event); // Filter out empty rows
+            }).filter(item => item && item.event);
 
             initSlides();
             document.getElementById('loader').style.display = 'none';
@@ -295,8 +303,6 @@
     function initSlides() {
         const wrapper = document.getElementById('slides-wrapper');
         const totalSlidesSpan = document.getElementById('total-slides');
-        
-        // Clear existing if any
         wrapper.innerHTML = '';
 
         slideData.forEach((item, index) => {
@@ -305,11 +311,11 @@
             slide.id = `slide-${index}`;
             slide.style.display = index === 0 ? 'flex' : 'none';
 
-            // Prepare Images HTML
             let imagesHtml = '';
             if (item.photos.length > 0) {
                 item.photos.forEach(photoId => {
-                    const imgSrc = `https://drive.google.com/thumbnail?id=${photoId}&sz=w400`; // Reduced size request
+                    // Try to get a medium size thumbnail
+                    const imgSrc = `https://drive.google.com/thumbnail?id=${photoId}&sz=w400`;
                     const viewLink = `https://drive.google.com/file/d/${photoId}/view?usp=sharing`;
                     
                     imagesHtml += `
@@ -317,18 +323,18 @@
                         <img 
                             src="${imgSrc}" 
                             class="photo-thumbnail" 
-                            alt="Img" 
+                            alt="Event" 
                             referrerpolicy="no-referrer"
                             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
                         >
                         <div class="img-error" style="display:none;">
-                            <span>🖼️</span>
-                            <p>Open</p>
+                            <span style="font-size:20px;">📷</span>
+                            <p style="font-size:10px; margin-top:5px;">View</p>
                         </div>
                     </div>`;
                 });
             } else {
-                imagesHtml = '<div style="color:#666; width:100%; text-align:center;">No Photos Available</div>';
+                imagesHtml = '<div style="color:#666; width:100%; text-align:center; grid-column: 1/-1;">No Photos Available</div>';
             }
 
             slide.innerHTML = `
@@ -352,7 +358,9 @@
                     </div>
                 </div>
                 <div class="photo-panel">
-                    ${imagesHtml}
+                    <div class="photo-grid-container">
+                        ${imagesHtml}
+                    </div>
                 </div>
             `;
             wrapper.appendChild(slide);
@@ -362,7 +370,6 @@
         updateCounter(0);
     }
 
-    // Navigation Logic
     const currentSlideSpan = document.getElementById('current-slide');
 
     function updateCounter(index) {
@@ -370,18 +377,18 @@
     }
 
     function showSlide(index) {
-        // Hide all
         const slides = document.querySelectorAll('.slide-container');
         slides.forEach(s => {
             s.classList.remove('active');
             s.style.display = 'none';
         });
         
-        // Show current
         const current = document.getElementById(`slide-${index}`);
         if(current) {
             current.style.display = 'flex';
-            setTimeout(() => current.classList.add('active'), 10);
+            // Trigger reflow
+            void current.offsetWidth; 
+            current.classList.add('active');
             updateCounter(index);
             currentIndex = index;
         }
@@ -404,7 +411,6 @@
         if(event.key === "ArrowLeft") prevSlide();
     });
 
-    // Start loading
     fetchSheetData();
 
 </script>
