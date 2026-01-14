@@ -785,6 +785,7 @@
             
             if (viewMode === 'standard') {
                 // FIXED: Added $ and used https
+                // KEY FIX: Added crossorigin="anonymous" to all PDF images
                 content = `
                     <div style="display:flex; height:100%; gap:40px;">
                         <div style="flex:1;">
@@ -807,6 +808,7 @@
                             ${item.photos.slice(0,4).map(pid => `
                                 <div style="height:180px; border-radius:10px; overflow:hidden; border:2px solid #eee;">
                                     <img src="https://lh3.googleusercontent.com/d/${pid}=w600" 
+                                         crossorigin="anonymous"
                                          style="width:100%; height:100%; object-fit:cover;"
                                          onerror="this.src='https://via.placeholder.com/400x300?text=No+Image'">
                                 </div>
@@ -817,6 +819,7 @@
             } 
             else if (viewMode === 'immersive') {
                 // FIXED: Added $ and used https
+                // KEY FIX: Added crossorigin="anonymous" to all PDF images
                 const bgImg = item.photos[0] ? 
                     `https://lh3.googleusercontent.com/d/${item.photos[0]}=w1200` : 
                     'https://via.placeholder.com/1200x800?text=No+Image';
@@ -824,6 +827,7 @@
                 content = `
                     <div style="position:absolute; inset:0;">
                         <img src="${bgImg}" 
+                             crossorigin="anonymous"
                              style="width:100%; height:100%; object-fit:cover; opacity:0.3;"
                              onerror="this.src='https://via.placeholder.com/1200x800?text=No+Image'">
                         <div style="position:absolute; inset:0; background:linear-gradient(to right, #000000 0%, transparent 70%);"></div>
@@ -845,6 +849,7 @@
             }
             else if (viewMode === 'minimal') {
                 // FIXED: Added $ and used https
+                // KEY FIX: Added crossorigin="anonymous" to all PDF images
                 content = `
                     <div style="text-align:center; padding:60px;">
                         <h1 style="font-size:42px; color:#222; margin:0 0 10px 0;">${item.event}</h1>
@@ -856,6 +861,7 @@
                             ${item.photos.slice(0,3).map(pid => `
                                 <div style="width:280px; height:200px; border-radius:8px; overflow:hidden; box-shadow:0 5px 15px rgba(0,0,0,0.1);">
                                     <img src="https://lh3.googleusercontent.com/d/${pid}=w600" 
+                                         crossorigin="anonymous"
                                          style="width:100%; height:100%; object-fit:cover;"
                                          onerror="this.src='https://via.placeholder.com/400x300?text=No+Image'">
                                 </div>
@@ -897,7 +903,7 @@
             filename: `Karyakram_${viewMode}_${new Date().toISOString().split('T')[0]}.pdf`,
             image: { type: 'jpeg', quality: 0.98 },
             html2canvas: { 
-                scale: 2, 
+                scale: 1.5, // Reduced from 2 to 1.5 for stability
                 useCORS: true, 
                 scrollY: 0, 
                 windowWidth: 1123,
@@ -927,19 +933,26 @@
         const btn = document.getElementById('export-btn');
         btn.innerHTML = "<i class='bx bx-loader-alt bx-spin'></i> PPT...";
         let pptx = new PptxGenJS();
+        
         for(let item of filteredData) {
             let slide = pptx.addSlide();
             slide.background = { color: 'F0F0F0' };
             slide.addText(item.event, { x:0.5, y:0.2, w:9, h:0.8, fontSize:24, bold:true, color:'000000' });
             slide.addText(`District: ${item.district}\nDate: ${item.date}\nAttendance: ${item.attendance}\n\nGuests:\n${item.guests.substring(0,300)}`, { x:0.5, y:1.2, w:4, h:4, fontSize:14, color:'333333', valign:'top' });
             const photoPos = [{x:5, y:1.2}, {x:7.5, y:1.2}, {x:5, y:3.5}, {x:7.5, y:3.5}];
+            
             for(let i=0; i<Math.min(item.photos.length, 4); i++) {
-                // FIXED: Added $ and used https
-                const url = `https://lh3.googleusercontent.com/d/${item.photos[i]}=w600`;
-                slide.addImage({ path: url, x: photoPos[i].x, y: photoPos[i].y, w: 2.3, h: 2 });
+                try {
+                    // FIXED: Added $ and used https
+                    const url = `https://lh3.googleusercontent.com/d/${item.photos[i]}=w600`;
+                    slide.addImage({ path: url, x: photoPos[i].x, y: photoPos[i].y, w: 2.3, h: 2 });
+                } catch(e) {
+                    console.error("Image skip in PPT", e);
+                }
             }
         }
-        pptx.writeFile({ fileName: "Karyakram_Report.pptx" });
+        
+        await pptx.writeFile({ fileName: "Karyakram_Report.pptx" }); // Added await
         btn.innerHTML = `<i class='bx bxs-download'></i> Download <i class='bx bx-chevron-down'></i>`;
     }
 
