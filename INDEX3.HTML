@@ -389,7 +389,6 @@
         if (!dateStr) return new Date(0);
         
         // 1. Handle "Date(YYYY, M, D)" format from Google Sheets JSON
-        // Note: Months in Google Viz Date() are 0-indexed (0=Jan, 11=Dec)
         if(typeof dateStr === 'string' && dateStr.indexOf('Date(') >= 0) {
              const parts = dateStr.match(/\d+/g);
              if(parts && parts.length >= 3) {
