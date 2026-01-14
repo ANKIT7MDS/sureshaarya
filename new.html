@@ -1,910 +1,227 @@
 <!DOCTYPE html>
 <html lang="hi">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Karyakram Dashboard</title>
-    <!-- Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;600&display=swap" rel="stylesheet">
-    <!-- Icons -->
-    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
-    <!-- Libraries -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
-    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    
-    <style>
-        :root {
-            --bg-dark: #0b0c10;
-            --bg-panel: #1f2833;
-            --primary: #66fcf1;
-            --secondary: #45a29e;
-            --text-main: #fff;
-            --text-muted: #c5c6c7;
-            --accent: #ff4757;
-            --card-bg: rgba(31, 40, 51, 0.8);
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Karyakram Dashboard – Final Unified</title>
 
-        * { box-sizing: border-box; }
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&family=Noto+Sans+Devanagari:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
 
-        body {
-            font-family: 'Poppins', 'Noto Sans Devanagari', sans-serif;
-            margin: 0; padding: 0;
-            background-color: var(--bg-dark);
-            color: var(--text-main);
-            height: 100vh;
-            display: flex;
-            overflow: hidden;
-        }
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
 
-        /* --- Sidebar Navigation --- */
-        .sidebar {
-            width: 80px;
-            background: var(--bg-panel);
-            border-right: 1px solid rgba(255,255,255,0.1);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding-top: 20px;
-            transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            z-index: 1000;
-        }
-        .sidebar:hover { width: 220px; }
-        
-        .nav-item {
-            width: 100%;
-            padding: 15px 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: 0.3s;
-            color: var(--text-muted);
-            text-decoration: none;
-            position: relative;
-        }
-        .sidebar:hover .nav-item { justify-content: flex-start; padding-left: 25px; }
-        .nav-item i { font-size: 24px; min-width: 50px; text-align: center; }
-        .nav-text { display: none; white-space: nowrap; font-size: 14px; font-weight: 500; }
-        .sidebar:hover .nav-text { display: block; }
-        
-        .nav-item:hover, .nav-item.active {
-            color: var(--primary);
-            background: rgba(102, 252, 241, 0.1);
-            border-left: 4px solid var(--primary);
-        }
+<style>
+:root{--bg:#0b0c10;--panel:#1f2833;--pri:#66fcf1;--sec:#45a29e;--muted:#c5c6c7}
+*{box-sizing:border-box}
+body{margin:0;font-family:Poppins,'Noto Sans Devanagari';background:var(--bg);color:#fff;height:100vh;display:flex;overflow:hidden}
 
-        /* --- Main Content Area --- */
-        .main-content {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            position: relative;
-            overflow: hidden;
-        }
+/* Sidebar */
+.sidebar{width:80px;background:var(--panel);display:flex;flex-direction:column;align-items:center;padding-top:15px;transition:.3s}
+.sidebar:hover{width:200px}
+.nav-item{width:100%;padding:14px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted)}
+.sidebar:hover .nav-item{justify-content:flex-start;padding-left:20px}
+.nav-item i{font-size:22px;min-width:40px}
+.nav-text{display:none}
+.sidebar:hover .nav-text{display:block}
+.nav-item.active{color:var(--pri);background:rgba(102,252,241,.1);border-left:4px solid var(--pri)}
 
-        /* --- Top Filter Bar --- */
-        .top-bar {
-            min-height: 70px;
-            background: rgba(31, 40, 51, 0.95);
-            backdrop-filter: blur(10px);
-            display: flex;
-            align-items: center;
-            padding: 10px 25px;
-            gap: 15px;
-            border-bottom: 1px solid rgba(255,255,255,0.05);
-            z-index: 90;
-            flex-wrap: wrap;
-        }
+/* Main */
+.main{flex:1;display:flex;flex-direction:column}
 
-        .filter-group { display: flex; gap: 10px; align-items: center; }
+/* Top bar */
+.top{display:flex;gap:10px;align-items:center;padding:10px 20px;background:rgba(31,40,51,.85)}
+select,input,button{background:#0003;color:#fff;border:1px solid var(--sec);border-radius:20px;padding:7px 12px;font-family:inherit}
+button{cursor:pointer}
+button:hover{background:var(--pri);color:#000}
 
-        .input-style {
-            background: rgba(0,0,0,0.3);
-            border: 1px solid var(--secondary);
-            color: white;
-            padding: 8px 15px;
-            border-radius: 20px;
-            font-family: inherit;
-            outline: none;
-            font-size: 14px;
-        }
-        .input-style:focus { border-color: var(--primary); box-shadow: 0 0 5px rgba(102,252,241,0.3); }
+/* Views */
+.view{flex:1;display:none;overflow:auto}
+.view.active{display:flex}
 
-        .action-btn {
-            background: var(--secondary);
-            border: none;
-            color: white;
-            padding: 8px 18px;
-            border-radius: 20px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 13px;
-            font-weight: 600;
-            transition: all 0.2s;
-            white-space: nowrap;
-        }
-        .action-btn:hover { background: var(--primary); color: #000; transform: translateY(-1px); }
-        .action-btn.active { background: var(--accent); animation: pulse 1.5s infinite; }
-        .action-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+/* Slides */
+#slideView{justify-content:center;align-items:center}
+.slide{width:100%;height:100%;display:flex;gap:20px;padding:30px}
+.info{flex:1;background:var(--panel);border-radius:16px;padding:25px}
+.info h2{margin-top:0;color:var(--pri)}
+.photos{flex:1;display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.photos img{width:100%;height:100%;object-fit:cover;border-radius:10px}
 
-        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+/* Slide Modes */
+.mobile-slide .slide{flex-direction:column}
+.mobile-slide .photos{grid-template-columns:1fr;height:260px}
+.tv-slide .slide{flex-direction:column}
+.tv-slide .photos{grid-template-columns:repeat(4,1fr);height:320px}
 
-        /* Dropdown Styles */
-        .dropdown { position: relative; }
-        .dropdown-content {
-            display: none;
-            position: absolute;
-            right: 0;
-            top: calc(100% + 5px);
-            background-color: var(--bg-panel);
-            min-width: 220px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-            z-index: 101;
-            border-radius: 12px;
-            border: 1px solid rgba(255,255,255,0.1);
-            overflow: hidden;
-        }
-        .dropdown-content a {
-            color: var(--text-main);
-            padding: 12px 16px;
-            text-decoration: none;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            font-size: 14px;
-            cursor: pointer;
-            transition: 0.2s;
-        }
-        .dropdown-content a:hover { background-color: var(--primary); color: #000; }
-        .dropdown:hover .dropdown-content { display: block; }
+/* Grid */
+#gridView{padding:20px;display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:15px}
+.grid-item{background:var(--panel);border-radius:12px;overflow:hidden;cursor:pointer}
+.grid-item img{width:100%;height:150px;object-fit:cover}
+.grid-info{padding:10px;font-size:13px}
 
-        /* --- Views Container --- */
-        .views-container { flex: 1; position: relative; overflow: hidden; }
-        .view-section {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            display: none;
-            opacity: 0;
-            transition: opacity 0.4s;
-            overflow-y: auto;
-            -webkit-overflow-scrolling: touch;
-        }
-        .view-section.active { display: flex; opacity: 1; }
+/* Printable */
+#printable{display:none}
 
-        /* --- SLIDE VIEW --- */
-        #view-slide { flex-direction: column; align-items: center; padding: 20px; overflow: hidden; }
-        .slide-wrapper { width: 100%; height: 100%; max-width: 1400px; margin: 0 auto; position: relative; }
-        .slide-container {
-            height: 100%; width: 100%;
-            display: flex; gap: 20px;
-            animation: fadeIn 0.4s ease;
-        }
-        .slide-container.hidden { display: none !important; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
-        .info-panel {
-            flex: 4;
-            padding: 40px;
-            background: rgba(31, 40, 51, 0.95);
-            border-radius: 20px;
-            border: 1px solid rgba(255,255,255,0.1);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-        }
-        .info-panel h1 { font-size: 2.2rem; color: var(--primary); margin-bottom: 25px; line-height: 1.2; }
-        .info-item { display: flex; align-items: flex-start; margin-bottom: 18px; font-size: 1.1rem; }
-        .info-item i { margin-right: 15px; color: var(--secondary); font-size: 1.4rem; margin-top: 3px; }
-        .info-label { font-weight: 700; color: #fff; min-width: 100px; }
-
-        .photo-panel {
-            flex: 6;
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            grid-template-rows: repeat(2, 1fr);
-            gap: 15px;
-        }
-        .photo-card {
-            border-radius: 12px;
-            overflow: hidden;
-            background: #000;
-            cursor: zoom-in;
-            border: 2px solid transparent;
-            transition: 0.3s;
-            position: relative;
-        }
-        .photo-card img { width: 100%; height: 100%; object-fit: cover; }
-        .photo-card:hover { border-color: var(--primary); }
-        .more-overlay {
-            position: absolute; inset: 0; background: rgba(0,0,0,0.7);
-            display: flex; justify-content: center; align-items: center;
-            font-size: 1.5rem; font-weight: bold; color: var(--primary);
-        }
-
-        /* --- MODERN CARD VIEW (NEW PATTERN) --- */
-        #view-cards {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-            gap: 30px;
-            padding: 30px;
-            align-content: start;
-        }
-        .modern-card {
-            background: var(--bg-panel);
-            border-radius: 24px;
-            overflow: hidden;
-            border: 1px solid rgba(255,255,255,0.1);
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            position: relative;
-            display: flex;
-            flex-direction: column;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-        }
-        .modern-card:hover { transform: translateY(-10px); border-color: var(--primary); box-shadow: 0 15px 45px rgba(102, 252, 241, 0.2); }
-        .m-card-header { height: 200px; position: relative; overflow: hidden; }
-        .m-card-header img { width: 100%; height: 100%; object-fit: cover; transition: 0.5s; }
-        .modern-card:hover .m-card-header img { transform: scale(1.1); }
-        .m-card-badge {
-            position: absolute; top: 15px; left: 15px;
-            background: var(--primary); color: #000;
-            padding: 4px 12px; border-radius: 15px; font-weight: 700; font-size: 12px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-        }
-        .m-card-content { padding: 25px; flex: 1; display: flex; flex-direction: column; }
-        .m-card-title { font-size: 1.3rem; font-weight: 700; color: #fff; margin-bottom: 15px; line-height: 1.3; }
-        .m-card-stats { display: flex; gap: 15px; margin-top: auto; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.05); }
-        .m-stat { font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 5px; }
-        .m-stat i { color: var(--primary); }
-
-        /* --- GRID VIEW --- */
-        #view-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 20px;
-            padding: 25px;
-            align-content: start;
-        }
-        .grid-item {
-            background: var(--bg-panel);
-            border-radius: 15px;
-            overflow: hidden;
-            transition: 0.3s;
-            cursor: pointer;
-            border: 1px solid rgba(255,255,255,0.1);
-        }
-        .grid-item:hover { transform: translateY(-5px); border-color: var(--primary); }
-        .grid-img { height: 180px; width: 100%; object-fit: cover; background: #111; }
-        .grid-info { padding: 15px; }
-        .grid-title { font-weight: 600; font-size: 0.95rem; margin-bottom: 10px; height: 2.8rem; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-        .grid-meta { font-size: 0.8rem; color: var(--secondary); display: flex; justify-content: space-between; }
-
-        /* --- ANALYTICS --- */
-        #view-analytics { flex-direction: column; padding: 25px; gap: 25px; }
-        .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; }
-        .stat-card {
-            background: linear-gradient(135deg, var(--bg-panel), #2c3e50);
-            padding: 25px; border-radius: 15px; text-align: center; border: 1px solid rgba(255,255,255,0.1);
-        }
-        .stat-val { font-size: 2.2rem; font-weight: bold; color: var(--primary); }
-        .stat-label { font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; margin-top: 5px; }
-        .chart-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px; }
-        .chart-box { background: var(--bg-panel); padding: 20px; border-radius: 15px; min-height: 350px; }
-
-        /* --- Controls --- */
-        .controls-floating {
-            position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
-            display: flex; align-items: center; gap: 20px;
-            background: rgba(0,0,0,0.8);
-            padding: 10px 25px;
-            border-radius: 40px;
-            backdrop-filter: blur(10px);
-            z-index: 100;
-            border: 1px solid rgba(255,255,255,0.1);
-        }
-        .control-btn { background: none; border: none; color: #fff; font-size: 28px; cursor: pointer; transition: 0.2s; }
-        .control-btn:hover { color: var(--primary); }
-        .slide-counter { font-size: 14px; font-weight: 600; min-width: 80px; text-align: center; }
-
-        /* Lightbox & Loader */
-        .lightbox {
-            display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.95);
-            z-index: 9999; justify-content: center; align-items: center; flex-direction: column;
-        }
-        .lightbox img { max-width: 90%; max-height: 80%; border-radius: 8px; box-shadow: 0 0 30px var(--primary); }
-        .lightbox-close { position: absolute; top: 20px; right: 30px; font-size: 40px; color: #fff; cursor: pointer; }
-
-        #loader {
-            position: fixed; inset: 0; background: var(--bg-dark); z-index: 10000;
-            display: flex; flex-direction: column; justify-content: center; align-items: center;
-        }
-        .spinner {
-            width: 60px; height: 60px; border: 4px solid rgba(102, 252, 241, 0.1);
-            border-top-color: var(--primary); border-radius: 50%;
-            animation: spin 1s infinite linear; margin-bottom: 20px;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
-
-        /* --- MOBILE OPTIMIZATIONS --- */
-        @media (max-width: 768px) {
-            body { flex-direction: column; }
-            .sidebar {
-                width: 100%; height: 65px; flex-direction: row; border-right: none;
-                border-top: 1px solid rgba(255,255,255,0.1); padding: 0;
-                position: fixed; bottom: 0; left: 0;
-            }
-            .sidebar:hover { width: 100%; }
-            .nav-item { flex-direction: column; gap: 4px; padding: 10px 0; font-size: 10px; }
-            .nav-item i { font-size: 20px; min-width: unset; }
-            .sidebar:hover .nav-item { padding-left: 0; justify-content: center; }
-            .nav-text { display: block !important; font-size: 10px; }
-            
-            .main-content { margin-bottom: 65px; height: calc(100vh - 65px); }
-            .top-bar { padding: 10px; gap: 8px; }
-            .top-bar .filter-group { width: 100%; justify-content: space-between; }
-            
-            .slide-container { flex-direction: column; overflow-y: auto; }
-            .info-panel { flex: none; padding: 25px; }
-            .info-panel h1 { font-size: 1.5rem; }
-            .photo-panel { flex: none; height: auto; grid-template-columns: 1fr 1fr; }
-            .photo-card { height: 140px; }
-            
-            .chart-row { grid-template-columns: 1fr; }
-            .controls-floating { bottom: 80px; }
-        }
-    </style>
+@media print{
+body>*{display:none!important}
+#printable{display:block!important;background:#fff;color:#000;font-family:'Noto Sans Devanagari'}
+.print-page{page-break-after:always;padding:30px}
+.print-title{font-size:22px;font-weight:700;border-bottom:2px solid #45a29e;margin-bottom:15px}
+.print-grid{display:grid;grid-template-columns:1fr 1fr;gap:15px;align-items:start}
+.print-item{line-height:1.6}
+.print-photos{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:15px}
+.print-photos img{width:100%;height:200px;object-fit:cover;border:1px solid #ccc}
+}
+@media print and (max-width:768px){
+.print-grid,.print-photos{grid-template-columns:1fr}
+}
+</style>
 </head>
+
 <body>
 
-<!-- Loader -->
-<div id="loader">
-    <div class="spinner"></div>
-    <div style="color:var(--primary); font-weight:600;">Data Taiyar Ho Raha Hai...</div>
-</div>
-
-<!-- Lightbox -->
-<div id="lightbox" class="lightbox">
-    <span class="lightbox-close" onclick="closeLightbox()">&times;</span>
-    <img id="lightbox-img" src="" alt="Full View">
-    <div id="lightbox-caption" style="color:var(--text-muted); margin-top:20px; font-size:1.1rem; text-align:center; padding:0 20px;"></div>
-</div>
-
-<!-- Sidebar -->
 <div class="sidebar">
-    <div class="nav-item active" onclick="switchView('slide')">
-        <i class='bx bx-slideshow'></i>
-        <span class="nav-text">Presentation</span>
-    </div>
-    <div class="nav-item" onclick="switchView('cards')">
-        <i class='bx bx-id-card'></i>
-        <span class="nav-text">Modern Cards</span>
-    </div>
-    <div class="nav-item" onclick="switchView('grid')">
-        <i class='bx bx-grid-alt'></i>
-        <span class="nav-text">Gallery View</span>
-    </div>
-    <div class="nav-item" onclick="switchView('analytics')">
-        <i class='bx bx-bar-chart-alt-2'></i>
-        <span class="nav-text">Analytics</span>
-    </div>
+  <div class="nav-item active" onclick="showView('slide')"><i class='bx bx-slideshow'></i><span class="nav-text">Slides</span></div>
+  <div class="nav-item" onclick="showView('grid')"><i class='bx bx-grid'></i><span class="nav-text">Gallery</span></div>
 </div>
 
-<!-- Main Content -->
-<div class="main-content">
-    
-    <!-- Top Bar -->
-    <div class="top-bar">
-        <div class="filter-group" style="flex:1; min-width: 180px;">
-            <input type="text" id="search-input" class="input-style" placeholder="Search event..." style="width:100%;" onkeyup="applyFilters()">
-        </div>
-        
-        <div class="filter-group">
-            <select id="district-filter" class="input-style" onchange="applyFilters()">
-                <option value="">All Districts</option>
-            </select>
-            
-            <button class="action-btn" id="tv-mode-btn" onclick="toggleTVMode()">
-                <i class='bx bx-play-circle'></i> TV Mode
-            </button>
-             
-            <div class="dropdown">
-                <button class="action-btn" id="export-btn" style="background:#e67e22;">
-                    <i class='bx bxs-download'></i> Export <i class='bx bx-chevron-down'></i>
-                </button>
-                <div class="dropdown-content">
-                    <a onclick="downloadFullPDF()"><i class='bx bxs-file-pdf'></i> Slides to PDF</a>
-                    <a onclick="downloadPPT()"><i class='bx bxs-slideshow'></i> PowerPoint (PPT)</a>
-                    <a onclick="downloadExcel()"><i class='bx bxs-spreadsheet'></i> Excel (XLSX)</a>
-                    <a onclick="downloadCurrentSlide()"><i class='bx bxs-image'></i> Current Slide (Img)</a>
-                </div>
-            </div>
-        </div>
-    </div>
+<div class="main">
 
-    <!-- Views Area -->
-    <div class="views-container">
-        <!-- 1. SLIDE VIEW -->
-        <div id="view-slide" class="view-section active">
-            <div class="slide-wrapper" id="slides-wrapper"></div>
-            <div class="controls-floating">
-                <button class="control-btn" onclick="prevSlide()"><i class='bx bx-chevron-left'></i></button>
-                <div class="slide-counter"><span id="curr-idx">1</span> / <span id="total-count">0</span></div>
-                <button class="control-btn" onclick="nextSlide()"><i class='bx bx-chevron-right'></i></button>
-            </div>
-        </div>
-        
-        <!-- 2. MODERN CARDS VIEW -->
-        <div id="view-cards" class="view-section"></div>
-        
-        <!-- 3. GALLERY GRID VIEW -->
-        <div id="view-grid" class="view-section"></div>
-        
-        <!-- 4. ANALYTICS VIEW -->
-        <div id="view-analytics" class="view-section">
-            <div class="stats-row">
-                <div class="stat-card">
-                    <div class="stat-val" id="stat-total-events">0</div>
-                    <div class="stat-label">Total Events</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-val" id="stat-total-districts">0</div>
-                    <div class="stat-label">Districts</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-val" id="stat-total-attendance">0</div>
-                    <div class="stat-label">Total Attendance</div>
-                </div>
-            </div>
-            <div class="chart-row">
-                <div class="chart-box"><canvas id="districtChart"></canvas></div>
-                <div class="chart-box"><canvas id="attendanceChart"></canvas></div>
-            </div>
-        </div>
-    </div>
+<div class="top">
+  <select id="pdfStyle">
+    <option value="A">PDF Style A</option>
+    <option value="B">PDF Style B</option>
+    <option value="C">PDF Style C</option>
+  </select>
+
+  <select id="slideStyle" onchange="applySlideStyle()">
+    <option value="normal">Slide Normal</option>
+    <option value="mobile">Slide Mobile</option>
+    <option value="tv">Slide TV</option>
+  </select>
+
+  <button onclick="printPDF()">Print / PDF</button>
 </div>
+
+<div id="slideView" class="view active">
+  <div id="slideBox"></div>
+</div>
+
+<div id="gridView" class="view"></div>
+
+</div>
+
+<div id="printable"></div>
 
 <script>
-    const SHEET_ID = '1wyr0gt061UT5IVxT1JBYUEUJw1GYcBpzxDKEQmvcXXY';
-    const GID = '1839722438';
-    const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&gid=${GID}`;
+/* ===== GOOGLE SHEET CONFIG ===== */
+const SHEET_ID='1wyr0gt061UT5IVxT1JBYUEUJw1GYcBpzxDKEQmvcXXY';
+const GID='1839722438';
+const SHEET_URL=`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&gid=${GID}`;
 
-    let rawData = [];
-    let filteredData = [];
-    let currentIndex = 0;
-    let tvInterval = null;
-    let charts = {};
+/* ===== STATE ===== */
+let data=[];
 
-    window.onload = fetchSheetData;
+/* ===== HELPERS ===== */
+const img=id=>`https://drive.google.com/uc?export=view&id=${id}`;
 
-    async function fetchSheetData() {
-        try {
-            const response = await fetch(SHEET_URL);
-            const text = await response.text();
-            const json = JSON.parse(text.substring(47).slice(0, -2));
-            
-            rawData = json.table.rows.map(row => {
-                const c = row.c;
-                if (!c) return null;
-                const date = c[1] ? (c[1].f || c[1].v) : 'N/A';
-                const district = c[2] ? c[2].v : 'Unknown';
-                const event = c[3] ? c[3].v : 'Untitled Event';
-                const attendance = c[4] ? (parseInt(c[4].v) || 0) : 0;
-                const guests = c[5] ? c[5].v : '-';
-                let photos = [];
-                for (let i = 6; i < c.length; i++) {
-                    if (c[i] && c[i].v) {
-                        const ids = String(c[i].v).match(/[-\w]{25,}/g);
-                        if (ids) photos.push(...ids);
-                    }
-                }
-                return { date, district, event, attendance, guests, photos };
-            }).filter(item => item && item.event !== 'Untitled Event');
+/* ===== FETCH DATA ===== */
+fetch(SHEET_URL).then(r=>r.text()).then(t=>{
+const j=JSON.parse(t.substring(47).slice(0,-2));
+data=j.table.rows.map(r=>{
+const c=r.c||[];
+let photos=[];
+for(let i=6;i<c.length;i++){
+if(c[i]&&c[i].v){
+const ids=String(c[i].v).match(/[-\w]{25,}/g);
+if(ids)photos.push(...ids);
+}}
+return{
+date:c[1]?.f||c[1]?.v||'',
+district:c[2]?.v||'',
+event:c[3]?.v||'',
+attendance:parseInt(c[4]?.v)||0,
+guests:c[5]?.v||'',
+photos
+};
+}).filter(x=>x.event);
+renderSlides();renderGrid();
+});
 
-            populateDistrictFilter();
-            applyFilters();
-            document.getElementById('loader').style.display = 'none';
-        } catch (error) {
-            console.error(error);
-            document.getElementById('loader').innerHTML = "<div style='color:red'>Data Load Error. Network check karein.</div>";
-        }
-    }
+/* ===== RENDER SLIDES ===== */
+function renderSlides(){
+const b=document.getElementById('slideBox');b.innerHTML='';
+data.forEach(d=>{
+b.innerHTML+=`
+<div class="slide">
+  <div class="info">
+    <h2>${d.event}</h2>
+    <p>📅 ${d.date}</p>
+    <p>📍 ${d.district}</p>
+    <p>👥 ${d.attendance}</p>
+    <p>🎤 ${d.guests}</p>
+  </div>
+  <div class="photos">
+    ${d.photos.slice(0,4).map(p=>`<img src="${img(p)}">`).join('')}
+  </div>
+</div>`;
+});
+}
 
-    function populateDistrictFilter() {
-        const districts = [...new Set(rawData.map(d => d.district))].sort();
-        const select = document.getElementById('district-filter');
-        districts.forEach(d => {
-            const opt = document.createElement('option');
-            opt.value = d;
-            opt.innerText = d;
-            select.appendChild(opt);
-        });
-    }
+/* ===== GRID ===== */
+function renderGrid(){
+const g=document.getElementById('gridView');g.innerHTML='';
+data.forEach(d=>{
+g.innerHTML+=`
+<div class="grid-item" onclick="showView('slide')">
+  <img src="${img(d.photos[0]||'')}">
+  <div class="grid-info">${d.event}<br>${d.district}</div>
+</div>`;
+});
+}
 
-    function applyFilters() {
-        const query = document.getElementById('search-input').value.toLowerCase();
-        const distFilter = document.getElementById('district-filter').value;
-        filteredData = rawData.filter(item => {
-            const matchesSearch = item.event.toLowerCase().includes(query) || 
-                                  item.guests.toLowerCase().includes(query);
-            const matchesDist = distFilter ? item.district === distFilter : true;
-            return matchesSearch && matchesDist;
-        });
-        currentIndex = 0;
-        renderSlides();
-        renderCards();
-        renderGrid();
-        renderAnalytics();
-        updateCounter();
-    }
+/* ===== VIEW SWITCH ===== */
+function showView(v){
+document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));
+document.getElementById(v+'View').classList.add('active');
+}
 
-    function renderSlides() {
-        const wrapper = document.getElementById('slides-wrapper');
-        wrapper.innerHTML = '';
-        if (!filteredData.length) return wrapper.innerHTML = '<div style="height:100%; display:flex; justify-content:center; align-items:center;">Data Not Found</div>';
-        
-        filteredData.forEach((item, index) => {
-            const div = document.createElement('div');
-            div.className = `slide-container ${index === currentIndex ? '' : 'hidden'}`;
-            div.id = `slide-${index}`;
-            
-            let photosHtml = '';
-            if(item.photos.length > 0) {
-                for(let i=0; i<Math.min(item.photos.length, 4); i++) {
-                    const url = `https://drive.google.com/thumbnail?id=${item.photos[i]}&sz=w800`; 
-                    let overlay = (i === 3 && item.photos.length > 4) ? `<div class="more-overlay">+${item.photos.length - 3}</div>` : '';
-                    photosHtml += `
-                    <div class="photo-card" onclick="openLightbox('${url}', '${item.event.replace(/'/g, "")}')">
-                        <img src="${url}" loading="lazy" referrerpolicy="no-referrer" onerror="this.src='https://via.placeholder.com/400x300?text=Error'">
-                        ${overlay}
-                    </div>`;
-                }
-            } else {
-                photosHtml = '<div style="grid-column:span 2; display:flex; justify-content:center; align-items:center; color:#555; border:1px dashed #333; border-radius:15px;">No Photos Available</div>';
-            }
+/* ===== SLIDE STYLE ===== */
+function applySlideStyle(){
+document.body.classList.remove('mobile-slide','tv-slide');
+const v=document.getElementById('slideStyle').value;
+if(v==='mobile')document.body.classList.add('mobile-slide');
+if(v==='tv')document.body.classList.add('tv-slide');
+}
 
-            div.innerHTML = `
-                <div class="info-panel">
-                    <h1>${item.event}</h1>
-                    <div class="info-item"><i class='bx bx-calendar'></i> <div><span class="info-label">Date:</span> ${item.date}</div></div>
-                    <div class="info-item"><i class='bx bx-map'></i> <div><span class="info-label">District:</span> ${item.district}</div></div>
-                    <div class="info-item"><i class='bx bx-group'></i> <div><span class="info-label">Attendance:</span> ${item.attendance}</div></div>
-                    <div class="info-item"><i class='bx bx-microphone'></i> <div><span class="info-label">Guests:</span> <span>${item.guests}</span></div></div>
-                </div>
-                <div class="photo-panel">${photosHtml}</div>
-            `;
-            wrapper.appendChild(div);
-        });
-    }
+/* ===== PDF PRINT ===== */
+function printPDF(){
+const p=document.getElementById('printable');p.innerHTML='';
+data.forEach(d=>{
+p.innerHTML+=`
+<div class="print-page">
+  <div class="print-title">${d.event}</div>
+  <div class="print-grid">
+    <div>
+      <div class="print-item"><b>Date:</b> ${d.date}</div>
+      <div class="print-item"><b>District:</b> ${d.district}</div>
+    </div>
+    <div>
+      <div class="print-item"><b>Attendance:</b> ${d.attendance}</div>
+      <div class="print-item"><b>Guests:</b> ${d.guests}</div>
+    </div>
+  </div>
+  <div class="print-photos">
+    ${d.photos.slice(0,4).map(p=>`<img src="${img(p)}">`).join('')}
+  </div>
+</div>`;
+});
+setTimeout(()=>window.print(),500);
+}
 
-    function renderCards() {
-        const cardView = document.getElementById('view-cards');
-        cardView.innerHTML = '';
-        filteredData.forEach((item, index) => {
-            const thumb = item.photos.length > 0 ? `https://drive.google.com/thumbnail?id=${item.photos[0]}&sz=w600` : 'https://via.placeholder.com/400x300?text=No+Photo';
-            const div = document.createElement('div');
-            div.className = 'modern-card';
-            div.onclick = () => { switchView('slide'); showSlide(index); };
-            div.innerHTML = `
-                <div class="m-card-header">
-                    <img src="${thumb}" loading="lazy" referrerpolicy="no-referrer" onerror="this.src='https://via.placeholder.com/400x300?text=Error'">
-                    <div class="m-card-badge">${item.district}</div>
-                </div>
-                <div class="m-card-content">
-                    <div class="m-card-title">${item.event}</div>
-                    <div class="m-card-stats">
-                        <div class="m-stat"><i class='bx bx-calendar'></i> ${item.date}</div>
-                        <div class="m-stat"><i class='bx bx-group'></i> ${item.attendance}</div>
-                        <div class="m-stat"><i class='bx bx-image'></i> ${item.photos.length} Photos</div>
-                    </div>
-                </div>
-            `;
-            cardView.appendChild(div);
-        });
-    }
-
-    function renderGrid() {
-        const grid = document.getElementById('view-grid');
-        grid.innerHTML = '';
-        filteredData.forEach((item, index) => {
-            const thumb = item.photos.length > 0 ? `https://drive.google.com/thumbnail?id=${item.photos[0]}&sz=w400` : 'https://via.placeholder.com/400x300?text=No+Photo';
-            const div = document.createElement('div');
-            div.className = 'grid-item';
-            div.onclick = () => { switchView('slide'); showSlide(index); };
-            div.innerHTML = `
-                <img src="${thumb}" class="grid-img" loading="lazy" referrerpolicy="no-referrer" onerror="this.src='https://via.placeholder.com/400x300?text=Error'">
-                <div class="grid-info">
-                    <div class="grid-title">${item.event}</div>
-                    <div class="grid-meta">
-                        <span><i class='bx bx-calendar'></i> ${item.date}</span>
-                        <span><i class='bx bx-map'></i> ${item.district}</span>
-                    </div>
-                </div>
-            `;
-            grid.appendChild(div);
-        });
-    }
-
-    function renderAnalytics() {
-        document.getElementById('stat-total-events').innerText = filteredData.length;
-        document.getElementById('stat-total-districts').innerText = [...new Set(filteredData.map(d=>d.district))].length;
-        const totalAtt = filteredData.reduce((acc, curr) => acc + curr.attendance, 0);
-        document.getElementById('stat-total-attendance').innerText = totalAtt.toLocaleString();
-        
-        const districtCounts = {};
-        const districtAttendance = {};
-        filteredData.forEach(d => {
-            districtCounts[d.district] = (districtCounts[d.district] || 0) + 1;
-            districtAttendance[d.district] = (districtAttendance[d.district] || 0) + d.attendance;
-        });
-
-        const commonOpts = {
-            responsive: true, maintainAspectRatio: false,
-            plugins: { legend: { labels: { color: '#c5c6c7' } } }
-        };
-
-        if(charts.dist) charts.dist.destroy();
-        charts.dist = new Chart(document.getElementById('districtChart'), {
-            type: 'bar',
-            data: { labels: Object.keys(districtCounts), datasets: [{ label: 'Events', data: Object.values(districtCounts), backgroundColor: '#66fcf1' }] },
-            options: commonOpts
-        });
-
-        if(charts.att) charts.att.destroy();
-        charts.att = new Chart(document.getElementById('attendanceChart'), {
-            type: 'doughnut',
-            data: { labels: Object.keys(districtAttendance), datasets: [{ label: 'Attendance', data: Object.values(districtAttendance), backgroundColor: ['#45a29e', '#66fcf1', '#1f2833', '#c5c6c7', '#ff4757'] }] },
-            options: commonOpts
-        });
-    }
-
-    function switchView(viewName) {
-        document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
-        document.getElementById(`view-${viewName}`).classList.add('active');
-        document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-        
-        const navMap = {'slide':0, 'cards':1, 'grid':2, 'analytics':3};
-        document.querySelectorAll('.nav-item')[navMap[viewName]].classList.add('active');
-        if(tvInterval && viewName !== 'slide') toggleTVMode();
-    }
-
-    function showSlide(index) {
-        if(index < 0 || index >= filteredData.length) return;
-        currentIndex = index;
-        document.querySelectorAll('.slide-container').forEach(el => el.classList.add('hidden'));
-        const active = document.getElementById(`slide-${index}`);
-        if(active) active.classList.remove('hidden');
-        updateCounter();
-    }
-
-    function nextSlide() {
-        if (currentIndex < filteredData.length - 1) showSlide(currentIndex + 1);
-        else if (tvInterval) showSlide(0); 
-    }
-
-    function prevSlide() { if (currentIndex > 0) showSlide(currentIndex - 1); }
-
-    function updateCounter() {
-        document.getElementById('curr-idx').innerText = filteredData.length ? currentIndex + 1 : 0;
-        document.getElementById('total-count').innerText = filteredData.length;
-    }
-
-    function toggleTVMode() {
-        const btn = document.getElementById('tv-mode-btn');
-        if (tvInterval) {
-            clearInterval(tvInterval); tvInterval = null;
-            btn.classList.remove('active');
-            btn.innerHTML = "<i class='bx bx-play-circle'></i> TV Mode";
-        } else {
-            switchView('slide');
-            tvInterval = setInterval(nextSlide, 5000);
-            btn.classList.add('active');
-            btn.innerHTML = "<i class='bx bx-pause-circle'></i> Stop TV";
-        }
-    }
-
-    // --- ROBUST IMAGE DATA URL CONVERSION (Improved Fallback logic) ---
-    async function toDataURL(url) {
-        // Find Drive ID if present
-        const idMatch = url.match(/id=([\w-]+)/) || url.match(/\/d\/([\w-]+)/);
-        const id = idMatch ? idMatch[1] : null;
-        
-        // Try multiple URL formats for Drive images to ensure stability
-        const candidates = id ? [
-            `https://drive.google.com/thumbnail?id=${id}&sz=w1000`,
-            `https://drive.google.com/uc?export=view&id=${id}`,
-            `https://lh3.googleusercontent.com/d/${id}=w1000`
-        ] : [url];
-
-        for (const targetUrl of candidates) {
-            try {
-                const proxyUrl = "https://corsproxy.io/?" + encodeURIComponent(targetUrl);
-                const res = await fetch(proxyUrl, { cache: 'no-store' });
-                if (!res.ok) continue;
-                const blob = await res.blob();
-                return await new Promise((resolve) => {
-                    const reader = new FileReader();
-                    reader.onloadend = () => resolve(reader.result);
-                    reader.readAsDataURL(blob);
-                });
-            } catch (e) {
-                continue; // Try next candidate
-            }
-        }
-        return null; // All failed
-    }
-
-    async function downloadFullPDF() {
-        if (!filteredData.length) return;
-        const btn = document.getElementById('export-btn');
-        const originalText = btn.innerHTML;
-        btn.innerHTML = "⏳ Fetching Images...";
-        btn.disabled = true;
-        
-        const pdfContainer = document.createElement('div');
-        pdfContainer.style.cssText = "width: 1000px; background: #0b0c10; color: #fff; font-family: 'Poppins', sans-serif;";
-
-        for (let i = 0; i < filteredData.length; i++) {
-            const item = filteredData[i];
-            const slide = document.createElement('div');
-            slide.style.cssText = "padding: 50px; page-break-after: always; display: flex; gap: 30px; min-height: 600px; align-items: center; border-bottom: 1px solid #1f2833;";
-            
-            const textDiv = document.createElement('div');
-            textDiv.style.flex = "1";
-            textDiv.innerHTML = `
-                <h1 style="color:#66fcf1; font-size:32px; margin-bottom:20px;">${item.event}</h1>
-                <div style="font-size:18px; line-height:1.6;">
-                    <p><b style="color:#45a29e;">Date:</b> ${item.date}</p>
-                    <p><b style="color:#45a29e;">District:</b> ${item.district}</p>
-                    <p><b style="color:#45a29e;">Attendance:</b> ${item.attendance}</p>
-                    <p><b style="color:#45a29e;">Guests:</b> ${item.guests}</p>
-                </div>
-            `;
-            
-            const imgDiv = document.createElement('div');
-            imgDiv.style.cssText = "flex: 1.5; display: grid; grid-template-columns: 1fr 1fr; gap: 15px;";
-
-            const photoLimit = Math.min(item.photos.length, 4);
-            for(let j=0; j<photoLimit; j++) {
-                const base64 = await toDataURL(`https://drive.google.com/thumbnail?id=${item.photos[j]}&sz=w600`);
-                if(base64) {
-                    const img = document.createElement('img');
-                    img.src = base64;
-                    img.style.cssText = "width: 100%; border-radius: 12px; border: 2px solid #1f2833; object-fit: cover; height: 180px;";
-                    imgDiv.appendChild(img);
-                }
-            }
-            
-            slide.appendChild(textDiv);
-            slide.appendChild(imgDiv);
-            pdfContainer.appendChild(slide);
-            btn.innerHTML = `⏳ Processing Slide ${i+1}/${filteredData.length}...`;
-        }
-
-        try {
-            await html2pdf().set({
-                margin: 0,
-                filename: `Karyakram_Report_${new Date().toISOString().split('T')[0]}.pdf`,
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2, useCORS: true, backgroundColor: '#0b0c10' },
-                jsPDF: { unit: 'pt', format: 'a4', orientation: 'landscape' }
-            }).from(pdfContainer).save();
-        } catch(e) { 
-            console.error("PDF generation failed:", e); 
-        }
-        
-        btn.innerHTML = originalText;
-        btn.disabled = false;
-    }
-
-    async function downloadPPT() {
-        if (!filteredData.length) return;
-        const btn = document.getElementById('export-btn');
-        const originalText = btn.innerHTML;
-        btn.innerHTML = "⏳ Syncing Images...";
-        btn.disabled = true;
-
-        let pptx = new PptxGenJS();
-        pptx.layout = 'LAYOUT_WIDE';
-
-        for (let i = 0; i < filteredData.length; i++) {
-            const item = filteredData[i];
-            let slide = pptx.addSlide();
-            slide.background = { color: '0B0C10' };
-            
-            slide.addText(item.event, { x: 0.5, y: 0.5, w: 9, fontSize: 28, color: '66FCF1', bold: true });
-            slide.addText([
-                { text: `Date: `, options: { color: '45A29E', bold: true } },
-                { text: `${item.date}\n`, options: { color: 'FFFFFF' } },
-                { text: `District: `, options: { color: '45A29E', bold: true } },
-                { text: `${item.district}\n`, options: { color: 'FFFFFF' } },
-                { text: `Attendance: `, options: { color: '45A29E', bold: true } },
-                { text: `${item.attendance}\n\n`, options: { color: 'FFFFFF' } },
-                { text: `Guests:\n`, options: { color: '45A29E', bold: true } },
-                { text: `${item.guests}`, options: { color: 'FFFFFF', fontSize: 12 } }
-            ], { x: 0.5, y: 1.5, w: 4, fontSize: 16 });
-
-            const photoLimit = Math.min(item.photos.length, 4);
-            const pos = [{x:5,y:1},{x:8,y:1},{x:5,y:3.5},{x:8,y:3.5}];
-            for(let j=0; j<photoLimit; j++) {
-                const base64 = await toDataURL(`https://drive.google.com/thumbnail?id=${item.photos[j]}&sz=w800`);
-                if(base64) {
-                    slide.addImage({ data: base64, x: pos[j].x, y: pos[j].y, w: 2.8, h: 2.2, sizing: { type: 'cover', w: 2.8, h: 2.2 } });
-                }
-            }
-            btn.innerHTML = `⏳ Slide ${i+1}/${filteredData.length}...`;
-        }
-        pptx.writeFile({ fileName: `Karyakram_Presentation_${new Date().toISOString().split('T')[0]}.pptx` });
-        btn.innerHTML = originalText;
-        btn.disabled = false;
-    }
-
-    async function downloadCurrentSlide() {
-        const slide = document.getElementById(`slide-${currentIndex}`);
-        if(!slide) return;
-        
-        const btn = document.getElementById('export-btn');
-        const originalText = btn.innerHTML;
-        btn.innerHTML = "⏳ Capturing...";
-        
-        // Convert visible images to Base64 to ensure they are captured by Canvas
-        const imgs = slide.querySelectorAll('img');
-        const originalSources = [];
-        for(let img of imgs) {
-            originalSources.push(img.src);
-            const base64 = await toDataURL(img.src);
-            if(base64) img.src = base64;
-        }
-
-        try {
-            const canvas = await html2canvas(slide, { 
-                useCORS: true, 
-                backgroundColor: '#0b0c10', 
-                scale: 2,
-                logging: false
-            });
-            const link = document.createElement('a');
-            link.download = `Slide_${currentIndex+1}.png`;
-            link.href = canvas.toDataURL("image/png");
-            link.click();
-        } catch(e) {
-            console.error("Capture failed:", e);
-        }
-        
-        // Restore original sources so they stay dynamic in UI
-        imgs.forEach((img, idx) => img.src = originalSources[idx]);
-        btn.innerHTML = originalText;
-    }
-
-    function downloadExcel() {
-        const data = filteredData.map(i => ({
-            'Event Name': i.event, 'Date': i.date, 'District': i.district, 'Attendance': i.attendance, 'Guests': i.guests
-        }));
-        const ws = XLSX.utils.json_to_sheet(data);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Events");
-        XLSX.writeFile(wb, "Karyakram_Data.xlsx");
-    }
-
-    function openLightbox(url, caption) {
-        document.getElementById('lightbox-img').src = url;
-        document.getElementById('lightbox-caption').innerText = caption;
-        document.getElementById('lightbox').style.display = 'flex';
-        if(tvInterval) toggleTVMode();
-    }
-    
-    function closeLightbox() { document.getElementById('lightbox').style.display = 'none'; }
-    
-    document.addEventListener('keydown', e => { 
-        if(e.key === 'Escape') closeLightbox(); 
-        if(e.key === 'ArrowRight') nextSlide(); 
-        if(e.key === 'ArrowLeft') prevSlide(); 
-    });
-
+/* Mobile auto */
+if(innerWidth<768)document.body.classList.add('mobile-slide');
 </script>
+
 </body>
 </html>
