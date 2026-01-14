@@ -739,21 +739,70 @@
         charts[id] = new Chart(ctx, config);
     }
 
+    // --- ROBUST 100% IMAGE DOWNLOAD LOGIC ---
+    
+    // Returns a fallback 400x300 grey image with text
+    function getFallbackPlaceholder() {
+        const canvas = document.createElement('canvas');
+        canvas.width = 400; canvas.height = 300;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#222'; ctx.fillRect(0,0,400,300);
+        ctx.fillStyle = '#666'; ctx.font = '24px Arial'; ctx.textAlign = 'center';
+        ctx.fillText('Image N/A', 200, 150);
+        return canvas.toDataURL('image/jpeg');
+    }
+
+    async function toDataURL(url) {
+        const idMatch = url.match(/id=([\w-]+)/) || url.match(/\/d\/([\w-]+)/);
+        const id = idMatch ? idMatch[1] : null;
+        
+        // Strategy: Try multiple proxy services + direct lh3 links (which often work)
+        const candidates = [];
+        if(id) {
+            candidates.push(`https://lh3.googleusercontent.com/d/${id}=w1000`); // Best for direct access
+            candidates.push(`https://drive.google.com/thumbnail?id=${id}&sz=w1000`);
+        } else {
+            candidates.push(url);
+        }
+
+        const proxies = [
+            '', // Direct attempt first
+            'https://corsproxy.io/?',
+            'https://api.allorigins.win/raw?url=',
+            'https://thingproxy.freeboard.io/fetch/'
+        ];
+
+        for (let target of candidates) {
+            for (let proxy of proxies) {
+                try {
+                    // Skip proxy if target is already CORS friendly (lh3 usually is)
+                    const fetchUrl = proxy ? proxy + encodeURIComponent(target) : target;
+                    const res = await fetch(fetchUrl, { cache: 'no-store' });
+                    if (!res.ok) continue;
+                    
+                    const blob = await res.blob();
+                    if(blob.type.indexOf('image') === -1) continue;
+
+                    return await new Promise(r => {
+                        const fr = new FileReader();
+                        fr.onloadend = () => r(fr.result);
+                        fr.onerror = () => r(null);
+                        fr.readAsDataURL(blob);
+                    });
+                } catch (e) { continue; }
+            }
+        }
+        // If all fail, return fallback so PDF doesn't break
+        console.warn("Image load failed completely, using placeholder");
+        return getFallbackPlaceholder();
+    }
+
     // --- EXPORT LOGIC (FIXED BLANK PDF & VISIBILITY) ---
     async function downloadBookletPDF(viewMode) {
         const btn = document.getElementById('export-btn');
         const originalText = btn.innerHTML;
         btn.innerHTML = "<i class='bx bx-loader-alt bx-spin'></i> Generating...";
         btn.disabled = true;
-
-        // Strategy: Hide main UI, Append PDF container to BODY as standard flow, Scroll Top, Capture
-        const mainContent = document.getElementById('main-content');
-        const sidebar = document.getElementById('main-sidebar');
-        const scrollPos = window.scrollY;
-
-        // Hide App UI
-        mainContent.style.display = 'none';
-        sidebar.style.display = 'none';
 
         // Create PDF Container
         const container = document.createElement('div');
@@ -764,7 +813,8 @@
         container.style.padding = '20px';
         
         // Process each event
-        for(let item of filteredData) {
+        for(let i=0; i<filteredData.length; i++) {
+            const item = filteredData[i];
             const page = document.createElement('div');
             page.style.cssText = `
                 width: 1123px; 
@@ -783,9 +833,14 @@
             
             let content = '';
             
+            // PRE-FETCH IMAGES AS BASE64 USING ROBUST FETCH
+            // This ensures no 403 Forbidden errors in PDF
+            const imgDataPromises = item.photos.slice(0, 4).map(pid => 
+                toDataURL(`https://lh3.googleusercontent.com/d/${pid}=w600`)
+            );
+            const loadedImages = await Promise.all(imgDataPromises);
+
             if (viewMode === 'standard') {
-                // FIXED: Added $ and used https
-                // KEY FIX: Added crossorigin="anonymous" to all PDF images
                 content = `
                     <div style="display:flex; height:100%; gap:40px;">
                         <div style="flex:1;">
@@ -805,12 +860,10 @@
                             </div>
                         </div>
                         <div style="width:500px; display:grid; grid-template-columns:1fr 1fr; gap:15px;">
-                            ${item.photos.slice(0,4).map(pid => `
+                            ${loadedImages.map(b64 => `
                                 <div style="height:180px; border-radius:10px; overflow:hidden; border:2px solid #eee;">
-                                    <img src="https://lh3.googleusercontent.com/d/${pid}=w600" 
-                                         crossorigin="anonymous"
-                                         style="width:100%; height:100%; object-fit:cover;"
-                                         onerror="this.src='https://via.placeholder.com/400x300?text=No+Image'">
+                                    <img src="${b64}" 
+                                         style="width:100%; height:100%; object-fit:cover;">
                                 </div>
                             `).join('')}
                         </div>
@@ -818,18 +871,12 @@
                 `;
             } 
             else if (viewMode === 'immersive') {
-                // FIXED: Added $ and used https
-                // KEY FIX: Added crossorigin="anonymous" to all PDF images
-                const bgImg = item.photos[0] ? 
-                    `https://lh3.googleusercontent.com/d/${item.photos[0]}=w1200` : 
-                    'https://via.placeholder.com/1200x800?text=No+Image';
+                const bgImg = loadedImages[0] || getFallbackPlaceholder();
                 
                 content = `
                     <div style="position:absolute; inset:0;">
                         <img src="${bgImg}" 
-                             crossorigin="anonymous"
-                             style="width:100%; height:100%; object-fit:cover; opacity:0.3;"
-                             onerror="this.src='https://via.placeholder.com/1200x800?text=No+Image'">
+                             style="width:100%; height:100%; object-fit:cover; opacity:0.3;">
                         <div style="position:absolute; inset:0; background:linear-gradient(to right, #000000 0%, transparent 70%);"></div>
                     </div>
                     <div style="position:relative; z-index:1; height:100%; display:flex; flex-direction:column; justify-content:center; padding-left:60px;">
@@ -848,8 +895,6 @@
                 `;
             }
             else if (viewMode === 'minimal') {
-                // FIXED: Added $ and used https
-                // KEY FIX: Added crossorigin="anonymous" to all PDF images
                 content = `
                     <div style="text-align:center; padding:60px;">
                         <h1 style="font-size:42px; color:#222; margin:0 0 10px 0;">${item.event}</h1>
@@ -858,12 +903,10 @@
                         </div>
                         
                         <div style="display:flex; justify-content:center; gap:20px; margin-bottom:40px;">
-                            ${item.photos.slice(0,3).map(pid => `
+                            ${loadedImages.slice(0,3).map(b64 => `
                                 <div style="width:280px; height:200px; border-radius:8px; overflow:hidden; box-shadow:0 5px 15px rgba(0,0,0,0.1);">
-                                    <img src="https://lh3.googleusercontent.com/d/${pid}=w600" 
-                                         crossorigin="anonymous"
-                                         style="width:100%; height:100%; object-fit:cover;"
-                                         onerror="this.src='https://via.placeholder.com/400x300?text=No+Image'">
+                                    <img src="${b64}" 
+                                         style="width:100%; height:100%; object-fit:cover;">
                                 </div>
                             `).join('')}
                         </div>
@@ -878,32 +921,16 @@
 
             page.innerHTML = content;
             container.appendChild(page);
+            btn.innerHTML = `Generating ${i+1}/${filteredData.length}...`;
         }
 
-        document.body.appendChild(container);
-        window.scrollTo(0,0); // Force scroll top
-
-        // --- WAIT FOR IMAGES ---
-        const images = container.querySelectorAll('img');
-        const promises = Array.from(images).map(img => {
-            if (img.complete) return Promise.resolve();
-            return new Promise(resolve => {
-                img.onload = resolve;
-                img.onerror = resolve; 
-            });
-        });
-        
-        await Promise.race([
-            Promise.all(promises),
-            new Promise(resolve => setTimeout(resolve, 4000)) 
-        ]);
-
+        // Generate PDF
         const opt = {
             margin: 0,
             filename: `Karyakram_${viewMode}_${new Date().toISOString().split('T')[0]}.pdf`,
             image: { type: 'jpeg', quality: 0.98 },
             html2canvas: { 
-                scale: 1.5, // Reduced from 2 to 1.5 for stability
+                scale: 1.5, 
                 useCORS: true, 
                 scrollY: 0, 
                 windowWidth: 1123,
@@ -918,12 +945,6 @@
             console.error("PDF Error:", e);
             alert("PDF Error. Try again.");
         } finally {
-            // Restore UI
-            document.body.removeChild(container);
-            mainContent.style.display = 'flex';
-            sidebar.style.display = 'flex';
-            window.scrollTo(0, scrollPos);
-            
             btn.innerHTML = originalText;
             btn.disabled = false;
         }
@@ -931,29 +952,35 @@
 
     async function downloadFixedPPT() {
         const btn = document.getElementById('export-btn');
+        const originalText = btn.innerHTML;
         btn.innerHTML = "<i class='bx bx-loader-alt bx-spin'></i> PPT...";
         let pptx = new PptxGenJS();
         
-        for(let item of filteredData) {
+        for(let i=0; i<filteredData.length; i++) {
+            const item = filteredData[i];
             let slide = pptx.addSlide();
             slide.background = { color: 'F0F0F0' };
             slide.addText(item.event, { x:0.5, y:0.2, w:9, h:0.8, fontSize:24, bold:true, color:'000000' });
             slide.addText(`District: ${item.district}\nDate: ${item.date}\nAttendance: ${item.attendance}\n\nGuests:\n${item.guests.substring(0,300)}`, { x:0.5, y:1.2, w:4, h:4, fontSize:14, color:'333333', valign:'top' });
+            
             const photoPos = [{x:5, y:1.2}, {x:7.5, y:1.2}, {x:5, y:3.5}, {x:7.5, y:3.5}];
             
-            for(let i=0; i<Math.min(item.photos.length, 4); i++) {
+            // Update button status
+            btn.innerHTML = `PPT Slide ${i+1}/${filteredData.length}...`;
+
+            for(let j=0; j<Math.min(item.photos.length, 4); j++) {
                 try {
-                    // FIXED: Added $ and used https
-                    const url = `https://lh3.googleusercontent.com/d/${item.photos[i]}=w600`;
-                    slide.addImage({ path: url, x: photoPos[i].x, y: photoPos[i].y, w: 2.3, h: 2 });
+                    // Use robust toDataURL to get Base64 data (avoids CORS issues in PPT generation)
+                    const b64 = await toDataURL(`https://lh3.googleusercontent.com/d/${item.photos[j]}=w600`);
+                    slide.addImage({ data: b64, x: photoPos[j].x, y: photoPos[j].y, w: 2.3, h: 2 });
                 } catch(e) {
                     console.error("Image skip in PPT", e);
                 }
             }
         }
         
-        await pptx.writeFile({ fileName: "Karyakram_Report.pptx" }); // Added await
-        btn.innerHTML = `<i class='bx bxs-download'></i> Download <i class='bx bx-chevron-down'></i>`;
+        await pptx.writeFile({ fileName: "Karyakram_Report.pptx" }); 
+        btn.innerHTML = originalText;
     }
 
     function downloadExcel() {
