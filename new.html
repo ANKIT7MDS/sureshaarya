@@ -1,514 +1,159 @@
 <!DOCTYPE html>
 <html lang="hi">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Karyakram Dashboard</title>
-    <!-- Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;600&display=swap" rel="stylesheet">
-    <!-- Icons -->
-    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
-    <!-- Libraries -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
-    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    
-    <style>
-        :root {
-            --bg-dark: #0b0c10;
-            --bg-panel: #1f2833;
-            --primary: #66fcf1;
-            --secondary: #45a29e;
-            --text-main: #fff;
-            --text-muted: #c5c6c7;
-        }
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Karyakram Dashboard – FIXED</title>
 
-        body {
-            font-family: 'Poppins', 'Noto Sans Devanagari', sans-serif;
-            margin: 0; padding: 0;
-            background-color: var(--bg-dark);
-            color: var(--text-main);
-            height: 100vh; width: 100vw;
-            overflow: hidden; display: flex;
-        }
+<!-- LIBRARIES -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
 
-        .sidebar {
-            width: 80px; background: var(--bg-panel);
-            border-right: 1px solid rgba(255,255,255,0.1);
-            display: flex; flex-direction: column; align-items: center;
-            padding-top: 20px; transition: width 0.3s; z-index: 100;
-        }
-        .sidebar:hover { width: 200px; }
-        .nav-item {
-            width: 100%; padding: 15px 0; display: flex; align-items: center;
-            justify-content: center; cursor: pointer; transition: 0.3s;
-            color: var(--text-muted); text-decoration: none;
-        }
-        .sidebar:hover .nav-item { justify-content: flex-start; padding-left: 25px; }
-        .nav-item i { font-size: 24px; min-width: 50px; text-align: center; }
-        .nav-text { display: none; white-space: nowrap; font-size: 14px; }
-        .sidebar:hover .nav-text { display: block; }
-        .nav-item:hover, .nav-item.active {
-            color: var(--primary); background: rgba(102, 252, 241, 0.1);
-            border-left: 4px solid var(--primary);
-        }
-
-        .main-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; }
-
-        .top-bar {
-            height: 70px; background: rgba(31, 40, 51, 0.8); backdrop-filter: blur(10px);
-            display: flex; align-items: center; padding: 0 30px; gap: 15px;
-            border-bottom: 1px solid rgba(255,255,255,0.05); z-index: 90;
-        }
-
-        .input-style {
-            background: rgba(0,0,0,0.3); border: 1px solid var(--secondary);
-            color: white; padding: 8px 15px; border-radius: 20px; outline: none;
-        }
-        
-        .action-btn {
-            background: var(--secondary); border: none; color: white;
-            padding: 8px 15px; border-radius: 20px; cursor: pointer;
-            font-size: 13px; display: flex; align-items: center; gap: 5px;
-        }
-        .action-btn:hover { background: var(--primary); color: #000; }
-
-        .dropdown { position: relative; display: inline-block; }
-        .dropdown-content {
-            display: none; position: absolute; right: 0;
-            background-color: var(--bg-panel); min-width: 240px;
-            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.5); z-index: 101;
-            border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); overflow: hidden;
-        }
-        .dropdown-content a {
-            color: var(--text-main); padding: 12px 16px; text-decoration: none;
-            display: block; font-size: 14px; cursor: pointer;
-            border-bottom: 1px solid rgba(255,255,255,0.05);
-        }
-        .dropdown-content a:hover { background-color: var(--primary); color: #000; }
-        .dropdown:hover .dropdown-content { display: block; }
-        .dropdown-btn { background: #d35400; }
-
-        .views-container { flex: 1; position: relative; overflow: hidden; }
-        .view-section {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            display: none; opacity: 0; transition: opacity 0.4s; overflow-y: auto;
-        }
-        .view-section.active { display: flex; opacity: 1; }
-
-        #view-slide { flex-direction: row; align-items: center; justify-content: center; overflow: hidden; }
-        .slide-wrapper { width: 100%; height: 100%; position: relative; }
-        .slide-container {
-            display: none; height: 100%; width: 100%; padding: 40px; box-sizing: border-box; gap: 30px; animation: fadeIn 0.5s;
-        }
-        .slide-container.active { display: flex !important; }
-        @keyframes fadeIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
-
-        .info-panel {
-            flex: 1; padding: 40px; background: rgba(31, 40, 51, 0.95); border-radius: 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5); display: flex; flex-direction: column;
-            justify-content: center; border: 1px solid rgba(255,255,255,0.1);
-        }
-        .info-panel h1 { font-size: 2.2em; margin-bottom: 20px; color: var(--primary); line-height: 1.2; }
-        .info-item { display: flex; align-items: center; margin-bottom: 15px; color: var(--text-muted); font-size: 1.2em; }
-        .info-item i { margin-right: 15px; color: var(--secondary); font-size: 1.4em; }
-
-        .photo-panel {
-            flex: 1; background: rgba(31, 40, 51, 0.5); border-radius: 20px; padding: 20px;
-            display: grid; grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(2, 1fr);
-            gap: 15px; max-height: 100%;
-        }
-
-        .photo-card {
-            width: 100%; height: 100%; position: relative; border-radius: 10px;
-            overflow: hidden; background: #000; border: 1px solid rgba(255,255,255,0.1);
-        }
-        .photo-card img { width: 100%; height: 100%; object-fit: cover; }
-
-        #view-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; padding: 30px; align-content: start; }
-        .grid-item {
-            background: var(--bg-panel); border-radius: 12px; overflow: hidden; border: 1px solid rgba(255,255,255,0.05);
-            transition: 0.3s; cursor: pointer; height: 300px; display: flex; flex-direction: column;
-        }
-        .grid-item:hover { transform: translateY(-5px); border-color: var(--primary); }
-        .grid-img { height: 180px; width: 100%; object-fit: cover; background: #000; }
-        .grid-info { padding: 15px; flex: 1; display: flex; flex-direction: column; justify-content: space-between; }
-        .grid-title { font-size: 15px; font-weight: 600; color: #fff; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-
-        .controls-floating {
-            position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
-            display: flex; align-items: center; gap: 15px; background: rgba(0,0,0,0.6);
-            padding: 10px 20px; border-radius: 30px; backdrop-filter: blur(5px); z-index: 50;
-        }
-        .control-btn { background: none; border: none; color: white; font-size: 24px; cursor: pointer; }
-        .slide-counter { font-size: 14px; font-weight: 600; min-width: 60px; text-align: center; }
-
-        #loader {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: var(--bg-dark); z-index: 5000; display: flex; flex-direction: column; justify-content: center; align-items: center;
-        }
-        .spinner { width: 50px; height: 50px; border: 5px solid rgba(102, 252, 241, 0.2); border-top-color: var(--primary); border-radius: 50%; animation: spin 1s infinite linear; }
-        @keyframes spin { 100% { transform: rotate(360deg); } }
-    </style>
+<style>
+body{margin:0;background:#0b0c10;color:#fff;font-family:Arial}
+.slide{
+  width:1200px;height:800px;
+  background:#0b0c10;
+  padding:30px;
+  display:flex;
+  gap:20px;
+}
+.info{
+  flex:1;
+  background:#1f2833;
+  padding:30px;
+  border-radius:15px;
+}
+.photos{
+  flex:1;
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  grid-template-rows:1fr 1fr;
+  gap:15px;
+}
+.photo{
+  border:2px solid #45a29e;
+  border-radius:10px;
+  overflow:hidden;
+  background:#000;
+}
+.photo img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
+button{
+  padding:10px 20px;
+  margin:10px;
+  cursor:pointer;
+}
+</style>
 </head>
+
 <body>
 
-<div id="loader">
-    <div class="spinner"></div>
-    <div style="color:var(--primary); margin-top:15px;">डेटा लोड हो रहा है...</div>
-</div>
+<button onclick="downloadSlide()">⬇️ Download Image</button>
+<button onclick="downloadPDF()">⬇️ Download PDF</button>
+<button onclick="downloadPPT()">⬇️ Download PPT</button>
 
-<div id="lightbox" class="lightbox" onclick="closeLightbox()" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:2000; align-items:center; justify-content:center;">
-    <img id="lightbox-img" src="" style="max-width:90%; max-height:90%; border-radius:10px;">
-</div>
+<div id="slide" class="slide">
+  <div class="info">
+    <h1 id="event">कार्यक्रम नाम</h1>
+    <p>📅 12-01-2026</p>
+    <p>📍 Jaipur</p>
+    <p>👥 1200</p>
+    <p>🎤 Guest Name</p>
+  </div>
 
-<div class="sidebar">
-    <div class="nav-item active" onclick="switchView('slide')">
-        <i class='bx bx-slideshow'></i><span class="nav-text">प्रेजेंटेशन</span>
-    </div>
-    <div class="nav-item" onclick="switchView('grid')">
-        <i class='bx bx-grid-alt'></i><span class="nav-text">गैलरी व्यू</span>
-    </div>
-    <div class="nav-item" onclick="switchView('analytics')">
-        <i class='bx bx-bar-chart-alt-2'></i><span class="nav-text">एनालिटिक्स</span>
-    </div>
-</div>
-
-<div class="main-content">
-    <div class="top-bar">
-        <div style="flex:1;">
-            <input type="text" id="search-input" class="input-style" placeholder="सर्च कार्यक्रम..." style="width:250px;" onkeyup="applyFilters()">
-        </div>
-        
-        <div class="filter-group">
-            <select id="district-filter" class="input-style" onchange="applyFilters()">
-                <option value="">सभी जिले</option>
-            </select>
-            
-            <button class="action-btn" id="tv-mode-btn" onclick="toggleTVMode()">
-                <i class='bx bx-play-circle'></i> TV Mode
-            </button>
-             
-            <div class="dropdown">
-                <button class="action-btn dropdown-btn" id="download-main-btn">
-                    <i class='bx bxs-download'></i> डाउनलोड <i class='bx bx-chevron-down'></i>
-                </button>
-                <div class="dropdown-content">
-                    <a onclick="downloadSmartPDF()"><i class='bx bxs-file-pdf'></i> Slides to PDF (Booklet)</a>
-                    <a onclick="downloadSmartPPT()"><i class='bx bxs-slideshow'></i> PowerPoint (PPTX)</a>
-                    <a onclick="downloadSmartExcel()"><i class='bx bxs-spreadsheet'></i> Excel Export</a>
-                    <a onclick="downloadSmartScreenshot()"><i class='bx bxs-camera'></i> Perfect Screenshot</a>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="views-container">
-        <div id="view-slide" class="view-section active">
-            <div class="slide-wrapper" id="slides-wrapper"></div>
-            <div class="controls-floating">
-                <button class="control-btn" onclick="prevSlide()"><i class='bx bx-chevron-left'></i></button>
-                <div class="slide-counter"><span id="curr-idx">1</span> / <span id="total-count">0</span></div>
-                <button class="control-btn" onclick="nextSlide()"><i class='bx bx-chevron-right'></i></button>
-            </div>
-        </div>
-        <div id="view-grid" class="view-section"></div>
-        <div id="view-analytics" class="view-section">
-            <div class="stats-row">
-                <div class="stat-card"><div class="stat-val" id="stat-total-events">0</div><div class="stat-label">Total Events</div></div>
-                <div class="stat-card"><div class="stat-val" id="stat-total-attendance">0</div><div class="stat-label">Attendance</div></div>
-            </div>
-            <div class="chart-container" style="height:350px;">
-                <div class="chart-box"><canvas id="districtChart"></canvas></div>
-            </div>
-        </div>
-    </div>
+  <div class="photos">
+    <div class="photo"><img crossorigin="anonymous" src="" id="img1"></div>
+    <div class="photo"><img crossorigin="anonymous" src="" id="img2"></div>
+    <div class="photo"><img crossorigin="anonymous" src="" id="img3"></div>
+    <div class="photo"><img crossorigin="anonymous" src="" id="img4"></div>
+  </div>
 </div>
 
 <script>
-    const SHEET_ID = '1wyr0gt061UT5IVxT1JBYUEUJw1GYcBpzxDKEQmvcXXY';
-    const GID = '1839722438';
-    const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&gid=${GID}`;
+/* 🔹 GOOGLE DRIVE FILE IDS */
+const images = [
+ "1wyr0gt061UT5IVxT1JBYUEUJw1GYcBpzxDKEQmvcXXY",
+ "1wyr0gt061UT5IVxT1JBYUEUJw1GYcBpzxDKEQmvcXXY",
+ "1wyr0gt061UT5IVxT1JBYUEUJw1GYcBpzxDKEQmvcXXY",
+ "1wyr0gt061UT5IVxT1JBYUEUJw1GYcBpzxDKEQmvcXXY"
+];
 
-    let rawData = [];
-    let filteredData = [];
-    let currentIndex = 0;
-    let tvInterval = null;
-    let charts = {};
+/* 🔹 LOAD DRIVE IMAGES CORRECT WAY */
+images.forEach((id,i)=>{
+  document.getElementById("img"+(i+1)).src =
+   `https://lh3.googleusercontent.com/d/${id}=w1200`;
+});
 
-    window.onload = fetchSheetData;
+/* 🔹 WAIT FOR IMAGES */
+function waitForImages(el){
+  const imgs = el.querySelectorAll("img");
+  return Promise.all([...imgs].map(img=>{
+    if(img.complete) return Promise.resolve();
+    return new Promise(res=>img.onload=img.onerror=res);
+  }));
+}
 
-    async function fetchSheetData() {
-        try {
-            const response = await fetch(SHEET_URL);
-            const text = await response.text();
-            const json = JSON.parse(text.substring(47).slice(0, -2));
-            rawData = json.table.rows.map(row => {
-                const c = row.c;
-                if (!c) return null;
-                const date = c[1] ? (c[1].f || c[1].v) : 'N/A';
-                const district = c[2] ? c[2].v : 'Unknown';
-                const event = c[3] ? c[3].v : 'Untitled';
-                const attendance = c[4] ? (parseInt(c[4].v) || 0) : 0;
-                const guests = c[5] ? c[5].v : '-';
-                let photos = [];
-                for (let i = 6; i < 11; i++) {
-                    if (c[i] && c[i].v) {
-                        const ids = String(c[i].v).match(/[-\w]{25,}/g);
-                        if (ids) photos.push(...ids);
-                    }
-                }
-                return { date, district, event, attendance, guests, photos };
-            }).filter(item => item && item.event !== 'Untitled');
-            populateDistrictFilter();
-            applyFilters();
-            document.getElementById('loader').style.display = 'none';
-        } catch (e) { console.error(e); }
-    }
+/* 🔹 IMAGE DOWNLOAD */
+async function downloadSlide(){
+  const slide=document.getElementById("slide");
+  await waitForImages(slide);
 
-    function populateDistrictFilter() {
-        const districts = [...new Set(rawData.map(d => d.district))].sort();
-        const select = document.getElementById('district-filter');
-        districts.forEach(d => {
-            const opt = document.createElement('option');
-            opt.value = d; opt.innerText = d;
-            select.appendChild(opt);
-        });
-    }
+  const canvas=await html2canvas(slide,{
+    backgroundColor:"#0b0c10",
+    scale:2,
+    useCORS:true,
+    allowTaint:false
+  });
 
-    function applyFilters() {
-        const query = document.getElementById('search-input').value.toLowerCase();
-        const dist = document.getElementById('district-filter').value;
-        filteredData = rawData.filter(item => {
-            return (item.event.toLowerCase().includes(query) || item.guests.toLowerCase().includes(query)) &&
-                   (dist ? item.district === dist : true);
-        });
-        currentIndex = 0;
-        renderSlides();
-        renderGrid();
-        renderAnalytics();
-        updateCounter();
-    }
+  const link=document.createElement("a");
+  link.download="slide.png";
+  link.href=canvas.toDataURL("image/png");
+  link.click();
+}
 
-    function renderSlides() {
-        const wrapper = document.getElementById('slides-wrapper');
-        wrapper.innerHTML = '';
-        filteredData.forEach((item, index) => {
-            const div = document.createElement('div');
-            div.className = `slide-container ${index === 0 ? 'active' : ''}`;
-            div.id = `slide-${index}`;
-            let imgs = item.photos.slice(0, 4).map(pid => `<div class="photo-card"><img src="https://drive.google.com/thumbnail?id=${pid}&sz=w1000" referrerpolicy="no-referrer"></div>`).join('');
-            div.innerHTML = `<div class="info-panel"><h1>${item.event}</h1><div class="info-item"><i class='bx bx-calendar'></i> ${item.date}</div><div class="info-item"><i class='bx bx-map'></i> ${item.district}</div><div class="info-item"><i class='bx bx-group'></i> ${item.attendance}</div><div class="info-item"><i>🎤</i> ${item.guests}</div></div><div class="photo-panel">${imgs}</div>`;
-            wrapper.appendChild(div);
-        });
-    }
+/* 🔹 PDF DOWNLOAD */
+async function downloadPDF(){
+  const slide=document.getElementById("slide");
+  await waitForImages(slide);
 
-    function renderGrid() {
-        const grid = document.getElementById('view-grid');
-        grid.innerHTML = '';
-        filteredData.forEach((item, index) => {
-            const thumb = item.photos.length ? `https://drive.google.com/thumbnail?id=${item.photos[0]}&sz=w500` : 'https://placehold.co/400x300?text=No+Img';
-            const div = document.createElement('div');
-            div.className = 'grid-item';
-            div.onclick = () => { switchView('slide'); showSlide(index); };
-            div.innerHTML = `<img src="${thumb}" class="grid-img"><div class="grid-info"><div class="grid-title">${item.event}</div><div style="font-size:12px; color:var(--secondary)">${item.date} | ${item.district}</div></div>`;
-            grid.appendChild(div);
-        });
-    }
+  html2pdf().set({
+    margin:0,
+    filename:"slide.pdf",
+    html2canvas:{
+      scale:2,
+      useCORS:true,
+      allowTaint:false,
+      backgroundColor:"#0b0c10"
+    },
+    jsPDF:{unit:"px",format:[1200,800],orientation:"landscape"}
+  }).from(slide).save();
+}
 
-    function renderAnalytics() {
-        document.getElementById('stat-total-events').innerText = filteredData.length;
-        document.getElementById('stat-total-attendance').innerText = filteredData.reduce((a,b)=>a+b.attendance, 0).toLocaleString();
-        const dists = {}; filteredData.forEach(d => dists[d.district] = (dists[d.district] || 0) + 1);
-        if(charts.dist) charts.dist.destroy();
-        charts.dist = new Chart(document.getElementById('districtChart'), {
-            type: 'bar',
-            data: { labels: Object.keys(dists), datasets: [{ label: 'Events', data: Object.values(dists), backgroundColor: '#66fcf1' }] },
-            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: 'white' } } } }
-        });
-    }
+/* 🔹 PPT DOWNLOAD */
+async function downloadPPT(){
+  const ppt=new PptxGenJS();
+  ppt.layout="LAYOUT_WIDE";
+  const slide=ppt.addSlide();
 
-    function switchView(v) {
-        document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
-        document.getElementById(`view-${v}`).classList.add('active');
-        document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-        const navItems = document.querySelectorAll('.nav-item');
-        if(v === 'slide') navItems[0].classList.add('active');
-        else if(v === 'grid') navItems[1].classList.add('active');
-        else navItems[2].classList.add('active');
-    }
-    function showSlide(i) {
-        if(i < 0 || i >= filteredData.length) return;
-        document.querySelectorAll('.slide-container').forEach(el => el.classList.remove('active'));
-        document.getElementById(`slide-${i}`).classList.add('active');
-        currentIndex = i; updateCounter();
-    }
-    function nextSlide() { currentIndex < filteredData.length - 1 ? showSlide(currentIndex + 1) : (tvInterval && showSlide(0)); }
-    function prevSlide() { if (currentIndex > 0) showSlide(currentIndex - 1); }
-    function updateCounter() {
-        document.getElementById('curr-idx').innerText = filteredData.length ? currentIndex + 1 : 0;
-        document.getElementById('total-count').innerText = filteredData.length;
-    }
-    function toggleTVMode() {
-        if(tvInterval){ clearInterval(tvInterval); tvInterval=null; }
-        else { switchView('slide'); tvInterval = setInterval(nextSlide, 5000); }
-    }
+  slide.addText("कार्यक्रम नाम",{x:0.5,y:0.5,fontSize:24,color:"66fcf1"});
 
-    // =========================================================================
-    // THE ULTIMATE DOWNLOAD ENGINE - PIXEL PERFECT & NO CORS ERRORS
-    // =========================================================================
+  for(let i=0;i<4;i++){
+    slide.addImage({
+      path:`https://lh3.googleusercontent.com/d/${images[i]}=w1200`,
+      x:(i%2?5.5:3),
+      y:(i<2?1.5:3.5),
+      w:2.2,h:1.6
+    });
+  }
 
-    // Fetch Base64 using a combination of proxies and fallback URLs
-    async function forceGetBase64(photoId) {
-        if (!photoId) return null;
-        const target = `https://drive.google.com/thumbnail?id=${photoId}&sz=w1000`;
-        const proxies = [
-            `https://wsrv.nl/?url=${encodeURIComponent(target)}&output=jpg&n=-1`,
-            `https://corsproxy.io/?${encodeURIComponent(target)}`
-        ];
-        for (let p of proxies) {
-            try {
-                const res = await fetch(p);
-                if (!res.ok) continue;
-                const blob = await res.blob();
-                return await new Promise(r => {
-                    const fr = new FileReader();
-                    fr.onloadend = () => r(fr.result);
-                    fr.readAsDataURL(blob);
-                });
-            } catch (e) {}
-        }
-        return null;
-    }
-
-    // Process all images in a target element to Base64 and wait for DECODE
-    async function prepareForCapture(element, ids) {
-        const imgs = element.querySelectorAll('img');
-        const tasks = Array.from(imgs).map(async (img, i) => {
-            if (ids && ids[i]) {
-                const b64 = await forceGetBase64(ids[i]);
-                if (b64) {
-                    img.src = b64;
-                    try { await img.decode(); } catch(e) {} // FORCE PIXEL RENDERING
-                }
-            }
-        });
-        await Promise.all(tasks);
-    }
-
-    // --- PDF BOOKLET (PPT MODE) ---
-    async function downloadSmartPDF() {
-        if (!filteredData.length) return;
-        const btn = document.getElementById('download-main-btn');
-        const orig = btn.innerHTML;
-        btn.innerHTML = "⏳ फोटो तैयार हो रही हैं..."; btn.disabled = true;
-
-        const container = document.createElement('div');
-        container.style.cssText = "width:1123px; background:#0b0c10; color:white; position:fixed; left:0; top:0; z-index:-9999; opacity:0.01; font-family:'Noto Sans Devanagari';";
-        document.body.appendChild(container);
-
-        for (let item of filteredData) {
-            const slide = document.createElement('div');
-            slide.style.cssText = "width:1123px; height:794px; padding:50px; display:flex; gap:40px; box-sizing:border-box; page-break-after:always; background:#0b0c10;";
-            
-            const b64s = [];
-            for(let id of item.photos.slice(0,4)) {
-                const b = await forceGetBase64(id);
-                b64s.push(b);
-            }
-
-            const imgsHtml = b64s.map(b => b ? `<div style="overflow:hidden; border-radius:12px; border:1px solid #333;"><img src="${b}" style="width:100%; height:100%; object-fit:cover;"></div>` : `<div style="background:#111; border-radius:12px;"></div>`).join('');
-
-            slide.innerHTML = `
-                <div style="flex:1; display:flex; flex-direction:column; justify-content:center;">
-                    <h1 style="font-size:40px; color:#66fcf1; line-height:1.2; margin-bottom:20px;">${item.event}</h1>
-                    <p style="font-size:22px; color:#c5c6c7; margin:5px 0;">📅 ${item.date}</p>
-                    <p style="font-size:22px; color:#c5c6c7; margin:5px 0;">📍 जिला: ${item.district}</p>
-                    <p style="font-size:20px; color:#c5c6c7; margin:5px 0;">👥 उपस्थिति: ${item.attendance}</p>
-                    <p style="font-size:18px; color:#c5c6c7; margin-top:20px;">🎤 अतिथि:<br>${item.guests}</p>
-                </div>
-                <div style="flex:1.2; display:grid; grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr; gap:15px;">${imgsHtml}</div>
-            `;
-            container.appendChild(slide);
-            
-            // Allow browser to breathe
-            await new Promise(r => setTimeout(r, 100));
-        }
-
-        btn.innerHTML = "⏳ PDF फाइल बन रही है...";
-        const opt = {
-            margin: 0, filename: 'Karyakram_Slides.pdf', image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 1.5, useCORS: false, backgroundColor: '#0b0c10', logging: false },
-            jsPDF: { unit: 'px', format: [1123, 794], orientation: 'landscape' }
-        };
-        await html2pdf().set(opt).from(container).save();
-        document.body.removeChild(container);
-        btn.innerHTML = orig; btn.disabled = false;
-    }
-
-    // --- SCREENSHOT (Pixel Perfect) ---
-    async function downloadSmartScreenshot() {
-        const btn = document.getElementById('download-main-btn');
-        const orig = btn.innerHTML;
-        btn.innerHTML = "📸 कैप्चरिंग..."; btn.disabled = true;
-
-        try {
-            // Target the current slide
-            const target = document.getElementById(`slide-${currentIndex}`);
-            const clone = target.cloneNode(true);
-            clone.style.cssText = "width:1280px; height:800px; position:fixed; left:0; top:0; z-index:-9999; opacity:0.01; background:#0b0c10; padding:40px; display:flex;";
-            document.body.appendChild(clone);
-
-            // Fetch and Decode Base64 for the specific slide
-            const currentItem = filteredData[currentIndex];
-            await prepareForCapture(clone, currentItem.photos);
-
-            const canvas = await html2canvas(clone, { backgroundColor: '#0b0c10', scale: 2 });
-            const link = document.createElement('a');
-            link.download = `Slide_${currentIndex+1}.jpg`;
-            link.href = canvas.toDataURL("image/jpeg", 0.9);
-            link.click();
-            document.body.removeChild(clone);
-        } catch(e) { alert("Error"); }
-        finally { btn.innerHTML = orig; btn.disabled = false; }
-    }
-
-    async function downloadSmartPPT() {
-        const btn = document.getElementById('download-main-btn');
-        const orig = btn.innerHTML;
-        btn.innerHTML = "⏳ PPTX..."; btn.disabled = true;
-        try {
-            let pptx = new PptxGenJS(); pptx.layout = 'LAYOUT_WIDE';
-            for (let item of filteredData) {
-                let slide = pptx.addSlide(); slide.background = { color: '0b0c10' };
-                slide.addText(item.event, { x: 0.5, y: 0.5, w: '90%', fontSize: 26, bold: true, color: '66fcf1' });
-                const pos = [{x:5.5,y:1,w:3.5,h:2.5},{x:9.2,y:1,w:3.5,h:2.5},{x:5.5,y:3.7,w:3.5,h:2.5},{x:9.2,y:3.7,w:3.5,h:2.5}];
-                for(let i=0; i<Math.min(item.photos.length, 4); i++){
-                    const b = await forceGetBase64(item.photos[i]);
-                    if(b) slide.addImage({ data: b, x: pos[i].x, y: pos[i].y, w: pos[i].w, h: pos[i].h });
-                }
-            }
-            pptx.writeFile({ fileName: `Report.pptx` });
-        } catch(e) {} finally { btn.innerHTML = orig; btn.disabled = false; }
-    }
-
-    function downloadSmartExcel() {
-        const ws = XLSX.utils.json_to_sheet(filteredData.map(i => ({ "दिनांक": i.date, "जिला": i.district, "कार्यक्रम": i.event, "उपस्थिति": i.attendance })));
-        const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Data");
-        XLSX.writeFile(wb, "Data.xlsx");
-    }
-
-    function openLightbox(u, c) {
-        const lb = document.getElementById('lightbox');
-        document.getElementById('lightbox-img').src = u;
-        lb.style.display = 'flex';
-    }
-    function closeLightbox() { document.getElementById('lightbox').style.display = 'none'; }
-    document.addEventListener('keydown', e => { if(e.key==='Escape')closeLightbox(); if(e.key==='ArrowRight')nextSlide(); if(e.key==='ArrowLeft')prevSlide(); });
-
+  ppt.writeFile({fileName:"slide.pptx"});
+}
 </script>
+
 </body>
 </html>
