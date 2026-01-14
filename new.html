@@ -407,7 +407,7 @@
 <!-- Loader -->
 <div id="loader">
     <div class="spinner"></div>
-    <div style="color:var(--primary)">Loading Dashboard Data...</div>
+    <div style="color:var(--primary)">डेटा लोड हो रहा है...</div>
 </div>
 
 <!-- Lightbox -->
@@ -421,15 +421,15 @@
 <div class="sidebar">
     <div class="nav-item active" onclick="switchView('slide')">
         <i class='bx bx-slideshow'></i>
-        <span class="nav-text">Presentation</span>
+        <span class="nav-text">प्रेजेंटेशन</span>
     </div>
     <div class="nav-item" onclick="switchView('grid')">
         <i class='bx bx-grid-alt'></i>
-        <span class="nav-text">Gallery View</span>
+        <span class="nav-text">गैलरी व्यू</span>
     </div>
     <div class="nav-item" onclick="switchView('analytics')">
         <i class='bx bx-bar-chart-alt-2'></i>
-        <span class="nav-text">Analytics</span>
+        <span class="nav-text">एनालिटिक्स</span>
     </div>
 </div>
 
@@ -440,12 +440,12 @@
     <div class="top-bar">
         <div class="filter-group" style="flex:1; width:100%;">
             <i class='bx bx-search' style="font-size:20px; color:var(--secondary);"></i>
-            <input type="text" id="search-input" class="input-style" placeholder="Search event..." style="width:100%;" onkeyup="applyFilters()">
+            <input type="text" id="search-input" class="input-style" placeholder="सर्च कार्यक्रम..." style="width:100%;" onkeyup="applyFilters()">
         </div>
         
         <div class="filter-group">
             <select id="district-filter" class="input-style" onchange="applyFilters()">
-                <option value="">All Districts</option>
+                <option value="">सभी जिले</option>
             </select>
             
             <button class="action-btn" id="tv-mode-btn" onclick="toggleTVMode()">
@@ -456,10 +456,10 @@
                 <i class='bx bxs-file-csv'></i> CSV
             </button>
              
-            <!-- NEW DOWNLOAD DROPDOWN -->
+            <!-- DOWNLOAD DROPDOWN -->
             <div class="dropdown">
                 <button class="action-btn dropdown-btn" id="download-main-btn">
-                    <i class='bx bxs-download'></i> Download <i class='bx bx-chevron-down'></i>
+                    <i class='bx bxs-download'></i> डाउनलोड <i class='bx bx-chevron-down'></i>
                 </button>
                 <div class="dropdown-content">
                     <a onclick="downloadFullPDF()"><i class='bx bxs-file-pdf'></i> Slides to PDF</a>
@@ -538,7 +538,7 @@
                 const guests = c[5] ? c[5].v : '-';
                 let photos = [];
                 for (let i = 6; i < c.length; i++) {
-                    if (c[i] && c[i].v) {
+                    if (c[i] && i < 11 && c[i].v) { // Limit to some columns
                         const ids = String(c[i].v).match(/[-\w]{25,}/g);
                         if (ids) photos.push(...ids);
                     }
@@ -601,7 +601,6 @@
                 const limit = Math.min(photoCount, maxPhotos);
                 for(let i=0; i<limit; i++) {
                     const pid = item.photos[i];
-                    // USE RELIABLE DRIVE THUMBNAIL LINK FOR DISPLAY
                     const url = `https://drive.google.com/thumbnail?id=${pid}&sz=w1000`; 
                     let overlay = (i === 3 && photoCount > 4) ? `<div class="more-overlay">+${photoCount - 3}</div>` : '';
                     photosHtml += `
@@ -631,7 +630,6 @@
         const grid = document.getElementById('view-grid');
         grid.innerHTML = '';
         filteredData.forEach((item, index) => {
-            // USE RELIABLE DRIVE THUMBNAIL LINK FOR GRID
             const thumb = item.photos.length > 0 ? `https://drive.google.com/thumbnail?id=${item.photos[0]}&sz=w500` : 'https://placehold.co/400x300?text=No+Img';
             const div = document.createElement('div');
             div.className = 'grid-item';
@@ -713,42 +711,33 @@
         }
     }
 
-    // --- DOWNLOAD LOGIC (ROBUST FALLBACKS FROM UPLOADED FILE) -------------------
+    // --- DOWNLOAD LOGIC - GHOST ELEMENT CAPTURE & PROXY ---------------------------
 
-    function candidates(id) { 
-        if(!id) return []; 
-        return [
+    // Proxy helper with multiple candidate URLs (Robust method from uploaded files)
+    async function getBase64WithFallbacks(id) {
+        const candidates = [
             `https://drive.google.com/uc?export=view&id=${id}`,
             `https://drive.google.com/thumbnail?id=${id}&sz=w1200`,
             `https://lh3.googleusercontent.com/d/${id}=w1200`
-        ]; 
-    }
-
-    async function fetchAsDataURL(url, timeoutMs=20000){
-      if(!url) throw new Error("empty url");
-      const ctrl = new AbortController();
-      const to = setTimeout(()=>ctrl.abort(), timeoutMs);
-      try{
-        // Using corsproxy.io as in the uploaded file, as it handles redirects well
-        const proxyUrl = "https://corsproxy.io/?" + encodeURIComponent(url);
-        const res = await fetch(proxyUrl, {cache:'no-store', signal: ctrl.signal});
-        if(!res.ok) throw new Error("HTTP " + res.status);
-        const blob = await res.blob();
-        return await new Promise((resolve,reject)=>{
-          const fr = new FileReader();
-          fr.onload = () => resolve(fr.result);
-          fr.onerror = reject;
-          fr.readAsDataURL(blob);
-        });
-      } finally { clearTimeout(to); }
-    }
-
-    async function loadImageAsDataURLWithFallbacks(photoId){
-      const tries = candidates(photoId);
-      for (let i=0; i<tries.length; i++){
-        try{ return await fetchAsDataURL(tries[i]); } catch(e){ /* try next */ }
-      }
-      return null;
+        ];
+        
+        for (let url of candidates) {
+            try {
+                // Using wsrv.nl proxy which is highly reliable for image processing
+                const proxyUrl = `https://wsrv.nl/?url=${encodeURIComponent(url)}&output=jpg`;
+                const res = await fetch(proxyUrl, { cache: 'no-store' });
+                if (!res.ok) continue;
+                const blob = await res.blob();
+                return await new Promise((resolve) => {
+                    const fr = new FileReader();
+                    fr.onloadend = () => resolve(fr.result);
+                    fr.readAsDataURL(blob);
+                });
+            } catch (e) {
+                console.warn(`Attempt failed for ${url}`);
+            }
+        }
+        return null;
     }
 
     function downloadDataCSV() {
@@ -770,172 +759,207 @@
         XLSX.writeFile(wb, "Karyakram_Report.xlsx");
     }
 
-    // --- "SCREENSHOT WALA PDF" (Slides to PDF) ---
+    // --- NEW: PDF Booklet (Ghost Capturing Method) ---
     async function downloadFullPDF() {
         if (filteredData.length === 0) return;
         const btn = document.getElementById('download-main-btn');
         const originalText = btn.innerHTML;
-        btn.innerHTML = '⏳ Generating PDF...';
+        btn.innerHTML = '⏳ प्रोसेसिंग...';
         btn.disabled = true;
-        
-        // Build a container off-screen
-        const container = document.createElement('div');
-        container.style.width = '1123px'; 
-        container.style.position = 'absolute'; 
-        container.style.top = '-99999px';
-        container.style.left = '0';
-        container.style.background = '#0b0c10'; 
-        container.style.color = '#fff';
-        container.style.fontFamily = "'Noto Sans Devanagari', sans-serif";
-
-        let htmlContent = '';
-        
-        for (const item of filteredData) {
-            let imgsHtml = '';
-            const max = Math.min(item.photos.length, 4);
-            
-            // We will fill src later
-            for(let i=0; i<max; i++){
-                imgsHtml += `<div style="border:1px solid rgba(255,255,255,0.2); border-radius:10px; overflow:hidden; background:#000;"><img data-id="${item.photos[i]}" style="width:100%; height:100%; object-fit:cover;"></div>`;
-            }
-            for(let i=max; i<4; i++){ imgsHtml += `<div style="border:1px dashed rgba(255,255,255,0.1); border-radius:10px;"></div>`; }
-            
-            htmlContent += `
-                <div style="width: 1123px; height: 794px; padding: 50px; page-break-after: always; box-sizing: border-box; display: flex; gap: 40px; border: 1px solid #333;">
-                    <div style="flex: 1; display: flex; flex-direction: column; justify-content: center;">
-                        <h1 style="font-size: 42px; color: #66fcf1; margin-bottom: 30px; line-height: 1.2;">${item.event}</h1>
-                        <div style="font-size: 24px; color: #c5c6c7; margin-bottom: 20px;"><span style="color: #45a29e; font-size: 30px;">📅</span> <strong>Date:</strong> ${item.date}</div>
-                        <div style="font-size: 24px; color: #c5c6c7; margin-bottom: 20px;"><span style="color: #45a29e; font-size: 30px;">📍</span> <strong>District:</strong> ${item.district}</div>
-                        <div style="font-size: 24px; color: #c5c6c7; margin-bottom: 20px;"><span style="color: #45a29e; font-size: 30px;">👥</span> <strong>Attend:</strong> ${item.attendance}</div>
-                        <div style="font-size: 24px; color: #c5c6c7;"><span style="color: #45a29e; font-size: 30px;">🎤</span> <strong>Guests:</strong><br>${item.guests}</div>
-                    </div>
-                    <div style="flex: 1; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 20px; height: 100%;">${imgsHtml}</div>
-                </div>`;
-        }
-        container.innerHTML = htmlContent;
-        document.body.appendChild(container);
-
-        // Process images using robust fallback logic
-        const images = container.querySelectorAll('img[data-id]');
-        // Process in chunks
-        const chunk = 5;
-        for (let i=0; i<images.length; i+=chunk) {
-            const batch = Array.from(images).slice(i, i+chunk);
-            await Promise.all(batch.map(async (img) => {
-                const id = img.getAttribute('data-id');
-                const b64 = await loadImageAsDataURLWithFallbacks(id);
-                if (b64) {
-                    img.src = b64;
-                } else {
-                    img.parentElement.innerHTML = '<div style="display:flex;justify-content:center;align-items:center;height:100%;color:#555">Image N/A</div>';
-                }
-            }));
-        }
 
         try {
-            await html2pdf().set({
+            const printContainer = document.createElement('div');
+            printContainer.style.width = '1200px';
+            printContainer.style.position = 'fixed';
+            printContainer.style.top = '-20000px';
+            printContainer.style.background = '#0b0c10';
+            document.body.appendChild(printContainer);
+
+            for (let item of filteredData) {
+                const slide = document.createElement('div');
+                slide.style.width = '1200px';
+                slide.style.height = '800px';
+                slide.style.padding = '60px';
+                slide.style.boxSizing = 'border-box';
+                slide.style.display = 'flex';
+                slide.style.gap = '40px';
+                slide.style.background = '#0b0c10';
+                slide.style.color = '#fff';
+                slide.style.pageBreakAfter = 'always';
+                slide.style.borderBottom = '1px solid #333';
+
+                // Fetch images for this slide
+                const base64Photos = await Promise.all(
+                    item.photos.slice(0, 4).map(id => getBase64WithFallbacks(id))
+                );
+
+                let photosHtml = '';
+                for (let i = 0; i < 4; i++) {
+                    if (base64Photos[i]) {
+                        photosHtml += `<div style="flex:1; height:320px; overflow:hidden; border-radius:10px; border:1px solid #444;"><img src="${base64Photos[i]}" style="width:100%; height:100%; object-fit:cover;"></div>`;
+                    } else {
+                        photosHtml += `<div style="flex:1; height:320px; background:#222; border-radius:10px; border:1px dashed #444;"></div>`;
+                    }
+                }
+
+                slide.innerHTML = `
+                    <div style="flex:1; display:flex; flex-direction:column; justify-content:center;">
+                        <h1 style="font-size:48px; color:#66fcf1; margin-bottom:30px;">${item.event}</h1>
+                        <p style="font-size:24px; color:#c5c6c7; margin:10px 0;">📅 <b>Date:</b> ${item.date}</p>
+                        <p style="font-size:24px; color:#c5c6c7; margin:10px 0;">📍 <b>District:</b> ${item.district}</p>
+                        <p style="font-size:24px; color:#c5c6c7; margin:10px 0;">👥 <b>Attend:</b> ${item.attendance}</p>
+                        <p style="font-size:20px; color:#c5c6c7; margin-top:20px;">🎤 <b>Guests:</b><br>${item.guests}</p>
+                    </div>
+                    <div style="flex:1.2; display:grid; grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr; gap:15px;">
+                        ${photosHtml}
+                    </div>
+                `;
+                printContainer.appendChild(slide);
+            }
+
+            const opt = {
                 margin: 0,
                 filename: 'Karyakram_Slides.pdf',
-                image: { type: 'jpeg', quality: 0.95 },
-                html2canvas: { scale: 1.5, scrollY: 0, backgroundColor: '#0b0c10', useCORS: true },
-                jsPDF: { unit: 'px', format: [1123, 794], orientation: 'landscape' }
-            }).from(container).save();
-        } catch(e) { console.error(e); alert("PDF Error"); } 
-        finally { document.body.removeChild(container); btn.innerHTML = originalText; btn.disabled = false; }
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 1, useCORS: false, backgroundColor: '#0b0c10' },
+                jsPDF: { unit: 'px', format: [1200, 800], orientation: 'landscape' }
+            };
+            await html2pdf().set(opt).from(printContainer).save();
+            document.body.removeChild(printContainer);
+
+        } catch (e) {
+            console.error(e);
+            alert("PDF जनरेट करने में एरर आया।");
+        } finally {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+    }
+
+    // --- NEW: Current Slide Image (External Look Method) ---
+    async function downloadCurrentImage() {
+        const btn = document.getElementById('download-main-btn');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '⏳ कैप्चरिंग...';
+        btn.disabled = true;
+
+        try {
+            const activeSlide = document.getElementById(`slide-${currentIndex}`);
+            if (!activeSlide) throw new Error("Slide not found");
+
+            // Clone active slide
+            const clone = activeSlide.cloneNode(true);
+            clone.style.position = 'fixed';
+            clone.style.top = '-10000px';
+            clone.style.width = '1200px';
+            clone.style.height = '700px';
+            clone.style.background = '#0b0c10';
+            clone.style.padding = '40px';
+            clone.style.display = 'flex';
+            document.body.appendChild(clone);
+
+            // Replace images in clone with base64
+            const imgs = clone.querySelectorAll('img');
+            const currentItem = filteredData[currentIndex];
+            for (let i = 0; i < imgs.length; i++) {
+                if (currentItem.photos[i]) {
+                    const b64 = await getBase64WithFallbacks(currentItem.photos[i]);
+                    if (b64) imgs[i].src = b64;
+                }
+            }
+
+            const canvas = await html2canvas(clone, { scale: 2, backgroundColor: '#0b0c10' });
+            const link = document.createElement('a');
+            link.download = `Slide_${currentIndex + 1}.jpg`;
+            link.href = canvas.toDataURL("image/jpeg", 0.9);
+            link.click();
+            document.body.removeChild(clone);
+
+        } catch (e) {
+            alert("स्क्रीनशॉट फेल हुआ।");
+        } finally {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+    }
+
+    // --- NEW: Full Dashboard Screenshot ---
+    async function downloadScreenshot() {
+        const btn = document.getElementById('download-main-btn');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '📸 स्क्रीनशॉट...';
+        btn.disabled = true;
+
+        try {
+            // Take the whole body but handle images manually for CORS safety
+            const bodyClone = document.body.cloneNode(true);
+            bodyClone.style.width = '1440px';
+            bodyClone.style.height = 'auto';
+            bodyClone.style.position = 'fixed';
+            bodyClone.style.top = '-20000px';
+            
+            // Remove interactive parts
+            bodyClone.querySelectorAll('.dropdown, .sidebar, #tv-mode-btn, .controls-floating').forEach(e => e.remove());
+            document.body.appendChild(bodyClone);
+
+            // Replace all visible images in dashboard with Base64
+            const imgs = bodyClone.querySelectorAll('img');
+            for (let img of imgs) {
+                // If it's a drive thumbnail, proxy it
+                if (img.src.includes('drive.google.com')) {
+                    const id = img.src.split('id=')[1]?.split('&')[0];
+                    if (id) {
+                        const b64 = await getBase64WithFallbacks(id);
+                        if (b64) img.src = b64;
+                    }
+                }
+            }
+
+            const canvas = await html2canvas(bodyClone, { scale: 1, backgroundColor: '#0b0c10' });
+            const link = document.createElement('a');
+            link.download = `Dashboard_Full.jpg`;
+            link.href = canvas.toDataURL("image/jpeg", 0.8);
+            link.click();
+            document.body.removeChild(bodyClone);
+
+        } catch (e) {
+            alert("स्क्रीनशॉट एरर।");
+        } finally {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
     }
 
     // --- PPT ---
     async function downloadPPT() {
         const btn = document.getElementById('download-main-btn');
         const originalText = btn.innerHTML;
-        btn.innerHTML = '⏳ Creating PPT...';
+        btn.innerHTML = '⏳ PPT बन रही है...';
         btn.disabled = true;
-        
+
         try {
             let pptx = new PptxGenJS();
             pptx.layout = 'LAYOUT_WIDE';
             pptx.background = { color: '0b0c10' };
-            
-            for(const item of filteredData) {
+
+            for (const item of filteredData) {
                 let slide = pptx.addSlide();
                 slide.addText(item.event, { x: 0.5, y: 0.5, w: '90%', fontSize: 28, bold: true, color: '66fcf1' });
-                slide.addText(`Date: ${item.date}`, { x: 0.5, y: 1.5, fontSize: 16, color: 'c5c6c7' });
-                slide.addText(`District: ${item.district}`, { x: 0.5, y: 2.0, fontSize: 16, color: 'c5c6c7' });
-                slide.addText(`Guests: ${item.guests}`, { x: 0.5, y: 3.0, w: 4, h: 2, fontSize: 14, color: 'c5c6c7', valign: 'top' });
-                
-                const pos = [{x:5.5,y:1},{x:9.2,y:1},{x:5.5,y:3.7},{x:9.2,y:3.7}];
+                slide.addText(`दिनांक: ${item.date}`, { x: 0.5, y: 1.5, fontSize: 16, color: 'c5c6c7' });
+                slide.addText(`जिला: ${item.district}`, { x: 0.5, y: 2.0, fontSize: 16, color: 'c5c6c7' });
+                slide.addText(`अतिथि: ${item.guests}`, { x: 0.5, y: 2.5, w: 4.5, h: 2, fontSize: 14, color: 'c5c6c7', valign: 'top' });
+
                 const max = Math.min(item.photos.length, 4);
-                
+                const pos = [{x:5.5,y:1,w:3.5,h:2.5},{x:9.2,y:1,w:3.5,h:2.5},{x:5.5,y:3.7,w:3.5,h:2.5},{x:9.2,y:3.7,w:3.5,h:2.5}];
+
                 for(let i=0; i<max; i++){
-                    const b64 = await loadImageAsDataURLWithFallbacks(item.photos[i]);
-                    if(b64) {
-                        slide.addImage({ data: b64, x: pos[i].x, y: pos[i].y, w: 3.5, h: 2.5 });
-                    }
+                    const b64 = await getBase64WithFallbacks(item.photos[i]);
+                    if(b64) slide.addImage({ data: b64, x: pos[i].x, y: pos[i].y, w: pos[i].w, h: pos[i].h });
                 }
             }
-            pptx.writeFile({ fileName: `Karyakram.pptx` });
-        } catch(e) { console.error(e); alert("PPT Error"); }
+            pptx.writeFile({ fileName: `Karyakram_Report.pptx` });
+        } catch(e) { alert("PPT एरर"); }
         finally { btn.innerHTML = originalText; btn.disabled = false; }
-    }
-
-    // --- Current Slide Image ---
-    async function downloadCurrentImage() {
-        const activeSlide = document.getElementById(`slide-${currentIndex}`);
-        if (!activeSlide || activeSlide.classList.contains('hidden')) return alert("Go to Presentation View");
-        const btn = document.getElementById('download-main-btn');
-        const orig = btn.innerHTML;
-        btn.innerHTML = '⏳ Saving Img...';
-        btn.disabled = true;
-        
-        try {
-            const clone = activeSlide.cloneNode(true);
-            clone.style.position='fixed'; clone.style.top='0'; clone.style.left='0'; 
-            clone.style.width='1200px'; clone.style.height='800px'; clone.style.zIndex='-9999';
-            clone.style.background='#0b0c10'; clone.style.display='flex';
-            document.body.appendChild(clone);
-            
-            const images = clone.querySelectorAll('img');
-            const currentPhotos = filteredData[currentIndex].photos;
-            
-            await Promise.all(Array.from(images).map(async (img, i) => {
-                if(currentPhotos[i]) {
-                    const b64 = await loadImageAsDataURLWithFallbacks(currentPhotos[i]);
-                    if(b64) img.src = b64;
-                }
-            }));
-            
-            const canvas = await html2canvas(clone, { backgroundColor: '#0b0c10', useCORS: true, scale: 1.5 });
-            const link = document.createElement('a');
-            link.download = `Slide_${currentIndex+1}.png`;
-            link.href = canvas.toDataURL("image/png");
-            link.click();
-            document.body.removeChild(clone);
-        } catch(e) { console.error(e); } 
-        finally { btn.innerHTML = orig; btn.disabled = false; }
-    }
-
-    // --- Full Screenshot ---
-    async function downloadScreenshot() {
-        const btn = document.getElementById('download-main-btn');
-        const orig = btn.innerHTML;
-        btn.innerHTML = '📸 Capturing...';
-        btn.disabled = true;
-        
-        try {
-            // Reverting to standard capture but enabling allowTaint
-            const canvas = await html2canvas(document.body, {
-                backgroundColor: '#0b0c10',
-                useCORS: true,
-                allowTaint: true,
-                ignoreElements: (element) => element.classList.contains('dropdown')
-            });
-            
-            const link = document.createElement('a');
-            link.download = `Dashboard_Shot.png`;
-            link.href = canvas.toDataURL("image/png");
-            link.click();
-        } catch(e) { console.error(e); alert("Screenshot Error"); }
-        finally { btn.innerHTML = orig; btn.disabled = false; }
     }
 
     function openLightbox(url, caption) {
