@@ -676,7 +676,8 @@
         if(index < 0 || index >= filteredData.length) return;
         currentIndex = index;
         document.querySelectorAll('.slide-container').forEach(el => el.classList.add('hidden'));
-        document.getElementById(`slide-${index}`).classList.remove('hidden');
+        const active = document.getElementById(`slide-${index}`);
+        if(active) active.classList.remove('hidden');
         updateCounter();
     }
 
@@ -706,61 +707,66 @@
         }
     }
 
-    // --- ROBUST IMAGE DATA URL CONVERSION (Fixes Missing Images) ---
+    // --- ROBUST IMAGE DATA URL CONVERSION (Improved Fallback logic) ---
     async function toDataURL(url) {
-        try {
-            const proxyUrl = "https://corsproxy.io/?" + encodeURIComponent(url);
-            const res = await fetch(proxyUrl);
-            const blob = await res.blob();
-            return new Promise((resolve) => {
-                const reader = new FileReader();
-                reader.onloadend = () => resolve(reader.result);
-                reader.readAsDataURL(blob);
-            });
-        } catch (e) {
-            console.warn("Image fetch failed, using fallback", url);
-            return null;
+        // Find Drive ID if present
+        const idMatch = url.match(/id=([\w-]+)/) || url.match(/\/d\/([\w-]+)/);
+        const id = idMatch ? idMatch[1] : null;
+        
+        // Try multiple URL formats for Drive images to ensure stability
+        const candidates = id ? [
+            `https://drive.google.com/thumbnail?id=${id}&sz=w1000`,
+            `https://drive.google.com/uc?export=view&id=${id}`,
+            `https://lh3.googleusercontent.com/d/${id}=w1000`
+        ] : [url];
+
+        for (const targetUrl of candidates) {
+            try {
+                const proxyUrl = "https://corsproxy.io/?" + encodeURIComponent(targetUrl);
+                const res = await fetch(proxyUrl, { cache: 'no-store' });
+                if (!res.ok) continue;
+                const blob = await res.blob();
+                return await new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => resolve(reader.result);
+                    reader.readAsDataURL(blob);
+                });
+            } catch (e) {
+                continue; // Try next candidate
+            }
         }
+        return null; // All failed
     }
 
     async function downloadFullPDF() {
         if (!filteredData.length) return;
         const btn = document.getElementById('export-btn');
         const originalText = btn.innerHTML;
-        btn.innerHTML = "⏳ Processing Images...";
+        btn.innerHTML = "⏳ Fetching Images...";
         btn.disabled = true;
         
-        // Prepare a hidden container for PDF with Base64 images
         const pdfContainer = document.createElement('div');
-        pdfContainer.style.width = "1000px";
-        pdfContainer.style.background = "#0b0c10";
-        pdfContainer.style.color = "#fff";
+        pdfContainer.style.cssText = "width: 1000px; background: #0b0c10; color: #fff; font-family: 'Poppins', sans-serif;";
 
         for (let i = 0; i < filteredData.length; i++) {
             const item = filteredData[i];
             const slide = document.createElement('div');
-            slide.style.padding = "40px";
-            slide.style.pageBreakAfter = "always";
-            slide.style.display = "flex";
-            slide.style.gap = "20px";
+            slide.style.cssText = "padding: 50px; page-break-after: always; display: flex; gap: 30px; min-height: 600px; align-items: center; border-bottom: 1px solid #1f2833;";
             
-            // Text Side
             const textDiv = document.createElement('div');
             textDiv.style.flex = "1";
             textDiv.innerHTML = `
-                <h1 style="color:#66fcf1; font-size:28px;">${item.event}</h1>
-                <p><b>Date:</b> ${item.date}</p>
-                <p><b>District:</b> ${item.district}</p>
-                <p><b>Attendance:</b> ${item.attendance}</p>
-                <p><b>Guests:</b> ${item.guests}</p>
+                <h1 style="color:#66fcf1; font-size:32px; margin-bottom:20px;">${item.event}</h1>
+                <div style="font-size:18px; line-height:1.6;">
+                    <p><b style="color:#45a29e;">Date:</b> ${item.date}</p>
+                    <p><b style="color:#45a29e;">District:</b> ${item.district}</p>
+                    <p><b style="color:#45a29e;">Attendance:</b> ${item.attendance}</p>
+                    <p><b style="color:#45a29e;">Guests:</b> ${item.guests}</p>
+                </div>
             `;
             
-            // Image Side
             const imgDiv = document.createElement('div');
-            imgDiv.style.flex = "1.5";
-            imgDiv.style.display = "grid";
-            imgDiv.style.gridTemplateColumns = "1fr 1fr";
-            imgDiv.style.gap = "10px";
+            imgDiv.style.cssText = "flex: 1.5; display: grid; grid-template-columns: 1fr 1fr; gap: 15px;";
 
             const photoLimit = Math.min(item.photos.length, 4);
             for(let j=0; j<photoLimit; j++) {
@@ -768,8 +774,7 @@
                 if(base64) {
                     const img = document.createElement('img');
                     img.src = base64;
-                    img.style.width = "100%";
-                    img.style.borderRadius = "8px";
+                    img.style.cssText = "width: 100%; border-radius: 12px; border: 2px solid #1f2833; object-fit: cover; height: 180px;";
                     imgDiv.appendChild(img);
                 }
             }
@@ -777,17 +782,20 @@
             slide.appendChild(textDiv);
             slide.appendChild(imgDiv);
             pdfContainer.appendChild(slide);
-            btn.innerHTML = `⏳ Slide ${i+1}/${filteredData.length}...`;
+            btn.innerHTML = `⏳ Processing Slide ${i+1}/${filteredData.length}...`;
         }
 
         try {
             await html2pdf().set({
                 margin: 0,
-                filename: 'Report.pdf',
-                html2canvas: { scale: 2, useCORS: true },
-                jsPDF: { orientation: 'landscape' }
+                filename: `Karyakram_Report_${new Date().toISOString().split('T')[0]}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true, backgroundColor: '#0b0c10' },
+                jsPDF: { unit: 'pt', format: 'a4', orientation: 'landscape' }
             }).from(pdfContainer).save();
-        } catch(e) { console.error(e); }
+        } catch(e) { 
+            console.error("PDF generation failed:", e); 
+        }
         
         btn.innerHTML = originalText;
         btn.disabled = false;
@@ -797,29 +805,40 @@
         if (!filteredData.length) return;
         const btn = document.getElementById('export-btn');
         const originalText = btn.innerHTML;
-        btn.innerHTML = "⏳ Preparing PPT...";
+        btn.innerHTML = "⏳ Syncing Images...";
         btn.disabled = true;
 
         let pptx = new PptxGenJS();
+        pptx.layout = 'LAYOUT_WIDE';
+
         for (let i = 0; i < filteredData.length; i++) {
             const item = filteredData[i];
             let slide = pptx.addSlide();
             slide.background = { color: '0B0C10' };
             
-            slide.addText(item.event, { x: 0.5, y: 0.5, w: 9, fontSize: 24, color: '66FCF1', bold: true });
-            slide.addText(`Date: ${item.date}\nDistrict: ${item.district}\nAttendance: ${item.attendance}\nGuests: ${item.guests}`, 
-                { x: 0.5, y: 1.5, w: 4, fontSize: 14, color: 'FFFFFF' });
+            slide.addText(item.event, { x: 0.5, y: 0.5, w: 9, fontSize: 28, color: '66FCF1', bold: true });
+            slide.addText([
+                { text: `Date: `, options: { color: '45A29E', bold: true } },
+                { text: `${item.date}\n`, options: { color: 'FFFFFF' } },
+                { text: `District: `, options: { color: '45A29E', bold: true } },
+                { text: `${item.district}\n`, options: { color: 'FFFFFF' } },
+                { text: `Attendance: `, options: { color: '45A29E', bold: true } },
+                { text: `${item.attendance}\n\n`, options: { color: 'FFFFFF' } },
+                { text: `Guests:\n`, options: { color: '45A29E', bold: true } },
+                { text: `${item.guests}`, options: { color: 'FFFFFF', fontSize: 12 } }
+            ], { x: 0.5, y: 1.5, w: 4, fontSize: 16 });
 
             const photoLimit = Math.min(item.photos.length, 4);
-            const positions = [{x:5,y:1},{x:7.5,y:1},{x:5,y:3},{x:7.5,y:3}];
+            const pos = [{x:5,y:1},{x:8,y:1},{x:5,y:3.5},{x:8,y:3.5}];
             for(let j=0; j<photoLimit; j++) {
-                const base64 = await toDataURL(`https://drive.google.com/thumbnail?id=${item.photos[j]}&sz=w600`);
+                const base64 = await toDataURL(`https://drive.google.com/thumbnail?id=${item.photos[j]}&sz=w800`);
                 if(base64) {
-                    slide.addImage({ data: base64, x: positions[j].x, y: positions[j].y, w: 2.3, h: 1.8 });
+                    slide.addImage({ data: base64, x: pos[j].x, y: pos[j].y, w: 2.8, h: 2.2, sizing: { type: 'cover', w: 2.8, h: 2.2 } });
                 }
             }
+            btn.innerHTML = `⏳ Slide ${i+1}/${filteredData.length}...`;
         }
-        pptx.writeFile({ fileName: 'Presentation.pptx' });
+        pptx.writeFile({ fileName: `Karyakram_Presentation_${new Date().toISOString().split('T')[0]}.pptx` });
         btn.innerHTML = originalText;
         btn.disabled = false;
     }
@@ -829,9 +848,10 @@
         if(!slide) return;
         
         const btn = document.getElementById('export-btn');
-        btn.innerHTML = "⏳ Rendering Image...";
+        const originalText = btn.innerHTML;
+        btn.innerHTML = "⏳ Capturing...";
         
-        // Temporarily ensure images are loaded as DataURL for canvas
+        // Convert visible images to Base64 to ensure they are captured by Canvas
         const imgs = slide.querySelectorAll('img');
         const originalSources = [];
         for(let img of imgs) {
@@ -840,15 +860,24 @@
             if(base64) img.src = base64;
         }
 
-        const canvas = await html2canvas(slide, { useCORS: true, backgroundColor: '#0b0c10', scale: 2 });
-        const link = document.createElement('a');
-        link.download = `Slide_${currentIndex+1}.png`;
-        link.href = canvas.toDataURL("image/png");
-        link.click();
+        try {
+            const canvas = await html2canvas(slide, { 
+                useCORS: true, 
+                backgroundColor: '#0b0c10', 
+                scale: 2,
+                logging: false
+            });
+            const link = document.createElement('a');
+            link.download = `Slide_${currentIndex+1}.png`;
+            link.href = canvas.toDataURL("image/png");
+            link.click();
+        } catch(e) {
+            console.error("Capture failed:", e);
+        }
         
-        // Restore sources
+        // Restore original sources so they stay dynamic in UI
         imgs.forEach((img, idx) => img.src = originalSources[idx]);
-        btn.innerHTML = `<i class='bx bxs-download'></i> Export <i class='bx bx-chevron-down'></i>`;
+        btn.innerHTML = originalText;
     }
 
     function downloadExcel() {
