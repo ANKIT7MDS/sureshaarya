@@ -804,14 +804,17 @@
         // Create PDF Container
         const container = document.createElement('div');
         container.id = 'pdf-gen-container';
-        // CRITICAL FIX: Ensure container is physically in the DOM so html2canvas can "see" it
-        // We position it off-screen so the user doesn't see it flickering
-        container.style.position = 'fixed';
-        container.style.left = '-9999px';
+        
+        // CRITICAL FIX: Positioning logic improved to prevent blank pages
+        // Instead of putting it way off screen (-9999px) where browsers might stop rendering,
+        // we put it at top/left 0 but behind everything using z-index.
+        container.style.position = 'absolute';
+        container.style.left = '0';
         container.style.top = '0';
         container.style.width = '1123px'; // A4 Landscape
         container.style.background = '#fff';
-        container.style.zIndex = '-1';
+        container.style.zIndex = '-9999'; // Hide behind everything
+        container.style.visibility = 'visible'; // Must be visible for html2canvas
         
         // Process each event
         for(let i=0; i<filteredData.length; i++) {
@@ -863,7 +866,7 @@
                             ${loadedImages.map(b64 => `
                                 <div style="height:180px; border-radius:10px; overflow:hidden; border:2px solid #eee;">
                                     <img src="${b64}" 
-                                         style="width:100%; height:100%; object-fit:cover;">
+                                         style="width:100%; height:100%; object-fit:cover; display:block;">
                                 </div>
                             `).join('')}
                         </div>
@@ -874,21 +877,21 @@
                 const bgImg = loadedImages[0] || getFallbackPlaceholder();
                 
                 content = `
-                    <div style="position:absolute; inset:0;">
+                    <div style="position:absolute; inset:0; z-index:0;">
                         <img src="${bgImg}" 
-                             style="width:100%; height:100%; object-fit:cover; opacity:0.3;">
+                             style="width:100%; height:100%; object-fit:cover; opacity:0.3; display:block;">
                         <div style="position:absolute; inset:0; background:linear-gradient(to right, #000000 0%, transparent 70%);"></div>
                     </div>
                     <div style="position:relative; z-index:1; height:100%; display:flex; flex-direction:column; justify-content:center; padding-left:60px;">
-                        <h1 style="font-size:56px; color:#ffffff; margin:0 0 20px 0; text-shadow:2px 2px 8px rgba(0,0,0,0.7);">${item.event}</h1>
-                        <div style="display:flex; gap:30px; font-size:24px; color:#a78bfa; font-weight:600;">
+                        <h1 style="font-size:56px; color:#ffffff; margin:0 0 20px 0; text-shadow:2px 2px 8px rgba(0,0,0,0.7); position:relative;">${item.event}</h1>
+                        <div style="display:flex; gap:30px; font-size:24px; color:#a78bfa; font-weight:600; position:relative;">
                             <span>${item.district}</span>
                             <span>|</span>
                             <span>${item.date}</span>
                             <span>|</span>
                             <span>${item.attendance} People</span>
                         </div>
-                        <div style="font-size:18px; color:#ffffff; margin-top:30px; max-width:70%; background:rgba(0,0,0,0.6); padding:20px; border-radius:10px;">
+                        <div style="font-size:18px; color:#ffffff; margin-top:30px; max-width:70%; background:rgba(0,0,0,0.6); padding:20px; border-radius:10px; position:relative;">
                             ${item.guests}
                         </div>
                     </div>
@@ -906,7 +909,7 @@
                             ${loadedImages.slice(0,3).map(b64 => `
                                 <div style="width:280px; height:200px; border-radius:8px; overflow:hidden; box-shadow:0 5px 15px rgba(0,0,0,0.1);">
                                     <img src="${b64}" 
-                                         style="width:100%; height:100%; object-fit:cover;">
+                                         style="width:100%; height:100%; object-fit:cover; display:block;">
                                 </div>
                             `).join('')}
                         </div>
@@ -921,11 +924,14 @@
 
             page.innerHTML = content;
             container.appendChild(page);
-            btn.innerHTML = `Generating ${i+1}/${filteredData.length}...`;
+            btn.innerHTML = `Building ${i+1}/${filteredData.length}...`;
         }
 
         // CRITICAL: Append container to body
         document.body.appendChild(container);
+        
+        // Wait for a moment to ensure rendering happens
+        await new Promise(r => setTimeout(r, 1000));
 
         // Generate PDF
         const opt = {
@@ -937,12 +943,14 @@
                 useCORS: true, 
                 scrollY: 0, 
                 windowWidth: 1123,
-                backgroundColor: '#ffffff'
+                backgroundColor: '#ffffff',
+                logging: false
             },
             jsPDF: { unit: 'px', format: [1123, 794], orientation: 'landscape' }
         };
 
         try {
+            btn.innerHTML = "Saving PDF...";
             await html2pdf().set(opt).from(container).save();
         } catch(e) {
             console.error("PDF Error:", e);
