@@ -516,7 +516,7 @@
             slide.className = `slide-container mode-${slideMode} ${i === currIdx ? 'active' : ''}`;
             slide.id = `slide-${i}`;
 
-            // FIX: Added $ before {item.photos[idx]}
+            // FIXED: Added $ and used https
             const getPhoto = (idx, size='w800') => item.photos[idx] ? `https://lh3.googleusercontent.com/d/${item.photos[idx]}=${size}` : 'https://via.placeholder.com/600x400?text=No+Photo';
 
             if (slideMode === 'standard') {
@@ -595,7 +595,7 @@
     // --- VIEWS RENDER ---
     function renderPrint() {
         const c = document.getElementById('view-print');
-        // FIX: Added $ before {item.photos[0]}
+        // FIXED: Added $ and used https
         c.innerHTML = filteredData.map(item => `
             <div class="print-row">
                 <img src="${item.photos[0] ? `https://lh3.googleusercontent.com/d/${item.photos[0]}=w200` : ''}" onerror="this.style.display='none'">
@@ -614,7 +614,7 @@
 
     function renderCards() {
         const c = document.getElementById('view-cards');
-        // FIX: Added $ before {item.photos[0]}
+        // FIXED: Added $ and used https
         c.innerHTML = filteredData.map((item, i) => `
             <div class="modern-card" onclick="goToSlide(${i})">
                 <div class="mc-header">
@@ -636,7 +636,7 @@
 
     function renderGrid() {
         const c = document.getElementById('view-grid');
-        // FIX: Added $ before {item.photos[0]}
+        // FIXED: Added $ and used https
         c.innerHTML = filteredData.map((item, i) => `
             <div class="gallery-item" onclick="goToSlide(${i})">
                 <img src="${item.photos[0] ? `https://lh3.googleusercontent.com/d/${item.photos[0]}=w600` : 'https://via.placeholder.com/400'}" loading="lazy">
@@ -784,7 +784,7 @@
             let content = '';
             
             if (viewMode === 'standard') {
-                // FIX: Added $ before image URLs here
+                // FIXED: Added $ and used https
                 content = `
                     <div style="display:flex; height:100%; gap:40px;">
                         <div style="flex:1;">
@@ -816,6 +816,7 @@
                 `;
             } 
             else if (viewMode === 'immersive') {
+                // FIXED: Added $ and used https
                 const bgImg = item.photos[0] ? 
                     `https://lh3.googleusercontent.com/d/${item.photos[0]}=w1200` : 
                     'https://via.placeholder.com/1200x800?text=No+Image';
@@ -843,6 +844,7 @@
                 `;
             }
             else if (viewMode === 'minimal') {
+                // FIXED: Added $ and used https
                 content = `
                     <div style="text-align:center; padding:60px;">
                         <h1 style="font-size:42px; color:#222; margin:0 0 10px 0;">${item.event}</h1>
@@ -932,7 +934,7 @@
             slide.addText(`District: ${item.district}\nDate: ${item.date}\nAttendance: ${item.attendance}\n\nGuests:\n${item.guests.substring(0,300)}`, { x:0.5, y:1.2, w:4, h:4, fontSize:14, color:'333333', valign:'top' });
             const photoPos = [{x:5, y:1.2}, {x:7.5, y:1.2}, {x:5, y:3.5}, {x:7.5, y:3.5}];
             for(let i=0; i<Math.min(item.photos.length, 4); i++) {
-                // FIX: Added $ before {item.photos[i]}
+                // FIXED: Added $ and used https
                 const url = `https://lh3.googleusercontent.com/d/${item.photos[i]}=w600`;
                 slide.addImage({ path: url, x: photoPos[i].x, y: photoPos[i].y, w: 2.3, h: 2 });
             }
@@ -955,4 +957,22 @@
         document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
         if(id === 'slide') document.querySelectorAll('.nav-item')[0].classList.add('active');
         if(id === 'cards') document.querySelectorAll('.nav-item')[1].classList.add('active');
-        if(id === 'grid') document.querySelectorAll('.nav-item')
+        if(id === 'grid') document.querySelectorAll('.nav-item')[2].classList.add('active');
+        if(id === 'print') document.querySelectorAll('.nav-item')[3].classList.add('active');
+        if(id === 'analytics') document.querySelectorAll('.nav-item')[4].classList.add('active');
+    }
+
+    function openLB(src) {
+        document.getElementById('lightbox-img').src = src;
+        const lb = document.getElementById('lightbox');
+        lb.style.display = 'flex';
+        setTimeout(() => lb.classList.add('show'), 10);
+    }
+    function closeLightbox() {
+        const lb = document.getElementById('lightbox');
+        lb.classList.remove('show');
+        setTimeout(() => lb.style.display = 'none', 300);
+    }
+</script>
+</body>
+</html>
