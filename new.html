@@ -465,7 +465,7 @@
                     <a onclick="downloadFullPDF()"><i class='bx bxs-file-pdf'></i> Slides to PDF</a>
                     <a onclick="downloadPPT()"><i class='bx bxs-slideshow'></i> PowerPoint (PPT)</a>
                     <a onclick="downloadExcel()"><i class='bx bxs-spreadsheet'></i> Excel Export</a>
-                    <a onclick="downloadCurrentImage()"><i class='bx bxs-image'></i> Current Slide (Img)</a>
+                    <a onclick="downloadCurrentSlide()"><i class='bx bxs-image'></i> Current Slide (Img)</a>
                     <a onclick="downloadScreenshot()"><i class='bx bxs-camera'></i> Full Screenshot</a>
                 </div>
             </div>
@@ -582,7 +582,7 @@
         updateCounter();
     }
 
-    // --- DISPLAY LOGIC (Use Google Links, NO PROXY for reliability in UI) ---
+    // --- DISPLAY LOGIC ---
     function renderSlides() {
         const wrapper = document.getElementById('slides-wrapper');
         wrapper.innerHTML = '';
@@ -601,7 +601,6 @@
                 const limit = Math.min(photoCount, maxPhotos);
                 for(let i=0; i<limit; i++) {
                     const pid = item.photos[i];
-                    // USE RELIABLE DRIVE THUMBNAIL LINK FOR DISPLAY
                     const url = `https://drive.google.com/thumbnail?id=${pid}&sz=w1000`; 
                     let overlay = (i === 3 && photoCount > 4) ? `<div class="more-overlay">+${photoCount - 3}</div>` : '';
                     photosHtml += `
@@ -631,7 +630,6 @@
         const grid = document.getElementById('view-grid');
         grid.innerHTML = '';
         filteredData.forEach((item, index) => {
-            // USE RELIABLE DRIVE THUMBNAIL LINK FOR GRID
             const thumb = item.photos.length > 0 ? `https://drive.google.com/thumbnail?id=${item.photos[0]}&sz=w500` : 'https://placehold.co/400x300?text=No+Img';
             const div = document.createElement('div');
             div.className = 'grid-item';
@@ -713,25 +711,63 @@
         }
     }
 
-    // --- DOWNLOAD LOGIC - ULTIMATE FIX: IFRAME INJECTION + BASE64 ---
-
-    // 1. Convert Image to Base64 (Using wsrv.nl proxy to bypass CORS)
-    async function getBase64FromUrl(url) {
-        try {
-            const proxyUrl = `https://wsrv.nl/?url=${encodeURIComponent(url)}&output=jpg`;
-            const res = await fetch(proxyUrl);
-            const blob = await res.blob();
-            return new Promise((resolve) => {
-                const reader = new FileReader();
-                reader.onloadend = () => resolve(reader.result);
-                reader.readAsDataURL(blob);
-            });
-        } catch (e) {
-            console.error("Base64 Error:", e);
-            return null;
-        }
+    // --- IMAGE PROCESSING FUNCTIONS (FROM YOUR REFERENCE CODE) ---
+    function extractID(url){ 
+        if(!url) return ""; 
+        url=url.trim().replace(/^["']|["']$/g,""); 
+        let m=url.match(/[?&]id=([\w-]+)/); 
+        if(m) return m[1]; 
+        m=url.match(/\/file\/d\/([\w-]+)/); 
+        if(m) return m[1]; 
+        if(/^[\w-]{15,}$/.test(url)) return url; 
+        return ""; 
     }
-
+    
+    function candidates(url){ 
+        const id=extractID(url); 
+        if(!id) return []; 
+        return [
+            "https://drive.google.com/uc?export=view&id="+id,
+            "https://drive.google.com/thumbnail?id="+id+"&sz=w1200",
+            "https://lh3.googleusercontent.com/d/"+id+"=w1200"
+        ]; 
+    }
+    
+    async function fetchAsDataURL(url, timeoutMs=20000){
+      if(!url) throw new Error("empty url");
+      const ctrl = new AbortController();
+      const to = setTimeout(()=>ctrl.abort(), timeoutMs);
+      try{
+        // यहां CORS proxy का उपयोग कर रहे हैं - आपके reference code से
+        const proxyUrl = "https://corsproxy.io/?" + encodeURIComponent(url);
+        const res = await fetch(proxyUrl, {cache:'no-store', signal: ctrl.signal});
+        if(!res.ok) throw new Error("HTTP " + res.status);
+        const blob = await res.blob();
+        return await new Promise((resolve,reject)=>{
+          const fr = new FileReader();
+          fr.onload = () => resolve(fr.result);
+          fr.onerror = reject;
+          fr.readAsDataURL(blob);
+        });
+      } finally { clearTimeout(to); }
+    }
+    
+    async function loadImageAsDataURLWithFallbacks(u){
+      const tries = candidates(u);
+      const seq = [];
+      if(tries && tries.length) seq.push(...tries);
+      if(!seq.length) seq.push(u);
+      // Also try proxied variants
+      const proxied = seq.map(x => "https://corsproxy.io/?" + encodeURIComponent(x));
+      const chain = [...seq, ...proxied];
+      for (let i=0;i<chain.length;i++){
+        try{ return await fetchAsDataURL(chain[i]); }catch(e){ /* try next */ }
+      }
+      // last resort: return u as-is
+      return u;
+    }
+    
+    // --- DOWNLOAD FUNCTIONS ---
     function downloadDataCSV() {
         if(filteredData.length === 0) return alert("No data");
         let csv = "Date,District,Event,Attendance,Guests\n";
@@ -751,84 +787,274 @@
         XLSX.writeFile(wb, "Karyakram_Report.xlsx");
     }
 
-    // --- 2. PDF Download (Clone -> Inject Base64 -> Print) ---
+    // --- PDF DOWNLOAD (IMPROVED WITH IMAGE EMBEDDING) ---
     async function downloadFullPDF() {
-        if (filteredData.length === 0) return;
+        if (filteredData.length === 0) return alert("No data to download");
+        
         const btn = document.getElementById('download-main-btn');
         const originalText = btn.innerHTML;
-        btn.innerHTML = '⏳ Preparing PDF...';
+        btn.innerHTML = '⏳ Generating PDF...';
         btn.disabled = true;
-
+        
         try {
-            // Create a HIDDEN container (NOT displayed)
+            // Create a container for all slides
             const container = document.createElement('div');
-            container.style.width = '1123px'; // A4 Landscape
-            container.style.position = 'fixed';
-            container.style.top = '-10000px';
-            container.style.left = '-10000px';
-            container.style.background = '#0b0c10'; 
-            container.style.color = '#fff';
-            container.style.fontFamily = "'Noto Sans Devanagari', sans-serif";
-            document.body.appendChild(container);
-
-            // Construct HTML string first
-            let htmlContent = '';
-            for (const item of filteredData) {
-                // Fetch images as Base64 in parallel for speed
-                const max = Math.min(item.photos.length, 4);
-                const photoPromises = item.photos.slice(0, 4).map(id => 
-                    getBase64FromUrl(`https://drive.google.com/thumbnail?id=${id}&sz=w800`)
-                );
-                const base64Images = await Promise.all(photoPromises);
-
-                let imgsHtml = '';
-                for(let i=0; i<4; i++){
-                    if (i < max && base64Images[i]) {
-                        // INJECT BASE64 DIRECTLY - NO EXTERNAL LINK
-                        imgsHtml += `<div style="border:1px solid rgba(255,255,255,0.2); border-radius:10px; overflow:hidden; background:#000;"><img src="${base64Images[i]}" style="width:100%; height:100%; object-fit:cover;"></div>`;
+            container.style.cssText = `
+                position: fixed; top: -10000px; left: 0;
+                width: 1123px; background: #0b0c10;
+                font-family: 'Noto Sans Devanagari', sans-serif;
+                z-index: -1;
+            `;
+            
+            // Process each slide with progress
+            for (let idx = 0; idx < filteredData.length; idx++) {
+                const item = filteredData[idx];
+                
+                // Update progress
+                btn.innerHTML = `⏳ Processing ${idx+1}/${filteredData.length}`;
+                
+                // Load images for this slide (max 4)
+                const imagePromises = [];
+                const maxPhotos = Math.min(item.photos.length, 4);
+                
+                for (let i = 0; i < maxPhotos; i++) {
+                    if (item.photos[i]) {
+                        imagePromises.push(loadImageAsDataURLWithFallbacks(item.photos[i]));
                     } else {
-                        imgsHtml += `<div style="border:1px dashed rgba(255,255,255,0.1); border-radius:10px; display:flex; justify-content:center; align-items:center; color:#333;">${i < max ? 'Img Error' : ''}</div>`;
+                        imagePromises.push(Promise.resolve(''));
                     }
                 }
-
-                htmlContent += `
-                    <div style="width: 1123px; height: 794px; padding: 50px; page-break-after: always; box-sizing: border-box; display: flex; gap: 40px; border: 1px solid #333;">
-                        <div style="flex: 1; display: flex; flex-direction: column; justify-content: center;">
-                            <h1 style="font-size: 42px; color: #66fcf1; margin-bottom: 30px; line-height: 1.2;">${item.event}</h1>
-                            <div style="font-size: 24px; color: #c5c6c7; margin-bottom: 20px;"><span style="color: #45a29e; font-size: 30px;">📅</span> <strong>Date:</strong> ${item.date}</div>
-                            <div style="font-size: 24px; color: #c5c6c7; margin-bottom: 20px;"><span style="color: #45a29e; font-size: 30px;">📍</span> <strong>District:</strong> ${item.district}</div>
-                            <div style="font-size: 24px; color: #c5c6c7; margin-bottom: 20px;"><span style="color: #45a29e; font-size: 30px;">👥</span> <strong>Attend:</strong> ${item.attendance}</div>
-                            <div style="font-size: 24px; color: #c5c6c7;"><span style="color: #45a29e; font-size: 30px;">🎤</span> <strong>Guests:</strong><br>${item.guests}</div>
+                
+                const imageDataUrls = await Promise.all(imagePromises);
+                
+                // Create slide HTML with embedded images
+                const slideDiv = document.createElement('div');
+                slideDiv.style.cssText = `
+                    width: 1123px; height: 794px; padding: 40px;
+                    page-break-after: always; box-sizing: border-box;
+                    display: flex; gap: 30px; background: #0b0c10;
+                    border-bottom: 2px solid #1f2833;
+                `;
+                
+                // Left panel - Info
+                const infoPanel = document.createElement('div');
+                infoPanel.style.cssText = `
+                    flex: 1; padding: 30px; background: #1f2833;
+                    border-radius: 15px; color: white;
+                    display: flex; flex-direction: column; justify-content: center;
+                `;
+                
+                infoPanel.innerHTML = `
+                    <h1 style="font-size: 32px; color: #66fcf1; margin-bottom: 25px; line-height: 1.3;">
+                        ${item.event}
+                    </h1>
+                    <div style="margin-bottom: 15px; display: flex; align-items: center;">
+                        <span style="color: #45a29e; font-size: 24px; margin-right: 10px;">📅</span>
+                        <span style="font-size: 20px;"><strong>Date:</strong> ${item.date}</span>
+                    </div>
+                    <div style="margin-bottom: 15px; display: flex; align-items: center;">
+                        <span style="color: #45a29e; font-size: 24px; margin-right: 10px;">📍</span>
+                        <span style="font-size: 20px;"><strong>District:</strong> ${item.district}</span>
+                    </div>
+                    <div style="margin-bottom: 15px; display: flex; align-items: center;">
+                        <span style="color: #45a29e; font-size: 24px; margin-right: 10px;">👥</span>
+                        <span style="font-size: 20px;"><strong>Attendance:</strong> ${item.attendance}</span>
+                    </div>
+                    <div style="display: flex; align-items: flex-start;">
+                        <span style="color: #45a29e; font-size: 24px; margin-right: 10px; margin-top: 5px;">🎤</span>
+                        <div style="font-size: 20px;">
+                            <strong>Guests:</strong><br>
+                            <div style="margin-top: 5px;">${item.guests}</div>
                         </div>
-                        <div style="flex: 1; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 20px; height: 100%;">${imgsHtml}</div>
-                    </div>`;
+                    </div>
+                `;
+                
+                // Right panel - Photos
+                const photoPanel = document.createElement('div');
+                photoPanel.style.cssText = `
+                    flex: 1; display: grid; grid-template-columns: 1fr 1fr;
+                    grid-template-rows: 1fr 1fr; gap: 15px;
+                `;
+                
+                for (let i = 0; i < 4; i++) {
+                    const photoDiv = document.createElement('div');
+                    photoDiv.style.cssText = `
+                        border: 2px solid #45a29e; border-radius: 10px;
+                        overflow: hidden; background: #000;
+                        display: flex; justify-content: center; align-items: center;
+                        min-height: 200px;
+                    `;
+                    
+                    if (i < maxPhotos && imageDataUrls[i] && imageDataUrls[i].startsWith('data:')) {
+                        const img = document.createElement('img');
+                        img.src = imageDataUrls[i];
+                        img.style.cssText = 'width: 100%; height: 100%; object-fit: cover; display: block;';
+                        photoDiv.appendChild(img);
+                    } else {
+                        photoDiv.innerHTML = `
+                            <div style="color: #666; font-size: 16px; text-align: center; padding: 20px;">
+                                ${i < item.photos.length ? 'Image Not Available' : 'No Photo'}
+                            </div>
+                        `;
+                    }
+                    photoPanel.appendChild(photoDiv);
+                }
+                
+                slideDiv.appendChild(infoPanel);
+                slideDiv.appendChild(photoPanel);
+                container.appendChild(slideDiv);
             }
             
-            container.innerHTML = htmlContent;
-
-            // Generate PDF from the Clean Container
-            const opt = {
+            document.body.appendChild(container);
+            
+            // Generate PDF
+            await html2pdf().set({
                 margin: 0,
-                filename: 'Karyakram_Slides.pdf',
-                image: { type: 'jpeg', quality: 0.95 },
-                html2canvas: { scale: 1.5, scrollY: 0, backgroundColor: '#0b0c10' }, // No CORS needed now
-                jsPDF: { unit: 'px', format: [1123, 794], orientation: 'landscape' }
-            };
-            await html2pdf().set(opt).from(container).save();
-
+                filename: `Karyakram_${new Date().toISOString().split('T')[0]}.pdf`,
+                image: { type: 'jpeg', quality: 0.9 },
+                html2canvas: { 
+                    scale: 1.5,
+                    backgroundColor: '#0b0c10',
+                    useCORS: true,
+                    allowTaint: true,
+                    logging: false
+                },
+                jsPDF: { 
+                    unit: 'px', 
+                    format: [1123, 794], 
+                    orientation: 'landscape' 
+                }
+            }).from(container).save();
+            
             document.body.removeChild(container);
-
-        } catch(e) { 
-            console.error(e); 
-            alert("PDF Error"); 
-        } finally { 
-            btn.innerHTML = originalText; 
-            btn.disabled = false; 
+            
+        } catch (error) {
+            console.error('PDF generation error:', error);
+            alert('PDF generation failed. Check console for details.');
+        } finally {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
         }
     }
 
-    // --- 3. PPT Download (Base64 Injection) ---
+    // --- CURRENT SLIDE DOWNLOAD AS IMAGE ---
+    async function downloadCurrentSlide() {
+        if (filteredData.length === 0) return alert("No data");
+        
+        const activeSlide = document.getElementById(`slide-${currentIndex}`);
+        if (!activeSlide || activeSlide.classList.contains('hidden')) {
+            return alert("Go to Presentation View and select a slide");
+        }
+        
+        const btn = document.getElementById('download-main-btn');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '⏳ Preparing image...';
+        btn.disabled = true;
+        
+        try {
+            // Create a new container for the slide
+            const container = document.createElement('div');
+            container.style.cssText = `
+                position: fixed; top: -10000px; left: 0;
+                width: 1200px; height: 800px;
+                background: #0b0c10; padding: 40px;
+                display: flex; gap: 30px;
+                z-index: -1;
+            `;
+            
+            document.body.appendChild(container);
+            
+            const item = filteredData[currentIndex];
+            
+            // Load images with fallbacks
+            const imagePromises = [];
+            const maxPhotos = Math.min(item.photos.length, 4);
+            
+            for (let i = 0; i < maxPhotos; i++) {
+                if (item.photos[i]) {
+                    imagePromises.push(loadImageAsDataURLWithFallbacks(item.photos[i]));
+                } else {
+                    imagePromises.push(Promise.resolve(''));
+                }
+            }
+            
+            const imageDataUrls = await Promise.all(imagePromises);
+            
+            // Build slide HTML with embedded images
+            const slideHTML = `
+                <div style="flex: 1; padding: 30px; background: #1f2833; border-radius: 15px; color: white; display: flex; flex-direction: column; justify-content: center;">
+                    <h1 style="font-size: 36px; color: #66fcf1; margin-bottom: 30px; line-height: 1.3;">
+                        ${item.event}
+                    </h1>
+                    <div style="margin-bottom: 15px; display: flex; align-items: center;">
+                        <span style="color: #45a29e; font-size: 28px; margin-right: 15px;">📅</span>
+                        <span style="font-size: 24px;"><strong>Date:</strong> ${item.date}</span>
+                    </div>
+                    <div style="margin-bottom: 15px; display: flex; align-items: center;">
+                        <span style="color: #45a29e; font-size: 28px; margin-right: 15px;">📍</span>
+                        <span style="font-size: 24px;"><strong>District:</strong> ${item.district}</span>
+                    </div>
+                    <div style="margin-bottom: 15px; display: flex; align-items: center;">
+                        <span style="color: #45a29e; font-size: 28px; margin-right: 15px;">👥</span>
+                        <span style="font-size: 24px;"><strong>Attendance:</strong> ${item.attendance}</span>
+                    </div>
+                    <div style="display: flex; align-items: flex-start;">
+                        <span style="color: #45a29e; font-size: 28px; margin-right: 15px; margin-top: 5px;">🎤</span>
+                        <div style="font-size: 24px;">
+                            <strong>Guests:</strong><br>
+                            <div style="margin-top: 5px;">${item.guests}</div>
+                        </div>
+                    </div>
+                </div>
+                <div style="flex: 1; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 15px;">
+                    ${Array.from({length: 4}, (_, i) => {
+                        if (i < maxPhotos && imageDataUrls[i] && imageDataUrls[i].startsWith('data:')) {
+                            return `<div style="border: 2px solid #45a29e; border-radius: 10px; overflow: hidden; background: #000;">
+                                <img src="${imageDataUrls[i]}" style="width: 100%; height: 100%; object-fit: cover; display: block;">
+                            </div>`;
+                        } else {
+                            return `<div style="border: 2px dashed #45a29e; border-radius: 10px; background: #1f2833; display: flex; justify-content: center; align-items: center; color: #666; font-size: 18px;">
+                                ${i < item.photos.length ? 'Image Not Available' : 'No Photo'}
+                            </div>`;
+                        }
+                    }).join('')}
+                </div>
+            `;
+            
+            container.innerHTML = slideHTML;
+            
+            // Wait for images to load
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            // Convert to canvas and download
+            const canvas = await html2canvas(container, {
+                backgroundColor: '#0b0c10',
+                scale: 2,
+                useCORS: true,
+                allowTaint: true,
+                logging: false
+            });
+            
+            const link = document.createElement('a');
+            link.download = `Karyakram_Slide_${currentIndex + 1}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+            
+            document.body.removeChild(container);
+            
+        } catch (error) {
+            console.error('Image download error:', error);
+            alert('Failed to download image. Check console for details.');
+        } finally {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+    }
+
+    // --- PPT DOWNLOAD (IMPROVED WITH IMAGE EMBEDDING) ---
     async function downloadPPT() {
+        if (filteredData.length === 0) return alert("No data to download");
+        
         const btn = document.getElementById('download-main-btn');
         const originalText = btn.innerHTML;
         btn.innerHTML = '⏳ Creating PPT...';
@@ -837,156 +1063,129 @@
         try {
             let pptx = new PptxGenJS();
             pptx.layout = 'LAYOUT_WIDE';
-            pptx.background = { color: '0b0c10' };
             
-            for(const item of filteredData) {
-                let slide = pptx.addSlide();
-                slide.addText(item.event, { x: 0.5, y: 0.5, w: '90%', fontSize: 28, bold: true, color: '66fcf1' });
-                slide.addText(`Date: ${item.date}`, { x: 0.5, y: 1.5, fontSize: 16, color: 'c5c6c7' });
-                slide.addText(`District: ${item.district}`, { x: 0.5, y: 2.0, fontSize: 16, color: 'c5c6c7' });
-                slide.addText(`Guests: ${item.guests}`, { x: 0.5, y: 3.0, w: 4, h: 2, fontSize: 14, color: 'c5c6c7', valign: 'top' });
+            // Add master slide
+            pptx.defineSlideMaster({
+                title: 'MASTER_SLIDE',
+                background: { color: '0b0c10' },
+                objects: [
+                    { rect: { x: 0, y: 0, w: '100%', h: 0.1, fill: { color: '66fcf1' } } },
+                    { text: { text: 'Karyakram Dashboard', options: { x: 0.5, y: 0.1, w: 9, h: 0.5, fontSize: 14, color: 'c5c6c7' } } }
+                ]
+            });
+            
+            // Process each slide
+            for (let idx = 0; idx < filteredData.length; idx++) {
+                const item = filteredData[idx];
+                btn.innerHTML = `⏳ Slide ${idx+1}/${filteredData.length}`;
                 
-                const pos = [{x:5.5,y:1},{x:9.2,y:1},{x:5.5,y:3.7},{x:9.2,y:3.7}];
-                const max = Math.min(item.photos.length, 4);
+                let slide = pptx.addSlide({ masterName: 'MASTER_SLIDE' });
                 
-                for(let i=0; i<max; i++){
-                    // Fetch Base64 before adding to PPT
-                    const b64 = await getBase64FromUrl(`https://drive.google.com/thumbnail?id=${item.photos[i]}&sz=w800`);
-                    if(b64) {
-                        slide.addImage({ data: b64, x: pos[i].x, y: pos[i].y, w: 3.5, h: 2.5 });
+                // Title
+                slide.addText(item.event, {
+                    x: 0.5, y: 0.5, w: 9,
+                    fontSize: 24, bold: true, color: '66fcf1',
+                    fontFace: 'Arial'
+                });
+                
+                // Information
+                slide.addText([
+                    { text: 'Date: ', options: { bold: true, color: '45a29e' } },
+                    { text: item.date + '\n', options: { color: 'ffffff' } },
+                    { text: 'District: ', options: { bold: true, color: '45a29e' } },
+                    { text: item.district + '\n', options: { color: 'ffffff' } },
+                    { text: 'Attendance: ', options: { bold: true, color: '45a29e' } },
+                    { text: item.attendance + '\n\n', options: { color: 'ffffff' } },
+                    { text: 'Guests:\n', options: { bold: true, color: '45a29e' } },
+                    { text: item.guests, options: { color: 'ffffff' } }
+                ], { x: 0.5, y: 1.5, w: 4.5, fontSize: 14 });
+                
+                // Load and add images
+                const maxPhotos = Math.min(item.photos.length, 4);
+                const positions = [
+                    { x: 5.5, y: 1.0 },
+                    { x: 8.0, y: 1.0 },
+                    { x: 5.5, y: 3.5 },
+                    { x: 8.0, y: 3.5 }
+                ];
+                
+                for (let i = 0; i < maxPhotos; i++) {
+                    try {
+                        const imageData = await loadImageAsDataURLWithFallbacks(item.photos[i]);
+                        if (imageData && imageData.startsWith('data:')) {
+                            slide.addImage({
+                                data: imageData,
+                                x: positions[i].x,
+                                y: positions[i].y,
+                                w: 2.3,
+                                h: 1.8
+                            });
+                        }
+                    } catch (e) {
+                        console.warn(`Image ${i+1} failed for slide ${idx+1}:`, e);
                     }
                 }
             }
-            pptx.writeFile({ fileName: `Karyakram.pptx` });
-        } catch(e) { console.error(e); alert("PPT Error"); }
-        finally { btn.innerHTML = originalText; btn.disabled = false; }
+            
+            pptx.writeFile({ fileName: `Karyakram_Presentation_${new Date().toISOString().split('T')[0]}.pptx` });
+            
+        } catch (error) {
+            console.error('PPT generation error:', error);
+            alert('PPT generation failed. Check console for details.');
+        } finally {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
     }
 
-    // --- 4. Current Slide Image (Clone -> Inject Base64 -> Canvas) ---
-    async function downloadCurrentImage() {
-        const activeSlide = document.getElementById(`slide-${currentIndex}`);
-        if (!activeSlide || activeSlide.classList.contains('hidden')) return alert("Go to Presentation View");
-        const btn = document.getElementById('download-main-btn');
-        const orig = btn.innerHTML;
-        btn.innerHTML = '⏳ Saving Img...';
-        btn.disabled = true;
-        
-        try {
-            // 1. Clone Slide
-            const clone = activeSlide.cloneNode(true);
-            clone.style.position='fixed'; clone.style.top='0'; clone.style.left='0'; 
-            clone.style.width='1200px'; clone.style.height='800px'; clone.style.zIndex='-9999';
-            clone.style.background='#0b0c10'; clone.style.display='flex';
-            document.body.appendChild(clone);
-            
-            // 2. Swap Images with Base64
-            const images = clone.querySelectorAll('img');
-            const currentPhotos = filteredData[currentIndex].photos;
-            
-            await Promise.all(Array.from(images).map(async (img, i) => {
-                if(currentPhotos[i]) {
-                    const b64 = await getBase64FromUrl(`https://drive.google.com/thumbnail?id=${currentPhotos[i]}&sz=w800`);
-                    if(b64) img.src = b64;
-                }
-            }));
-            
-            // 3. Capture
-            const canvas = await html2canvas(clone, { backgroundColor: '#0b0c10', scale: 1.5 });
-            const link = document.createElement('a');
-            link.download = `Slide_${currentIndex+1}.png`;
-            link.href = canvas.toDataURL("image/png");
-            link.click();
-            document.body.removeChild(clone);
-        } catch(e) { console.error(e); } 
-        finally { btn.innerHTML = orig; btn.disabled = false; }
-    }
-
-    // --- 5. Full Screenshot (Clone -> Inject Base64 -> Canvas) ---
+    // --- SCREENSHOT DOWNLOAD ---
     async function downloadScreenshot() {
         const btn = document.getElementById('download-main-btn');
-        const orig = btn.innerHTML;
+        const originalText = btn.innerHTML;
         btn.innerHTML = '📸 Capturing...';
         btn.disabled = true;
         
         try {
-            // 1. Clone Body
-            const clone = document.documentElement.cloneNode(true);
-            const body = clone.querySelector('body');
-            body.style.width = '1280px'; body.style.height = 'auto'; body.style.overflow = 'visible';
+            const canvas = await html2canvas(document.querySelector('.main-content'), {
+                backgroundColor: '#0b0c10',
+                useCORS: true,
+                allowTaint: true,
+                scale: 1,
+                logging: false
+            });
             
-            // Hide controls in clone
-            const controls = clone.querySelectorAll('.dropdown, #tv-mode-btn, .sidebar');
-            controls.forEach(el => el.style.display = 'none');
-
-            // Create a temporary container to hold the clone
-            const tempContainer = document.createElement('iframe');
-            tempContainer.style.position = 'fixed';
-            tempContainer.style.top = '-10000px';
-            tempContainer.style.width = '1280px';
-            tempContainer.style.height = '100vh';
-            document.body.appendChild(tempContainer);
-            
-            // Write clone to iframe
-            const doc = tempContainer.contentWindow.document;
-            doc.open();
-            doc.write(clone.outerHTML);
-            doc.close();
-
-            // 2. Swap Images in Iframe
-            const images = doc.querySelectorAll('img');
-            // This is heavy, so we might just do visible ones or skip if too slow
-            // For now, let's try swapping the visible slide images primarily
-            // Finding the current visible slide in the clone is tricky without logic
-            // SIMPLER: Just capture the main body with html2canvas directly but AFTER swapping images in main DOM temporarily? 
-            // NO, that flickers.
-            
-            // Let's stick to the current view capture
-            // We will just capture the visible part of the screen using standard html2canvas with allowTaint, 
-            // BUT since that failed, let's try the swap on the main body? No.
-            
-            // Fallback: Just capture the 'main-content' div
-            const mainContent = document.querySelector('.main-content');
-            
-            // Swap images in a clone of main-content
-            const contentClone = mainContent.cloneNode(true);
-            contentClone.style.position = 'fixed'; contentClone.style.top='0'; contentClone.style.left='0'; 
-            contentClone.style.width = '1280px'; contentClone.style.zIndex='-9999'; contentClone.style.background='#0b0c10';
-            document.body.appendChild(contentClone);
-            
-            // Hide buttons
-            contentClone.querySelectorAll('button, .dropdown').forEach(el => el.style.display='none');
-
-            // Swap images
-            const imgs = contentClone.querySelectorAll('img');
-            for(let img of imgs) {
-                // Try to get ID from src if possible, or just re-fetch src through proxy
-                // Extract ID from src is hard if we don't store it.
-                // Simple hack: fetch the src URL through proxy
-                if(img.src && img.src.includes('drive.google.com')) {
-                     const b64 = await getBase64FromUrl(img.src);
-                     if(b64) img.src = b64;
-                }
-            }
-
-            const canvas = await html2canvas(contentClone, { backgroundColor: '#0b0c10', scale: 1 });
             const link = document.createElement('a');
-            link.download = `Dashboard_Shot.png`;
+            link.download = `Dashboard_Screenshot_${new Date().toISOString().split('T')[0]}.png`;
             link.href = canvas.toDataURL("image/png");
             link.click();
-            document.body.removeChild(contentClone);
-
-        } catch(e) { console.error(e); alert("Screenshot Error"); }
-        finally { btn.innerHTML = orig; btn.disabled = false; }
+        } catch(error) {
+            console.error('Screenshot error:', error);
+            alert('Screenshot failed');
+        } finally {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
     }
 
+    // --- LIGHTBOX ---
     function openLightbox(url, caption) {
         document.getElementById('lightbox-img').src = url;
         document.getElementById('lightbox-caption').innerText = caption;
         document.getElementById('lightbox').style.display = 'flex';
         if(tvInterval) toggleTVMode();
     }
-    function closeLightbox() { document.getElementById('lightbox').style.display = 'none'; }
-    document.addEventListener('keydown', e => { if(e.key==='Escape')closeLightbox(); if(e.key==='ArrowRight')nextSlide(); if(e.key==='ArrowLeft')prevSlide(); });
+    
+    function closeLightbox() { 
+        document.getElementById('lightbox').style.display = 'none'; 
+    }
+    
+    // --- KEYBOARD SHORTCUTS ---
+    document.addEventListener('keydown', e => { 
+        if(e.key === 'Escape') closeLightbox(); 
+        if(e.key === 'ArrowRight') nextSlide(); 
+        if(e.key === 'ArrowLeft') prevSlide(); 
+        if(e.key === ' ') toggleTVMode();
+    });
 
 </script>
 </body>
