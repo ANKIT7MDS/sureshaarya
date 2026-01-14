@@ -127,6 +127,7 @@
 
         /* Mode Styles - FIXED SIZES */
         .mode-standard { gap: 30px; padding: 20px; height: 100%; }
+        /* Balanced flex so text isn't squashed */
         .mode-standard .info-panel { flex: 4; background: rgba(31, 31, 35, 0.6); backdrop-filter: blur(10px); padding: 40px; border-radius: 30px; display: flex; flex-direction: column; justify-content: center; border: 1px solid rgba(255,255,255,0.05); overflow:hidden; }
         .mode-standard .photo-panel { flex: 6; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: repeat(2, 1fr); gap: 15px; height: 80vh; } 
         .photo-card { border-radius: 12px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); cursor: pointer; height: 100%; position: relative; }
@@ -383,32 +384,28 @@
         }
     }
 
-    // --- ROBUST DATE PARSER (MASTER FIX) ---
-    function masterDateParser(dateStr) {
-        if (!dateStr) return new Date(0); // Epoch for empty
-
-        // 1. Google Visualization Format: "Date(2023,0,15)"
-        if (typeof dateStr === 'string' && dateStr.includes("Date(")) {
-            const nums = dateStr.match(/\d+/g);
-            if (nums && nums.length >= 3) {
-                // Month is 0-indexed in JS Date
-                return new Date(nums[0], nums[1], nums[2]);
-            }
+    // --- ENHANCED DATE PARSING ---
+    function parseDate(dateStr) {
+        if (!dateStr) return new Date(0);
+        
+        // 1. Handle "Date(YYYY, M, D)" format from Google Sheets JSON
+        if(typeof dateStr === 'string' && dateStr.indexOf('Date(') >= 0) {
+             const parts = dateStr.match(/\d+/g);
+             if(parts && parts.length >= 3) {
+                 return new Date(parts[0], parts[1], parts[2]);
+             }
+        }
+        
+        // 2. Handle "YYYY-MM-DD" (ISO)
+        const isoMatch = dateStr.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+        if (isoMatch) {
+            return new Date(isoMatch[1], isoMatch[2] - 1, isoMatch[3]);
         }
 
-        // 2. Standard ISO: "YYYY-MM-DD"
-        if (typeof dateStr === 'string' && dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
-            return new Date(dateStr);
-        }
-
-        // 3. Indian Format: "DD/MM/YYYY" or "DD-MM-YYYY"
-        if (typeof dateStr === 'string') {
-            const parts = dateStr.split(/[-/]/);
-            if (parts.length === 3) {
-                // Determine logic: if part[0] > 12 likely day, else ambiguous but assume DD-MM
-                // Standard assumption: Day-Month-Year for this region
-                return new Date(`${parts[2]}-${parts[1]}-${parts[0]}`); 
-            }
+        // 3. Handle "DD-MM-YYYY" or "DD/MM/YYYY" (Common Indian Format)
+        const dmyMatch = dateStr.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
+        if (dmyMatch) {
+            return new Date(dmyMatch[3], dmyMatch[2] - 1, dmyMatch[1]);
         }
 
         // 4. Fallback
@@ -425,16 +422,11 @@
             rawData = json.table.rows.map(row => {
                 const c = row.c;
                 if (!c) return null;
-                
-                // Get Raw Date for Sorting, Formatted for Display
-                let rawDateVal = (c[1] && c[1].v) ? c[1].v : ''; 
-                let displayDate = (c[1] && c[1].f) ? c[1].f : rawDateVal;
-                
-                // If simple string, ensure display matches
-                if(String(rawDateVal).indexOf('Date(') === -1 && !displayDate) {
-                    displayDate = rawDateVal;
+                // Prefer 'v' (raw value) for date if it starts with 'Date(', otherwise 'f'
+                let date = '';
+                if (c[1]) {
+                    date = (typeof c[1].v === 'string' && c[1].v.startsWith('Date(')) ? c[1].v : (c[1].f || c[1].v || '');
                 }
-
                 const district = c[2] ? c[2].v : '';
                 const event = c[3] ? c[3].v : '';
                 const attendance = c[4] ? (parseInt(c[4].v) || 0) : 0;
@@ -449,25 +441,21 @@
                 }
 
                 if(!event) return null;
-                
-                // Store parseable date object for sorting
-                const dateObj = masterDateParser(rawDateVal);
-                
-                // Format for UI if needed (fallback if displayDate is ugly code)
-                if(String(displayDate).indexOf('Date(') !== -1) {
-                    displayDate = dateObj.toLocaleDateString('en-GB'); // DD/MM/YYYY
-                }
-
-                return { 
-                    dateObj: dateObj, // For sorting
-                    date: displayDate, // For display
-                    district, event, attendance, guests, photos 
-                };
+                // Store original display string for UI, raw for sorting if needed
+                // But simplifying: store the raw string, parseDate handles formats
+                return { date, district, event, attendance, guests, photos };
             }).filter(Boolean);
             
             // --- STRICT DATE SORTING (NEWEST FIRST) ---
-            // If you want Oldest First, swap a and b
-            rawData.sort((a, b) => b.dateObj - a.dateObj); 
+            rawData.sort((a, b) => parseDate(b.date) - parseDate(a.date));
+
+            // Format dates for display AFTER sorting if they are Date() strings
+            rawData.forEach(item => {
+                if(item.date.indexOf('Date(') >= 0) {
+                    const d = parseDate(item.date);
+                    item.date = d.toLocaleDateString('en-GB'); // DD/MM/YYYY
+                }
+            });
 
             // Populate Filters
             const dists = [...new Set(rawData.map(d=>d.district))].sort();
@@ -686,7 +674,7 @@
             distCount[d.district] = (distCount[d.district] || 0) + 1;
             
             // Timeline (extract Month-Year)
-            // Use local date string parsing
+            // Assumes DD-MM-YYYY format from the sheet string
             try {
                 const parts = d.date.split(/[-/]/);
                 if(parts.length >= 2) {
@@ -750,171 +738,185 @@
     // --- EXPORT LOGIC (FIXED BLANK PDF & VISIBILITY) ---
     async function downloadBookletPDF(viewMode) {
         const btn = document.getElementById('export-btn');
-        const oldText = btn.innerHTML;
+        const originalText = btn.innerHTML;
         btn.innerHTML = "<i class='bx bx-loader-alt bx-spin'></i> Generating...";
         btn.disabled = true;
 
-        // 1. Create a FIXED container on top of everything
-        // This ensures the element is visible to the browser engine but covers the UI
+        // Strategy: Hide main UI, Append PDF container to BODY as standard flow, Scroll Top, Capture
+        const mainContent = document.getElementById('main-content');
+        const sidebar = document.getElementById('main-sidebar');
+        const scrollPos = window.scrollY;
+
+        // Hide App UI
+        mainContent.style.display = 'none';
+        sidebar.style.display = 'none';
+
+        // Create PDF Container
         const container = document.createElement('div');
         container.id = 'pdf-gen-container';
-        container.style.position = 'fixed';
-        container.style.top = '0';
-        container.style.left = '0';
-        container.style.width = '100vw';
-        container.style.height = '100vh';
-        container.style.zIndex = '10000'; // Top most
-        container.style.overflow = 'auto'; // Enable scrolling within it
-        container.style.background = '#222'; // Dark background
+        container.style.width = '1123px'; // A4 Landscape
+        container.style.margin = '0 auto';
+        container.style.background = '#fff';
+        container.style.padding = '20px';
         
-        // Add a "Generating" Label to the top
-        const label = document.createElement('div');
-        label.innerHTML = `<h2 style="color:#fff; text-align:center; padding:20px;">Creating PDF... Do not close.</h2>`;
-        container.appendChild(label);
-
-        // Wrapper for A4 Sheets
-        const bg = viewMode === 'minimal' ? '#ffffff' : '#0f0f11';
-        const txt = viewMode === 'minimal' ? '#000000' : '#ffffff';
-        const accent = '#a78bfa';
-
-        const wrapper = document.createElement('div');
-        wrapper.style.width = '1123px'; // A4 Landscape Pixels (approx 96dpi)
-        wrapper.style.margin = '0 auto';
-        wrapper.style.background = bg;
-
-        // 2. Generate HTML
+        // Process each event
         for(let item of filteredData) {
             const page = document.createElement('div');
-            // Explicit dimensions prevent layout shift
             page.style.cssText = `
                 width: 1123px; 
                 height: 794px; 
-                background: ${bg}; 
-                color: ${txt};
+                background: #ffffff; 
+                color: #000000;
                 padding: 40px; 
                 box-sizing: border-box; 
                 position: relative; 
                 overflow: hidden;
                 page-break-after: always;
-                font-family: sans-serif;
+                font-family: 'Poppins', sans-serif;
+                border: 1px solid #eee;
                 margin-bottom: 20px;
-                border: 1px solid #333;
             `;
             
             let content = '';
             
             if (viewMode === 'standard') {
-                 content = `
-                    <div style="display:flex; height:100%; gap:40px; align-items:center;">
-                        <div style="flex:1; padding-right:20px;">
-                            <h1 style="color:${accent}; font-size:36px; line-height:1.2; margin:0 0 20px 0;">${item.event}</h1>
-                            <div style="border-left:4px solid ${accent}; padding-left:20px; margin-bottom:30px;">
-                                <p style="font-size:20px; margin:8px 0;"><strong>District:</strong> ${item.district}</p>
-                                <p style="font-size:20px; margin:8px 0;"><strong>Date:</strong> ${item.date}</p>
-                                <p style="font-size:20px; margin:8px 0;"><strong>Attendance:</strong> ${item.attendance}</p>
+                content = `
+                    <div style="display:flex; height:100%; gap:40px;">
+                        <div style="flex:1;">
+                            <h1 style="color:#a78bfa; font-size:36px; margin:0 0 20px 0;">${item.event}</h1>
+                            <div style="font-size:20px; margin-bottom:15px;">
+                                <strong>District:</strong> ${item.district}
                             </div>
-                            <div style="font-size:16px; line-height:1.5; color:${viewMode==='minimal'?'#555':'#ccc'}; max-height:300px; overflow:hidden;">
-                                <strong>Guests/Notes:</strong><br>${item.guests}
+                            <div style="font-size:20px; margin-bottom:15px;">
+                                <strong>Date:</strong> ${item.date}
+                            </div>
+                            <div style="font-size:20px; margin-bottom:30px;">
+                                <strong>Attendance:</strong> ${item.attendance}
+                            </div>
+                            <div style="font-size:16px; color:#555;">
+                                <strong>Guests:</strong><br>
+                                ${item.guests}
                             </div>
                         </div>
-                        <div style="width:450px; display:grid; grid-template-columns:1fr 1fr; gap:15px; align-content:center;">
+                        <div style="width:500px; display:grid; grid-template-columns:1fr 1fr; gap:15px;">
                             ${item.photos.slice(0,4).map(pid => `
-                                <div style="height:150px; border-radius:12px; overflow:hidden; border:2px solid rgba(255,255,255,0.1);">
-                                    <img src="https://lh3.googleusercontent.com/d/${pid}=w500" style="width:100%; height:100%; object-fit:cover;" crossorigin="anonymous">
+                                <div style="height:180px; border-radius:10px; overflow:hidden; border:2px solid #eee;">
+                                    <img src="https://lh3.googleusercontent.com/d/${pid}=w600" 
+                                         style="width:100%; height:100%; object-fit:cover;"
+                                         onerror="this.src='https://via.placeholder.com/400x300?text=No+Image'">
                                 </div>
                             `).join('')}
                         </div>
-                    </div>`;
+                    </div>
+                `;
             } 
             else if (viewMode === 'immersive') {
-                const bgImg = item.photos[0] ? `https://lh3.googleusercontent.com/d/${item.photos[0]}=w1200` : '';
+                const bgImg = item.photos[0] ? 
+                    `https://lh3.googleusercontent.com/d/${item.photos[0]}=w1200` : 
+                    'https://via.placeholder.com/1200x800?text=No+Image';
+                
                 content = `
-                    <div style="position:absolute; inset:0; z-index:0;">
-                         <img src="${bgImg}" style="width:100%; height:100%; object-fit:cover; opacity:0.3;" crossorigin="anonymous">
-                         <div style="position:absolute; inset:0; background:linear-gradient(to right, ${bg} 10%, transparent 80%);"></div>
+                    <div style="position:absolute; inset:0;">
+                        <img src="${bgImg}" 
+                             style="width:100%; height:100%; object-fit:cover; opacity:0.3;"
+                             onerror="this.src='https://via.placeholder.com/1200x800?text=No+Image'">
+                        <div style="position:absolute; inset:0; background:linear-gradient(to right, #000000 0%, transparent 70%);"></div>
                     </div>
-                    <div style="position:relative; z-index:1; height:100%; display:flex; flex-direction:column; justify-content:center; max-width:65%;">
-                        <h1 style="font-size:56px; color:#fff; line-height:1.1; margin:0 0 20px 0; text-shadow:0 2px 10px rgba(0,0,0,0.5);">${item.event}</h1>
-                        <div style="display:flex; gap:30px; font-size:24px; color:${accent}; font-weight:600;">
-                            <span>${item.district}</span> <span>|</span> <span>${item.date}</span>
+                    <div style="position:relative; z-index:1; height:100%; display:flex; flex-direction:column; justify-content:center; padding-left:60px;">
+                        <h1 style="font-size:56px; color:#ffffff; margin:0 0 20px 0; text-shadow:2px 2px 8px rgba(0,0,0,0.7);">${item.event}</h1>
+                        <div style="display:flex; gap:30px; font-size:24px; color:#a78bfa; font-weight:600;">
+                            <span>${item.district}</span>
+                            <span>|</span>
+                            <span>${item.date}</span>
+                            <span>|</span>
+                            <span>${item.attendance} People</span>
                         </div>
-                        <p style="font-size:18px; color:#ddd; margin-top:30px; max-width:80%;">${item.guests}</p>
+                        <div style="font-size:18px; color:#ffffff; margin-top:30px; max-width:70%; background:rgba(0,0,0,0.6); padding:20px; border-radius:10px;">
+                            ${item.guests}
+                        </div>
                     </div>
-                    <div style="position:absolute; bottom:40px; right:40px; display:flex; gap:15px; z-index:2;">
-                         ${item.photos.slice(1,4).map(pid => `
-                            <img src="https://lh3.googleusercontent.com/d/${pid}=w400" style="width:180px; height:120px; object-fit:cover; border:2px solid #fff; border-radius:8px; box-shadow:0 10px 20px rgba(0,0,0,0.5);" crossorigin="anonymous">
-                         `).join('')}
-                    </div>`;
+                `;
             }
             else if (viewMode === 'minimal') {
                 content = `
-                    <div style="text-align:center; padding:40px;">
-                        <h1 style="font-size:42px; color:#111; margin:0 0 10px 0;">${item.event}</h1>
-                        <div style="font-size:18px; color:#666; margin-bottom:40px; text-transform:uppercase; letter-spacing:1px;">
-                            ${item.district} &bull; ${item.date} &bull; ${item.attendance} People
+                    <div style="text-align:center; padding:60px;">
+                        <h1 style="font-size:42px; color:#222; margin:0 0 10px 0;">${item.event}</h1>
+                        <div style="font-size:18px; color:#666; margin-bottom:40px;">
+                            ${item.district} • ${item.date} • ${item.attendance} People
                         </div>
                         
                         <div style="display:flex; justify-content:center; gap:20px; margin-bottom:40px;">
-                             ${item.photos.slice(0,3).map(pid => `
+                            ${item.photos.slice(0,3).map(pid => `
                                 <div style="width:280px; height:200px; border-radius:8px; overflow:hidden; box-shadow:0 5px 15px rgba(0,0,0,0.1);">
-                                    <img src="https://lh3.googleusercontent.com/d/${pid}=w600" style="width:100%; height:100%; object-fit:cover;" crossorigin="anonymous">
+                                    <img src="https://lh3.googleusercontent.com/d/${pid}=w600" 
+                                         style="width:100%; height:100%; object-fit:cover;"
+                                         onerror="this.src='https://via.placeholder.com/400x300?text=No+Image'">
                                 </div>
-                             `).join('')}
+                            `).join('')}
                         </div>
                         
-                        <div style="background:#f9fafb; padding:20px; border-radius:10px; display:inline-block; text-align:left; max-width:80%;">
-                            <strong style="color:#333;">Guests:</strong> <span style="color:#555;">${item.guests}</span>
+                        <div style="background:#f9fafb; padding:25px; border-radius:12px; display:inline-block; text-align:left; max-width:80%;">
+                            <strong style="color:#333; font-size:16px;">Guests:</strong>
+                            <p style="color:#555; margin-top:10px; line-height:1.5;">${item.guests}</p>
                         </div>
-                    </div>`;
+                    </div>
+                `;
             }
 
             page.innerHTML = content;
-            wrapper.appendChild(page);
+            container.appendChild(page);
         }
-        
-        container.appendChild(wrapper);
-        document.body.appendChild(container);
 
-        // 3. Wait for Images (Critical Step)
+        document.body.appendChild(container);
+        window.scrollTo(0,0); // Force scroll top
+
+        // --- WAIT FOR IMAGES ---
         const images = container.querySelectorAll('img');
         const promises = Array.from(images).map(img => {
             if (img.complete) return Promise.resolve();
             return new Promise(resolve => {
                 img.onload = resolve;
-                img.onerror = resolve; // Don't break if 1 image fails
+                img.onerror = resolve; 
             });
         });
         
         await Promise.race([
             Promise.all(promises),
-            new Promise(resolve => setTimeout(resolve, 4000)) // 4s max wait
+            new Promise(resolve => setTimeout(resolve, 4000)) 
         ]);
 
-        // 4. Config html2pdf
         const opt = {
             margin: 0,
-            filename: `Karyakram_${viewMode}.pdf`,
+            filename: `Karyakram_${viewMode}_${new Date().toISOString().split('T')[0]}.pdf`,
             image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2, useCORS: true, scrollY: 0, windowWidth: 1123 },
+            html2canvas: { 
+                scale: 2, 
+                useCORS: true, 
+                scrollY: 0, 
+                windowWidth: 1123,
+                backgroundColor: '#ffffff'
+            },
             jsPDF: { unit: 'px', format: [1123, 794], orientation: 'landscape' }
         };
 
-        // 5. Generate
         try {
-            await html2pdf().set(opt).from(wrapper).save();
+            await html2pdf().set(opt).from(container).save();
         } catch(e) {
             console.error("PDF Error:", e);
-            alert("Download Failed. Try again.");
+            alert("PDF Error. Try again.");
         } finally {
-            // 6. Cleanup
+            // Restore UI
             document.body.removeChild(container);
-            btn.innerHTML = oldText;
+            mainContent.style.display = 'flex';
+            sidebar.style.display = 'flex';
+            window.scrollTo(0, scrollPos);
+            
+            btn.innerHTML = originalText;
             btn.disabled = false;
         }
     }
 
     async function downloadFixedPPT() {
-        // ... (Same PPT Logic)
         const btn = document.getElementById('export-btn');
         btn.innerHTML = "<i class='bx bx-loader-alt bx-spin'></i> PPT...";
         let pptx = new PptxGenJS();
