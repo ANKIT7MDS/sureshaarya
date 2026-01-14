@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="hi">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Karyakram Dashboard – FIXED</title>
+<meta charset="UTF-8">
+<title>Karyakram Dashboard – FINAL</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <!-- LIBRARIES -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -11,7 +11,8 @@
 <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
 
 <style>
-body{margin:0;background:#0b0c10;color:#fff;font-family:Arial}
+body{margin:0;font-family:Arial;background:#0b0c10;color:#fff}
+button{padding:10px 15px;margin:5px;cursor:pointer}
 .slide{
   width:1200px;height:800px;
   background:#0b0c10;
@@ -43,87 +44,123 @@ body{margin:0;background:#0b0c10;color:#fff;font-family:Arial}
   height:100%;
   object-fit:cover;
 }
-button{
-  padding:10px 20px;
-  margin:10px;
-  cursor:pointer;
-}
 </style>
 </head>
 
 <body>
 
-<button onclick="downloadSlide()">⬇️ Download Image</button>
-<button onclick="downloadPDF()">⬇️ Download PDF</button>
-<button onclick="downloadPPT()">⬇️ Download PPT</button>
+<button onclick="downloadImage()">⬇️ Image</button>
+<button onclick="downloadPDF()">⬇️ PDF</button>
+<button onclick="downloadPPT()">⬇️ PPT</button>
 
-<div id="slide" class="slide">
-  <div class="info">
-    <h1 id="event">कार्यक्रम नाम</h1>
-    <p>📅 12-01-2026</p>
-    <p>📍 Jaipur</p>
-    <p>👥 1200</p>
-    <p>🎤 Guest Name</p>
-  </div>
-
-  <div class="photos">
-    <div class="photo"><img crossorigin="anonymous" src="" id="img1"></div>
-    <div class="photo"><img crossorigin="anonymous" src="" id="img2"></div>
-    <div class="photo"><img crossorigin="anonymous" src="" id="img3"></div>
-    <div class="photo"><img crossorigin="anonymous" src="" id="img4"></div>
-  </div>
-</div>
+<div id="slide" class="slide"></div>
 
 <script>
-/* 🔹 GOOGLE DRIVE FILE IDS */
-const images = [
- "1wyr0gt061UT5IVxT1JBYUEUJw1GYcBpzxDKEQmvcXXY",
- "1wyr0gt061UT5IVxT1JBYUEUJw1GYcBpzxDKEQmvcXXY",
- "1wyr0gt061UT5IVxT1JBYUEUJw1GYcBpzxDKEQmvcXXY",
- "1wyr0gt061UT5IVxT1JBYUEUJw1GYcBpzxDKEQmvcXXY"
-];
+/* ================== GOOGLE SHEET CONFIG ================== */
+const SHEET_ID = "1wyr0gt061UT5IVxT1JBYUEUJw1GYcBpzxDKEQmvcXXY";
+const GID = "1839722438";
+const SHEET_URL =
+  `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&gid=${GID}`;
 
-/* 🔹 LOAD DRIVE IMAGES CORRECT WAY */
-images.forEach((id,i)=>{
-  document.getElementById("img"+(i+1)).src =
-   `https://lh3.googleusercontent.com/d/${id}=w1200`;
-});
+/* ================== HELPERS ================== */
+function extractDriveId(text){
+  if(!text) return null;
+  let m=text.match(/\/file\/d\/([\w-]+)/);
+  if(m) return m[1];
+  m=text.match(/[?&]id=([\w-]+)/);
+  if(m) return m[1];
+  if(/^[\w-]{25,}$/.test(text)) return text;
+  return null;
+}
 
-/* 🔹 WAIT FOR IMAGES */
-function waitForImages(el){
-  const imgs = el.querySelectorAll("img");
-  return Promise.all([...imgs].map(img=>{
-    if(img.complete) return Promise.resolve();
-    return new Promise(res=>img.onload=img.onerror=res);
+function driveImageUrl(id){
+  return `https://lh3.googleusercontent.com/d/${id}=w1200`;
+}
+
+async function waitForImages(el){
+  const imgs=el.querySelectorAll("img");
+  await Promise.all([...imgs].map(img=>{
+    if(img.complete) return;
+    return new Promise(r=>img.onload=img.onerror=r);
   }));
 }
 
-/* 🔹 IMAGE DOWNLOAD */
-async function downloadSlide(){
-  const slide=document.getElementById("slide");
-  await waitForImages(slide);
+/* ================== LOAD DATA ================== */
+let currentData=null;
 
-  const canvas=await html2canvas(slide,{
-    backgroundColor:"#0b0c10",
-    scale:2,
-    useCORS:true,
-    allowTaint:false
-  });
+fetch(SHEET_URL)
+.then(r=>r.text())
+.then(t=>{
+  const json=JSON.parse(t.substring(47).slice(0,-2));
+  const row=json.table.rows[0].c;
 
-  const link=document.createElement("a");
-  link.download="slide.png";
-  link.href=canvas.toDataURL("image/png");
-  link.click();
+  const event=row[3]?.v || "कार्यक्रम";
+  const date=row[1]?.v || "";
+  const district=row[2]?.v || "";
+  const guests=row[5]?.v || "";
+
+  let photos=[];
+  for(let i=6;i<row.length;i++){
+    const id=extractDriveId(row[i]?.v);
+    if(id) photos.push(id);
+  }
+
+  currentData={event,date,district,guests,photos};
+  renderSlide();
+});
+
+/* ================== RENDER ================== */
+function renderSlide(){
+  const s=document.getElementById("slide");
+  const d=currentData;
+
+  s.innerHTML=`
+    <div class="info">
+      <h1 style="color:#66fcf1">${d.event}</h1>
+      <p>📅 ${d.date}</p>
+      <p>📍 ${d.district}</p>
+      <p>🎤 ${d.guests}</p>
+    </div>
+    <div class="photos">
+      ${[0,1,2,3].map(i=>{
+        if(d.photos[i]){
+          return `<div class="photo">
+            <img crossorigin="anonymous"
+             src="${driveImageUrl(d.photos[i])}">
+          </div>`;
+        }
+        return `<div class="photo"></div>`;
+      }).join("")}
+    </div>
+  `;
 }
 
-/* 🔹 PDF DOWNLOAD */
+/* ================== DOWNLOAD IMAGE ================== */
+async function downloadImage(){
+  const el=document.getElementById("slide");
+  await waitForImages(el);
+
+  const canvas=await html2canvas(el,{
+    scale:2,
+    useCORS:true,
+    allowTaint:false,
+    backgroundColor:"#0b0c10"
+  });
+
+  const a=document.createElement("a");
+  a.download="karyakram.png";
+  a.href=canvas.toDataURL("image/png");
+  a.click();
+}
+
+/* ================== DOWNLOAD PDF ================== */
 async function downloadPDF(){
-  const slide=document.getElementById("slide");
-  await waitForImages(slide);
+  const el=document.getElementById("slide");
+  await waitForImages(el);
 
   html2pdf().set({
+    filename:"karyakram.pdf",
     margin:0,
-    filename:"slide.pdf",
     html2canvas:{
       scale:2,
       useCORS:true,
@@ -131,29 +168,30 @@ async function downloadPDF(){
       backgroundColor:"#0b0c10"
     },
     jsPDF:{unit:"px",format:[1200,800],orientation:"landscape"}
-  }).from(slide).save();
+  }).from(el).save();
 }
 
-/* 🔹 PPT DOWNLOAD */
+/* ================== DOWNLOAD PPT ================== */
 async function downloadPPT(){
   const ppt=new PptxGenJS();
   ppt.layout="LAYOUT_WIDE";
   const slide=ppt.addSlide();
 
-  slide.addText("कार्यक्रम नाम",{x:0.5,y:0.5,fontSize:24,color:"66fcf1"});
+  slide.addText(currentData.event,{
+    x:0.5,y:0.5,fontSize:24,color:"66fcf1"
+  });
 
-  for(let i=0;i<4;i++){
+  currentData.photos.slice(0,4).forEach((id,i)=>{
     slide.addImage({
-      path:`https://lh3.googleusercontent.com/d/${images[i]}=w1200`,
-      x:(i%2?5.5:3),
-      y:(i<2?1.5:3.5),
-      w:2.2,h:1.6
+      path:driveImageUrl(id),
+      x:i%2?6:3,
+      y:i<2?1.5:3.5,
+      w:2.3,h:1.8
     });
-  }
+  });
 
-  ppt.writeFile({fileName:"slide.pptx"});
+  ppt.writeFile({fileName:"karyakram.pptx"});
 }
 </script>
-
 </body>
 </html>
