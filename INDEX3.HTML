@@ -126,26 +126,28 @@
         .slide-container.active { display: flex; }
 
         /* Mode Styles - FIXED SIZES */
-        .mode-standard { gap: 30px; padding: 20px; }
+        .mode-standard { gap: 30px; padding: 20px; height: 100%; }
         /* Balanced flex so text isn't squashed */
-        .mode-standard .info-panel { flex: 5; background: rgba(31, 31, 35, 0.6); backdrop-filter: blur(10px); padding: 40px; border-radius: 30px; display: flex; flex-direction: column; justify-content: center; border: 1px solid rgba(255,255,255,0.05); }
-        .mode-standard .photo-panel { flex: 5; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: repeat(2, 180px); gap: 15px; } 
-        /* Added fixed height to rows so images don't blow up */
-        .photo-card { border-radius: 12px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); cursor: pointer; height: 100%; }
+        .mode-standard .info-panel { flex: 4; background: rgba(31, 31, 35, 0.6); backdrop-filter: blur(10px); padding: 40px; border-radius: 30px; display: flex; flex-direction: column; justify-content: center; border: 1px solid rgba(255,255,255,0.05); }
+        .mode-standard .photo-panel { flex: 6; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: repeat(2, 1fr); gap: 15px; height: 80vh; } 
+        .photo-card { border-radius: 12px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); cursor: pointer; height: 100%; position: relative; }
         .photo-card img { width: 100%; height: 100%; object-fit: cover; transition: 0.3s; }
         .photo-card:hover img { transform: scale(1.05); }
 
         .mode-immersive { position: relative; width: 100%; height: 100%; }
         .immersive-bg { position: absolute; inset: 0; z-index: 0; }
         .immersive-bg img { width: 100%; height: 100%; object-fit: cover; filter: brightness(0.3); }
-        .immersive-content { position: absolute; bottom: 80px; left: 80px; z-index: 2; max-width: 800px; }
-        .immersive-content h1 { font-size: 4rem; color:#fff; margin: 0; line-height: 1.1; letter-spacing: -1px; text-shadow: 0 2px 20px rgba(0,0,0,0.8); }
+        .immersive-content { position: absolute; bottom: 80px; left: 80px; z-index: 2; max-width: 70%; text-shadow: 0 2px 10px rgba(0,0,0,0.8); }
+        .immersive-content h1 { font-size: 3.5rem; color:#fff; margin: 0 0 15px 0; line-height: 1.1; letter-spacing: -1px; }
+        .immersive-meta { font-size: 1.5rem; color: var(--primary); margin-bottom: 20px; font-weight: 500; }
+        .immersive-desc { font-size: 1.2rem; color: #ddd; line-height: 1.5; max-height: 150px; overflow: hidden; }
+
         .immersive-thumbs { position: absolute; bottom: 80px; right: 60px; display: flex; gap: 15px; z-index: 2; }
         .immersive-thumbs img { width: 160px; height: 100px; object-fit: cover; border-radius: 8px; border: 2px solid rgba(255,255,255,0.3); box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
 
-        .mode-minimal { flex-direction: column; align-items: center; justify-content: center; background: #fff; color: #111; border-radius: 30px; padding: 50px; position:relative; overflow:hidden;}
+        .mode-minimal { flex-direction: column; align-items: center; justify-content: center; background: #fff; color: #111; border-radius: 30px; padding: 50px; position:relative; overflow:hidden; width: 90%; height: 90%; }
         .mode-minimal::before { content:''; position:absolute; top:0; left:0; right:0; height:8px; background: var(--primary); }
-        .min-photos { display: flex; gap: 20px; justify-content: center; margin: 30px 0; }
+        .min-photos { display: flex; gap: 20px; justify-content: center; margin: 30px 0; flex-wrap: wrap; }
         .min-photos img { width: 220px; height: 160px; object-fit: cover; border-radius: 8px; box-shadow: 0 5px 15px rgba(0,0,0,0.15); }
 
         /* Controls */
@@ -211,6 +213,23 @@
         .mc-footer { display: flex; align-items: center; justify-content: space-between; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 20px; margin-top: auto; }
         .mc-stat { display: flex; align-items: center; gap: 6px; color: #d4d4d8; font-size: 0.9rem; font-weight: 500; }
         .mc-stat i { color: var(--secondary); font-size: 1.1rem; }
+
+        /* --- 5. ANALYTICS (IMPROVED) --- */
+        #view-analytics { flex-direction: column; gap: 25px; padding: 30px; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; }
+        .stat-box { 
+            background: linear-gradient(145deg, #1f1f23, #151518); 
+            padding: 25px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.05); 
+            position: relative; overflow: hidden;
+        }
+        .stat-box::after { content:''; position:absolute; top:0; right:0; width:80px; height:80px; background: radial-gradient(circle, var(--primary-glow) 0%, transparent 70%); border-radius:50%; opacity:0.5; }
+        .stat-num { font-size: 2.5rem; font-weight: 700; color: #fff; margin-bottom: 5px; }
+        .stat-lbl { color: var(--text-muted); font-size: 0.9rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
+        
+        .charts-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px; flex: 1; }
+        .chart-card { background: var(--bg-panel); padding: 25px; border-radius: 20px; display: flex; flex-direction: column; border: 1px solid rgba(255,255,255,0.05); min-height: 350px; }
+        .chart-header { font-size: 1.1rem; font-weight: 600; margin-bottom: 20px; color: #fff; display: flex; align-items: center; gap: 10px; }
+        .chart-header i { color: var(--primary); }
 
         /* --- UTILS --- */
         .hidden { display: none !important; }
@@ -304,7 +323,7 @@
         <div id="view-grid" class="view-section"></div>
 
         <!-- 5. ANALYTICS VIEW -->
-        <div id="view-analytics" class="view-section" style="flex-direction: column; gap: 20px;">
+        <div id="view-analytics" class="view-section">
             <div class="stats-grid">
                 <div class="stat-box"><div class="stat-num" id="an-total">0</div><div class="stat-lbl">Total Events</div></div>
                 <div class="stat-box"><div class="stat-num" id="an-att">0</div><div class="stat-lbl">Total Attendance</div></div>
@@ -312,15 +331,21 @@
                 <div class="stat-box"><div class="stat-num" id="an-avg">0</div><div class="stat-lbl">Avg. Attendance</div></div>
             </div>
             <div class="charts-container">
-                <div class="chart-card">
-                    <div class="chart-header">Events by District</div>
-                    <div style="flex:1; position:relative;"><canvas id="chartDist"></canvas></div>
+                 <div class="chart-card">
+                    <div class="chart-header"><i class='bx bx-line-chart'></i> Monthly Trend</div>
+                    <div style="flex:1; position:relative;"><canvas id="chartTime"></canvas></div>
                 </div>
                 <div class="chart-card">
-                    <div class="chart-header">Attendance Share</div>
+                    <div class="chart-header"><i class='bx bxs-pie-chart-alt-2'></i> Attendance Share</div>
                     <div style="flex:1; position:relative;"><canvas id="chartAtt"></canvas></div>
                 </div>
             </div>
+             <div class="charts-container">
+                <div class="chart-card" style="min-height:300px;">
+                    <div class="chart-header"><i class='bx bxs-bar-chart-alt-2'></i> Events by District</div>
+                    <div style="flex:1; position:relative;"><canvas id="chartDist"></canvas></div>
+                </div>
+             </div>
         </div>
 
     </div>
@@ -359,12 +384,26 @@
         }
     }
 
-    // Parse Date Helper (DD-MM-YYYY or DD/MM/YYYY)
+    // --- DATE PARSING FIX ---
     function parseDate(dateStr) {
         if(!dateStr) return new Date(0);
+        
+        // Handle "Date(YYYY, M, D)" format from Google Sheets JSON if present
+        if(typeof dateStr === 'string' && dateStr.startsWith('Date(')) {
+             const parts = dateStr.match(/\d+/g);
+             if(parts && parts.length >= 3) {
+                 return new Date(parts[0], parts[1], parts[2]);
+             }
+        }
+        
+        // Handle "DD-MM-YYYY" or "DD/MM/YYYY"
         const parts = dateStr.split(/[-/]/);
-        if(parts.length !== 3) return new Date(0);
-        return new Date(parts[2], parts[1] - 1, parts[0]);
+        if(parts.length === 3) {
+            // Assume DD-MM-YYYY
+            return new Date(parts[2], parts[1] - 1, parts[0]);
+        }
+        
+        return new Date(dateStr); // Fallback
     }
 
     async function init() {
@@ -376,6 +415,7 @@
             rawData = json.table.rows.map(row => {
                 const c = row.c;
                 if (!c) return null;
+                // Use formatted value (f) or value (v)
                 const date = c[1] ? (c[1].f || c[1].v) : '';
                 const district = c[2] ? c[2].v : '';
                 const event = c[3] ? c[3].v : '';
@@ -394,7 +434,7 @@
                 return { date, district, event, attendance, guests, photos };
             }).filter(Boolean);
             
-            // SORT BY DATE DESCENDING (Latest First)
+            // --- STRICT DATE SORTING FIX ---
             rawData.sort((a, b) => parseDate(b.date) - parseDate(a.date));
 
             // Populate Filters
@@ -411,7 +451,7 @@
 
         } catch (e) {
             console.error(e);
-            document.getElementById('loader').innerHTML = `<div style="color:red">Error Loading Data</div>`;
+            document.getElementById('loader').innerHTML = `<div style="color:red">Error Loading Data. Check Console.</div>`;
         }
     }
 
@@ -462,9 +502,9 @@
                 slide.innerHTML = `
                     <div class="info-panel">
                         <h1 style="color:var(--primary); font-size:2.5rem; line-height:1.2; margin-bottom:20px;">${item.event}</h1>
-                        <div class="info-item"><i class='bx bx-map'></i> ${item.district} | ${item.date}</div>
-                        <div class="info-item"><i class='bx bx-group'></i> Attendance: ${item.attendance}</div>
-                        <div class="info-item"><i class='bx bx-user-voice'></i> Guests: ${item.guests}</div>
+                        <div class="info-item" style="font-size:1.2rem; margin-bottom:10px;"><i class='bx bx-map'></i> ${item.district} | ${item.date}</div>
+                        <div class="info-item" style="font-size:1.2rem; margin-bottom:10px;"><i class='bx bx-group'></i> Attendance: ${item.attendance}</div>
+                        <div class="info-item" style="font-size:1.1rem; color:#ccc; margin-top:20px; line-height:1.4;">${item.guests}</div>
                     </div>
                     <div class="photo-panel">
                         ${[0,1,2,3].map(n => `<div class="photo-card" onclick="openLB('${getPhoto(n, 'w1200')}')"><img src="${getPhoto(n)}"></div>`).join('')}
@@ -477,9 +517,10 @@
                         <h1>${item.event}</h1>
                         <div class="immersive-meta">
                             <span><i class='bx bxs-map-pin'></i> ${item.district}</span>
+                            <span> | </span>
                             <span><i class='bx bxs-calendar'></i> ${item.date}</span>
                         </div>
-                        <p style="color:#ddd; margin-top:20px; font-size:1.2rem; line-height:1.5;">Guests: ${item.guests}</p>
+                        <div class="immersive-desc">${item.guests}</div>
                     </div>
                     <div class="immersive-thumbs">
                         ${[1,2].map(n => item.photos[n] ? `<img src="${getPhoto(n)}">` : '').join('')}
@@ -487,14 +528,14 @@
                 `;
             } else if (slideMode === 'minimal') {
                 slide.innerHTML = `
-                    <h1 style="color:#222">${item.event}</h1>
-                    <div class="min-meta">
-                        <span>${item.district}</span> &bull; <span>${item.date}</span> &bull; <span>${item.attendance} People</span>
+                    <h1 style="color:#222; text-align:center; font-size:2.5rem;">${item.event}</h1>
+                    <div style="color:#555; font-size:1.1rem; margin-bottom:30px; font-weight:500;">
+                        ${item.district} &bull; ${item.date} &bull; ${item.attendance} People
                     </div>
                     <div class="min-photos">
                         ${[0,1,2].map(n => item.photos[n] ? `<img src="${getPhoto(n)}">` : '').join('')}
                     </div>
-                    <p style="margin-top:20px; color:#555; text-align:center;">Guests: ${item.guests}</p>
+                    <p style="margin-top:20px; color:#555; text-align:center; max-width:80%;">${item.guests}</p>
                 `;
             }
             wrap.appendChild(slide);
@@ -591,6 +632,7 @@
         renderSlides();
     }
 
+    // --- ANALYTICS (NEW & IMPROVED) ---
     function renderAnalytics() {
         const total = filteredData.length;
         const att = filteredData.reduce((a,b)=>a+b.attendance,0);
@@ -606,60 +648,90 @@
         const timeline = {};
         
         filteredData.forEach(d => {
+            // District Count
             distCount[d.district] = (distCount[d.district] || 0) + 1;
-            const month = d.date.split(/[-/]/)[1] || 'Unknown'; 
-            timeline[month] = (timeline[month] || 0) + 1;
+            
+            // Timeline (extract Month-Year)
+            // Assumes DD-MM-YYYY format from the sheet string
+            try {
+                const parts = d.date.split(/[-/]/);
+                if(parts.length >= 2) {
+                    const monthYear = `${parts[1]}/${parts[2]}`; // MM/YYYY
+                    timeline[monthYear] = (timeline[monthYear] || 0) + 1;
+                }
+            } catch(e) {}
         });
 
+        // 1. Timeline Chart (Line)
+        updateChart('chartTime', 'line', Object.keys(timeline), Object.values(timeline), 'Events per Month');
+        
+        // 2. District Chart (Bar)
         updateChart('chartDist', 'bar', Object.keys(distCount), Object.values(distCount), 'Events per District');
+        
+        // 3. Attendance Share (Doughnut)
         updateChart('chartAtt', 'doughnut', Object.keys(distCount), Object.values(distCount).map(c => c*avg), 'Est. Attendance');
     }
 
     function updateChart(id, type, labels, data, title) {
         const ctx = document.getElementById(id).getContext('2d');
         if(charts[id]) charts[id].destroy();
-        charts[id] = new Chart(ctx, {
+        
+        const config = {
             type: type,
             data: {
                 labels: labels,
                 datasets: [{
                     label: title,
                     data: data,
-                    backgroundColor: ['#a78bfa', '#f472b6', '#3b82f6', '#10b981', '#fbbf24'],
-                    borderColor: 'rgba(255,255,255,0.1)',
-                    borderWidth: 1
+                    backgroundColor: ['#a78bfa', '#f472b6', '#3b82f6', '#10b981', '#fbbf24', '#f87171'],
+                    borderColor: type === 'line' ? '#a78bfa' : 'rgba(255,255,255,0.1)',
+                    borderWidth: 2,
+                    tension: 0.3, // Curve for line chart
+                    fill: type === 'line' // Fill area under line
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                plugins: { legend: { display: type === 'doughnut', labels: { color:'#fff' } } },
-                scales: type !== 'doughnut' ? { y: { beginAtZero: true, grid: { color:'rgba(255,255,255,0.05)' } }, x: { grid: { display:false } } } : {}
+                plugins: { 
+                    legend: { display: type === 'doughnut', labels: { color:'#fff' } },
+                    title: { display: false }
+                },
+                scales: type !== 'doughnut' ? { 
+                    y: { beginAtZero: true, grid: { color:'rgba(255,255,255,0.05)' }, ticks: { color: '#aaa' } }, 
+                    x: { grid: { display:false }, ticks: { color: '#aaa' } } 
+                } : {}
             }
-        });
+        };
+        
+        // Special Line Chart Gradient
+        if(type === 'line') {
+             // Create gradient later or simplify
+             config.data.datasets[0].backgroundColor = 'rgba(167, 139, 250, 0.2)';
+        }
+
+        charts[id] = new Chart(ctx, config);
     }
 
-    // --- EXPORT LOGIC (FIXED) ---
+    // --- EXPORT LOGIC (FIXED BLANK PDF) ---
     async function downloadBookletPDF(viewMode) {
         const btn = document.getElementById('export-btn');
         const originalText = btn.innerHTML;
-        btn.innerHTML = "<i class='bx bx-loader-alt bx-spin'></i> Preparing...";
+        btn.innerHTML = "<i class='bx bx-loader-alt bx-spin'></i> Generating...";
         btn.disabled = true;
 
-        // Create container off-screen
+        // Create container off-screen but visible to html2canvas
         const container = document.createElement('div');
-        container.style.position = 'fixed';
-        container.style.top = '-10000px';
-        container.style.left = '0';
-        container.style.width = '1123px'; // A4 Landscape width approx
-        container.style.zIndex = '-1';
+        container.style.position = 'absolute';
+        container.style.top = '0';
+        container.style.left = '-9999px'; // Move out of view horizontally
+        container.style.width = '1123px'; // A4 Landscape
+        container.style.zIndex = '9999';
         
-        // Colors
         const bg = viewMode === 'minimal' ? '#ffffff' : '#0f0f11';
         const txt = viewMode === 'minimal' ? '#000000' : '#ffffff';
         const accent = '#a78bfa';
 
-        // Generate Content
         for(let item of filteredData) {
             const page = document.createElement('div');
             page.style.cssText = `
@@ -678,7 +750,6 @@
             let content = '';
             
             if (viewMode === 'standard') {
-                // Modified layout: Text on left (wider), 2x2 Image Grid on right (smaller)
                  content = `
                     <div style="display:flex; height:100%; gap:40px; align-items:center;">
                         <div style="flex:1; padding-right:20px;">
@@ -702,7 +773,6 @@
                     </div>`;
             } 
             else if (viewMode === 'immersive') {
-                 // Immersive: Background image + overlay text + small thumbnails at bottom right
                 const bgImg = item.photos[0] ? `https://lh3.googleusercontent.com/d/${item.photos[0]}=w1200` : '';
                 content = `
                     <div style="position:absolute; inset:0; z-index:0;">
@@ -723,7 +793,6 @@
                     </div>`;
             }
             else if (viewMode === 'minimal') {
-                // Minimal: Centered text, row of images below
                 content = `
                     <div style="text-align:center; padding:20px;">
                         <h1 style="font-size:42px; color:#111; margin:0 0 10px 0;">${item.event}</h1>
@@ -751,19 +820,20 @@
 
         document.body.appendChild(container);
 
-        // WAIT FOR IMAGES TO LOAD
+        // --- CRITICAL FIX: WAIT FOR IMAGES ---
         const images = container.querySelectorAll('img');
         const promises = Array.from(images).map(img => {
             if (img.complete) return Promise.resolve();
             return new Promise(resolve => {
                 img.onload = resolve;
-                img.onerror = resolve; // Continue even if error
+                img.onerror = resolve; // Fail gracefully
             });
         });
         
+        // Wait up to 5 seconds for images to load
         await Promise.race([
             Promise.all(promises),
-            new Promise(resolve => setTimeout(resolve, 3000)) 
+            new Promise(resolve => setTimeout(resolve, 5000)) 
         ]);
 
         const opt = {
@@ -778,7 +848,7 @@
             await html2pdf().set(opt).from(container).save();
         } catch(e) {
             console.error("PDF Gen Error:", e);
-            alert("PDF generation failed. Check console.");
+            alert("PDF Generation Failed. Please try again.");
         } finally {
             document.body.removeChild(container);
             btn.innerHTML = originalText;
