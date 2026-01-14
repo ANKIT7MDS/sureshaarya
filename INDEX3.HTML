@@ -1,649 +1,855 @@
 <!DOCTYPE html>
 <html lang="hi">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Karyakram Dashboard Pro</title>
-
-  <!-- Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500;600&display=swap" rel="stylesheet">
-
-  <!-- Icons -->
-  <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
-
-  <!-- Libraries -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-  <!-- NOTE: html2pdf.bundle में html2canvas included होता है, फिर भी तुम चाहो तो रहने दो -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-
-  <style>
-    :root{
-      --bg:#0f172a;
-      --bg2:#111827;
-      --card:#111c33;
-      --card2:#0b1224;
-      --text:#e5e7eb;
-      --muted:#9ca3af;
-      --primary:#22c55e;
-      --primary2:#16a34a;
-      --danger:#ef4444;
-      --warning:#f59e0b;
-      --border:rgba(255,255,255,0.08);
-      --shadow: 0 14px 40px rgba(0,0,0,0.35);
-      --radius:18px;
-    }
-
-    *{margin:0;padding:0;box-sizing:border-box;}
-    body{
-      font-family: "Poppins","Noto Sans Devanagari", sans-serif;
-      background: radial-gradient(1200px 600px at 20% -10%, rgba(34,197,94,0.25), transparent 60%),
-                  radial-gradient(900px 500px at 95% 10%, rgba(59,130,246,0.15), transparent 55%),
-                  linear-gradient(180deg, var(--bg), var(--bg2));
-      color: var(--text);
-      min-height:100vh;
-      overflow-x:hidden;
-    }
-
-    /* ===== Layout ===== */
-    .wrap{
-      display:flex;
-      min-height:100vh;
-    }
-    .sidebar{
-      width:270px;
-      padding:18px;
-      background: rgba(255,255,255,0.03);
-      border-right:1px solid var(--border);
-      backdrop-filter: blur(14px);
-    }
-    .logo{
-      display:flex;
-      align-items:center;
-      gap:12px;
-      padding:14px 12px;
-      border:1px solid var(--border);
-      border-radius: var(--radius);
-      background: rgba(255,255,255,0.03);
-      box-shadow: var(--shadow);
-    }
-    .logo i{
-      font-size:28px;
-      color:var(--primary);
-    }
-    .logo h2{
-      font-size:16px;
-      font-weight:700;
-      line-height:1.2;
-    }
-    .logo small{
-      display:block;
-      font-size:12px;
-      color:var(--muted);
-      margin-top:2px;
-      font-weight:500;
-    }
-
-    .menu{
-      margin-top:16px;
-      display:flex;
-      flex-direction:column;
-      gap:10px;
-    }
-    .menu a{
-      display:flex;
-      align-items:center;
-      gap:12px;
-      padding:12px 14px;
-      text-decoration:none;
-      color:var(--text);
-      border:1px solid transparent;
-      border-radius:14px;
-      background: rgba(255,255,255,0.02);
-      transition:0.2s ease;
-    }
-    .menu a i{font-size:20px;color:#cbd5e1;}
-    .menu a:hover{
-      border-color: var(--border);
-      background: rgba(255,255,255,0.04);
-      transform: translateY(-1px);
-    }
-    .menu a.active{
-      border-color: rgba(34,197,94,0.35);
-      background: rgba(34,197,94,0.08);
-    }
-
-    .sidebar .hint{
-      margin-top:18px;
-      padding:14px;
-      border-radius: var(--radius);
-      border:1px solid var(--border);
-      background: rgba(255,255,255,0.03);
-      color: var(--muted);
-      font-size:12px;
-      line-height:1.5;
-    }
-
-    .content{
-      flex:1;
-      padding:18px 18px 28px;
-    }
-
-    /* ===== Topbar ===== */
-    .topbar{
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      gap:14px;
-      padding:16px;
-      border:1px solid var(--border);
-      border-radius: var(--radius);
-      background: rgba(255,255,255,0.03);
-      box-shadow: var(--shadow);
-    }
-
-    .titleBlock h1{
-      font-size:18px;
-      font-weight:800;
-      letter-spacing:0.2px;
-    }
-    .titleBlock p{
-      font-size:12px;
-      color: var(--muted);
-      margin-top:3px;
-    }
-
-    .actions{
-      display:flex;
-      align-items:center;
-      gap:10px;
-      flex-wrap:wrap;
-    }
-
-    .btn{
-      border:none;
-      outline:none;
-      cursor:pointer;
-      padding:10px 14px;
-      border-radius:14px;
-      font-weight:600;
-      font-size:13px;
-      display:flex;
-      align-items:center;
-      gap:8px;
-      transition:0.2s ease;
-      white-space:nowrap;
-    }
-    .btn i{font-size:18px;}
-    .btn-primary{
-      background: linear-gradient(180deg, var(--primary), var(--primary2));
-      color:#06210f;
-      box-shadow: 0 12px 24px rgba(34,197,94,0.22);
-    }
-    .btn-primary:hover{transform: translateY(-1px);}
-    .btn-ghost{
-      background: rgba(255,255,255,0.04);
-      color: var(--text);
-      border:1px solid var(--border);
-    }
-    .btn-ghost:hover{background: rgba(255,255,255,0.06);}
-
-    /* ===== Dashboard Area (Download वाला) ===== */
-    #dashboard{
-      margin-top:16px;
-      padding:18px;
-      border-radius: var(--radius);
-      border:1px solid var(--border);
-      background: rgba(255,255,255,0.03);
-      box-shadow: var(--shadow);
-
-      /* ✅ PDF black issue fix: background force */
-      background-color: #ffffff00; /* UI में transparent feel */
-    }
-
-    .grid{
-      display:grid;
-      grid-template-columns: repeat(12, 1fr);
-      gap:14px;
-    }
-
-    .card{
-      border:1px solid var(--border);
-      border-radius: var(--radius);
-      background: rgba(255,255,255,0.03);
-      box-shadow: 0 10px 28px rgba(0,0,0,0.25);
-      padding:14px;
-      overflow:hidden;
-    }
-
-    .stat{
-      grid-column: span 3;
-      display:flex;
-      align-items:flex-start;
-      justify-content:space-between;
-      gap:10px;
-    }
-    .stat .meta h3{
-      font-size:12px;
-      color: var(--muted);
-      font-weight:600;
-    }
-    .stat .meta h2{
-      font-size:20px;
-      margin-top:6px;
-      font-weight:800;
-    }
-    .badge{
-      padding:6px 10px;
-      border-radius:999px;
-      font-size:11px;
-      font-weight:700;
-      border:1px solid var(--border);
-      background: rgba(255,255,255,0.04);
-    }
-    .badge.green{border-color: rgba(34,197,94,0.35); background: rgba(34,197,94,0.10); color:#b9ffd4;}
-    .badge.yellow{border-color: rgba(245,158,11,0.35); background: rgba(245,158,11,0.10); color:#ffe2a7;}
-    .badge.red{border-color: rgba(239,68,68,0.35); background: rgba(239,68,68,0.10); color:#ffb5b5;}
-
-    .wide{
-      grid-column: span 8;
-      min-height:240px;
-    }
-    .side{
-      grid-column: span 4;
-      min-height:240px;
-    }
-
-    .cardTitle{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-      margin-bottom:10px;
-    }
-    .cardTitle h2{
-      font-size:14px;
-      font-weight:800;
-    }
-    .cardTitle span{
-      font-size:12px;
-      color: var(--muted);
-    }
-
-    .list{
-      display:flex;
-      flex-direction:column;
-      gap:10px;
-      margin-top:10px;
-    }
-    .item{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:12px;
-      padding:10px 12px;
-      border-radius: 14px;
-      border:1px solid var(--border);
-      background: rgba(255,255,255,0.02);
-    }
-    .item .left{
-      display:flex;
-      align-items:center;
-      gap:10px;
-      min-width:0;
-    }
-    .dot{
-      width:10px;height:10px;border-radius:50%;
-      background: var(--primary);
-      box-shadow: 0 0 0 4px rgba(34,197,94,0.15);
-      flex-shrink:0;
-    }
-    .left .txt{
-      min-width:0;
-    }
-    .left .txt b{
-      display:block;
-      font-size:13px;
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
-      max-width:260px;
-    }
-    .left .txt small{
-      display:block;
-      font-size:11px;
-      color: var(--muted);
-      margin-top:2px;
-    }
-    .item .right{
-      text-align:right;
-    }
-    .item .right b{
-      display:block;
-      font-size:12px;
-      font-weight:800;
-    }
-    .item .right small{
-      display:block;
-      font-size:11px;
-      color: var(--muted);
-      margin-top:2px;
-    }
-
-    .footerNote{
-      margin-top:14px;
-      font-size:11px;
-      color: var(--muted);
-      line-height:1.5;
-      border-top:1px dashed rgba(255,255,255,0.15);
-      padding-top:12px;
-    }
-
-    /* ===== Mobile ===== */
-    @media (max-width: 980px){
-      .sidebar{display:none;}
-      .grid{grid-template-columns: repeat(6, 1fr);}
-      .stat{grid-column: span 3;}
-      .wide{grid-column: span 6;}
-      .side{grid-column: span 6;}
-    }
-    @media (max-width: 520px){
-      .grid{grid-template-columns: repeat(2, 1fr);}
-      .stat{grid-column: span 2;}
-      .wide{grid-column: span 2;}
-      .side{grid-column: span 2;}
-      .titleBlock h1{font-size:16px;}
-    }
-
-    /* ✅ PDF के लिए special safe mode (capture time) */
-    .pdf-export-mode {
-      background: #ffffff !important;
-      color: #111827 !important;
-    }
-    .pdf-export-mode .card{
-      background: #ffffff !important;
-      color: #111827 !important;
-      border-color: rgba(0,0,0,0.12) !important;
-      box-shadow: none !important;
-    }
-    .pdf-export-mode .badge{
-      border-color: rgba(0,0,0,0.18) !important;
-      background: rgba(0,0,0,0.04) !important;
-      color: #111827 !important;
-    }
-    .pdf-export-mode .item{
-      background: #ffffff !important;
-      border-color: rgba(0,0,0,0.12) !important;
-    }
-    .pdf-export-mode .cardTitle span,
-    .pdf-export-mode .footerNote,
-    .pdf-export-mode .stat .meta h3,
-    .pdf-export-mode .left .txt small,
-    .pdf-export-mode .item .right small{
-      color: rgba(17,24,39,0.68) !important;
-    }
-  </style>
-</head>
-
-<body>
-  <div class="wrap">
-    <!-- Sidebar -->
-    <aside class="sidebar">
-      <div class="logo">
-        <i class='bx bxs-calendar-star'></i>
-        <div>
-          <h2>Karyakram Dashboard Pro</h2>
-          <small>Program & Report System</small>
-        </div>
-      </div>
-
-      <nav class="menu">
-        <a class="active" href="#"><i class='bx bxs-dashboard'></i>Dashboard</a>
-        <a href="#"><i class='bx bxs-calendar'></i>कार्यक्रम</a>
-        <a href="#"><i class='bx bxs-user-detail'></i>अतिथि</a>
-        <a href="#"><i class='bx bxs-report'></i>रिपोर्ट</a>
-        <a href="#"><i class='bx bxs-cog'></i>Settings</a>
-      </nav>
-
-      <div class="hint">
-        ✅ <b>Tip:</b> PDF डाउनलोड करते समय background white रखना जरूरी होता है, वरना iPhone पर black PDF आ सकती है।
-      </div>
-    </aside>
-
-    <!-- Main -->
-    <main class="content">
-      <div class="topbar">
-        <div class="titleBlock">
-          <h1>कार्यक्रम स्थिति डैशबोर्ड</h1>
-          <p>आज की रिपोर्ट + आगामी कार्यक्रम (Auto Summary)</p>
-        </div>
-
-        <div class="actions">
-          <button class="btn btn-ghost" onclick="window.print()">
-            <i class='bx bx-printer'></i> Print
-          </button>
-          <button id="downloadBtn" class="btn btn-primary" onclick="downloadPDF()">
-            <i class='bx bx-download'></i> Download PDF
-          </button>
-        </div>
-      </div>
-
-      <!-- ✅ यही पूरा section PDF में जाएगा -->
-      <section id="dashboard">
-        <div class="grid">
-          <!-- Stats -->
-          <div class="card stat">
-            <div class="meta">
-              <h3>कुल कार्यक्रम</h3>
-              <h2>18</h2>
-            </div>
-            <span class="badge green">+12%</span>
-          </div>
-
-          <div class="card stat">
-            <div class="meta">
-              <h3>आज के कार्यक्रम</h3>
-              <h2>3</h2>
-            </div>
-            <span class="badge yellow">Pending</span>
-          </div>
-
-          <div class="card stat">
-            <div class="meta">
-              <h3>पूर्ण हुए</h3>
-              <h2>11</h2>
-            </div>
-            <span class="badge green">Done</span>
-          </div>
-
-          <div class="card stat">
-            <div class="meta">
-              <h3>रद्द हुए</h3>
-              <h2>2</h2>
-            </div>
-            <span class="badge red">Cancel</span>
-          </div>
-
-          <!-- Wide -->
-          <div class="card wide">
-            <div class="cardTitle">
-              <h2>आज की गतिविधि</h2>
-              <span>Updated: <b id="updatedTime">--</b></span>
-            </div>
-
-            <div class="list">
-              <div class="item">
-                <div class="left">
-                  <span class="dot"></span>
-                  <div class="txt">
-                    <b>वार्ड-12 जनसुनवाई बैठक</b>
-                    <small>स्थान: पंचायत भवन • अध्यक्ष: सचिव</small>
-                  </div>
-                </div>
-                <div class="right">
-                  <b>10:30 AM</b>
-                  <small>Status: चालू</small>
-                </div>
-              </div>
-
-              <div class="item">
-                <div class="left">
-                  <span class="dot" style="background:#3b82f6; box-shadow:0 0 0 4px rgba(59,130,246,0.15);"></span>
-                  <div class="txt">
-                    <b>स्वच्छता अभियान निरीक्षण</b>
-                    <small>स्थान: मुख्य बाजार • टीम: 8 सदस्य</small>
-                  </div>
-                </div>
-                <div class="right">
-                  <b>01:00 PM</b>
-                  <small>Status: Next</small>
-                </div>
-              </div>
-
-              <div class="item">
-                <div class="left">
-                  <span class="dot" style="background:#f59e0b; box-shadow:0 0 0 4px rgba(245,158,11,0.15);"></span>
-                  <div class="txt">
-                    <b>शिकायत निवारण शिविर</b>
-                    <small>स्थान: सामुदायिक केंद्र • लक्ष्य: 50 केस</small>
-                  </div>
-                </div>
-                <div class="right">
-                  <b>04:30 PM</b>
-                  <small>Status: Upcoming</small>
-                </div>
-              </div>
-            </div>
-
-            <div class="footerNote">
-              नोट: यह रिपोर्ट auto-generated है। PDF में साफ output के लिए capture-time पर white background apply होता है।
-            </div>
-          </div>
-
-          <!-- Side -->
-          <div class="card side">
-            <div class="cardTitle">
-              <h2>आगामी कार्यक्रम</h2>
-              <span>Next 7 Days</span>
-            </div>
-
-            <div class="list">
-              <div class="item">
-                <div class="left">
-                  <span class="dot" style="background:#a855f7; box-shadow:0 0 0 4px rgba(168,85,247,0.15);"></span>
-                  <div class="txt">
-                    <b>युवा संवाद बैठक</b>
-                    <small>दिनांक: 18 Jan</small>
-                  </div>
-                </div>
-                <div class="right">
-                  <b>6:00 PM</b>
-                  <small>Hall A</small>
-                </div>
-              </div>
-
-              <div class="item">
-                <div class="left">
-                  <span class="dot" style="background:#ef4444; box-shadow:0 0 0 4px rgba(239,68,68,0.15);"></span>
-                  <div class="txt">
-                    <b>स्वास्थ्य शिविर</b>
-                    <small>दिनांक: 20 Jan</small>
-                  </div>
-                </div>
-                <div class="right">
-                  <b>11:00 AM</b>
-                  <small>Clinic</small>
-                </div>
-              </div>
-
-              <div class="item">
-                <div class="left">
-                  <span class="dot" style="background:#22c55e; box-shadow:0 0 0 4px rgba(34,197,94,0.15);"></span>
-                  <div class="txt">
-                    <b>नगर विकास समीक्षा</b>
-                    <small>दिनांक: 22 Jan</small>
-                  </div>
-                </div>
-                <div class="right">
-                  <b>02:30 PM</b>
-                  <small>Office</small>
-                </div>
-              </div>
-            </div>
-
-            <div class="footerNote">
-              ✅ PDF Export Tip: अगर फिर भी black आए तो scale कम कर देना (1.2)।
-            </div>
-          </div>
-        </div>
-      </section>
-
-    </main>
-  </div>
-
-  <script>
-    // Time update
-    function setUpdatedTime(){
-      const d = new Date();
-      const hh = String(d.getHours()).padStart(2,'0');
-      const mm = String(d.getMinutes()).padStart(2,'0');
-      document.getElementById("updatedTime").innerText = `${hh}:${mm}`;
-    }
-    setUpdatedTime();
-    setInterval(setUpdatedTime, 60000);
-
-    // ✅ FIXED PDF DOWNLOAD (No Black PDF)
-    async function downloadPDF(){
-      const btn = document.getElementById("downloadBtn");
-      const target = document.getElementById("dashboard");
-
-      try{
-        btn.disabled = true;
-        btn.innerHTML = "<i class='bx bx-loader-alt bx-spin'></i> Please wait...";
-
-        // ✅ Wait for fonts to load (SUPER IMPORTANT)
-        if(document.fonts && document.fonts.ready){
-          await document.fonts.ready;
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Karyakram Dashboard Pro</title>
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- Icons -->
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <!-- Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        :root {
+            --bg-dark: #0f0f11;
+            --bg-panel: #18181b;
+            --primary: #a78bfa;
+            --primary-glow: rgba(167, 139, 250, 0.3);
+            --secondary: #71717a;
+            --text-main: #f4f4f5;
+            --text-muted: #a1a1aa;
+            --accent: #f472b6;
+            --card-shadow: 0 10px 40px -10px rgba(0,0,0,0.5);
+            --nav-height: 70px; /* Mobile Nav Height */
         }
 
-        // ✅ Export mode (white background + clean colors)
-        target.classList.add("pdf-export-mode");
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
-        // ✅ Small delay so styles apply properly before capture
-        await new Promise(r => setTimeout(r, 250));
+        body {
+            font-family: 'Poppins', 'Noto Sans Devanagari', sans-serif;
+            margin: 0; background-color: var(--bg-dark);
+            color: var(--text-main); height: 100vh;
+            display: flex; overflow: hidden;
+        }
 
-        const fileName = `Karyakram-Dashboard-${new Date().toISOString().slice(0,10)}.pdf`;
+        /* --- Sidebar (Desktop) --- */
+        .sidebar {
+            width: 80px; background: var(--bg-panel);
+            border-right: 1px solid rgba(255,255,255,0.05);
+            display: flex; flex-direction: column; align-items: center;
+            padding-top: 20px; transition: width 0.3s ease; z-index: 1000;
+        }
+        .sidebar:hover { width: 240px; }
+        
+        .nav-item {
+            width: 100%; padding: 18px 0; display: flex;
+            align-items: center; justify-content: center; cursor: pointer;
+            transition: 0.3s; color: var(--text-muted); position: relative;
+            margin-bottom: 5px;
+        }
+        .sidebar:hover .nav-item { justify-content: flex-start; padding-left: 25px; }
+        .nav-item i { font-size: 24px; min-width: 50px; text-align: center; transition: 0.3s; }
+        .nav-text { display: none; white-space: nowrap; font-size: 14px; font-weight: 500; margin-left: 10px; }
+        .sidebar:hover .nav-text { display: block; }
+        .nav-item:hover, .nav-item.active { color: var(--text-main); background: rgba(255,255,255,0.03); }
+        .nav-item.active i { color: var(--primary); transform: scale(1.1); text-shadow: 0 0 10px var(--primary-glow); }
+        .nav-item.active::before { content:''; position:absolute; left:0; top:10%; height:80%; width:4px; background:var(--primary); border-radius:0 4px 4px 0; }
 
-        // ✅ iOS/Safari friendly settings
-        const opt = {
-          margin:       [10, 10, 10, 10],
-          filename:     fileName,
-          image:        { type: 'jpeg', quality: 0.98 },
-          html2canvas:  {
-            scale: 1.5,              // ✅ SAFE scale (2+ on iPhone can cause black)
-            useCORS: true,
-            allowTaint: true,
-            backgroundColor: '#ffffff', // ✅ Force white background
-            logging: false,
-            scrollY: 0,
-            windowWidth: document.documentElement.scrollWidth
-          },
-          jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
-          pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
-        };
+        /* --- Main Content --- */
+        .main-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; }
 
-        await html2pdf().set(opt).from(target).save();
+        .top-bar {
+            height: 70px; background: rgba(24, 24, 27, 0.9); backdrop-filter: blur(12px);
+            display: flex; align-items: center; padding: 0 25px; gap: 15px;
+            border-bottom: 1px solid rgba(255,255,255,0.05); z-index: 90;
+        }
 
-      }catch(err){
-        console.error("PDF Error:", err);
-        alert("PDF डाउनलोड में समस्या आ रही है। एक बार फिर try करो ✅");
-      }finally{
-        // ✅ Remove export mode
-        target.classList.remove("pdf-export-mode");
+        .input-style {
+            background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+            color: white; padding: 10px 18px; border-radius: 12px; outline: none; font-size: 13px;
+        }
+        .input-style:focus { border-color: var(--primary); background: rgba(0,0,0,0.2); }
 
-        btn.disabled = false;
-        btn.innerHTML = "<i class='bx bx-download'></i> Download PDF";
-      }
+        .action-btn {
+            background: var(--bg-panel); border: 1px solid rgba(255,255,255,0.1); color: white;
+            padding: 8px 16px; border-radius: 12px; cursor: pointer;
+            display: flex; align-items: center; gap: 8px; font-weight: 500; font-size: 13px;
+            transition: 0.2s; white-space: nowrap;
+        }
+        .action-btn:hover { border-color: var(--primary); color: var(--primary); background: rgba(167, 139, 250, 0.05); }
+        .action-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+        /* --- Dropdown Stable Fix --- */
+        .dropdown { position: relative; }
+        .dropdown-content {
+            display: none; position: absolute; right: 0; top: 110%; 
+            background: #1e1e21; min-width: 240px; box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            border-radius: 16px; border: 1px solid rgba(255,255,255,0.08); z-index: 200;
+            padding: 8px; transform-origin: top right; animation: scaleIn 0.2s ease;
+        }
+        .dropdown-content.show { display: block; }
+        @keyframes scaleIn { from{ opacity:0; transform:scale(0.95); } to{ opacity:1; transform:scale(1); } }
+        
+        .dropdown-content a {
+            display: flex; align-items: center; gap: 12px; padding: 12px 15px;
+            color: #d4d4d8; text-decoration: none; cursor: pointer; font-size: 13px;
+            border-radius: 8px; transition: 0.2s;
+        }
+        .dropdown-content a:hover { background: var(--primary); color: #000; }
+
+        /* --- Views --- */
+        .views-container { flex: 1; position: relative; overflow: hidden; }
+        .view-section { position: absolute; inset: 0; display: none; overflow-y: auto; opacity: 0; transition: opacity 0.3s; padding: 20px; }
+        .view-section.active { display: flex; opacity: 1; }
+
+        /* --- SLIDE VIEW --- */
+        #view-slide { flex-direction: column; align-items: center; }
+        .slide-toolbar {
+            display: flex; gap: 5px; margin-bottom: 20px; background: rgba(255,255,255,0.05); 
+            padding: 5px; border-radius: 40px; z-index: 10;
+        }
+        .mode-btn { 
+            background: transparent; border: none; 
+            color: #aaa; padding: 8px 20px; border-radius: 30px; cursor: pointer; font-size: 12px; font-weight: 500;
+            transition: 0.3s;
+        }
+        .mode-btn:hover { color: #fff; }
+        .mode-btn.active { background: var(--primary); color: #000; box-shadow: 0 4px 15px var(--primary-glow); }
+
+        .slide-wrapper { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; }
+        .slide-container { width: 100%; height: 100%; max-width: 1400px; display: none; animation: fadeIn 0.5s; }
+        .slide-container.active { display: flex; }
+
+        /* Mode Styles - Desktop Default */
+        .mode-standard { gap: 30px; padding: 20px; height: 100%; }
+        .mode-standard .info-panel { flex: 4; background: rgba(31, 31, 35, 0.6); backdrop-filter: blur(10px); padding: 40px; border-radius: 30px; display: flex; flex-direction: column; justify-content: center; border: 1px solid rgba(255,255,255,0.05); overflow:hidden; }
+        .mode-standard .photo-panel { flex: 6; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: repeat(2, 1fr); gap: 15px; height: 80vh; } 
+        .photo-card { border-radius: 12px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); cursor: pointer; height: 100%; position: relative; }
+        .photo-card img { width: 100%; height: 100%; object-fit: cover; transition: 0.3s; }
+        .photo-card:hover img { transform: scale(1.05); }
+
+        .mode-immersive { position: relative; width: 100%; height: 100%; }
+        .immersive-bg { position: absolute; inset: 0; z-index: 0; }
+        .immersive-bg img { width: 100%; height: 100%; object-fit: cover; filter: brightness(0.3); }
+        .immersive-content { position: absolute; bottom: 80px; left: 80px; z-index: 2; max-width: 70%; text-shadow: 0 2px 10px rgba(0,0,0,0.8); }
+        .immersive-content h1 { font-size: 3.5rem; color:#fff; margin: 0 0 15px 0; line-height: 1.1; letter-spacing: -1px; }
+        .immersive-meta { font-size: 1.5rem; color: var(--primary); margin-bottom: 20px; font-weight: 500; }
+        .immersive-desc { font-size: 1.2rem; color: #ddd; line-height: 1.5; max-height: 200px; overflow-y: auto; padding-right: 10px; }
+        .immersive-thumbs { position: absolute; bottom: 80px; right: 60px; display: flex; gap: 15px; z-index: 2; }
+        .immersive-thumbs img { width: 160px; height: 100px; object-fit: cover; border-radius: 8px; border: 2px solid rgba(255,255,255,0.3); box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
+
+        .mode-minimal { flex-direction: column; align-items: center; justify-content: center; background: #fff; color: #111; border-radius: 30px; padding: 50px; position:relative; overflow:hidden; width: 90%; height: 90%; }
+        .mode-minimal::before { content:''; position:absolute; top:0; left:0; right:0; height:8px; background: var(--primary); }
+        .min-photos { display: flex; gap: 20px; justify-content: center; margin: 30px 0; flex-wrap: wrap; }
+        .min-photos img { width: 220px; height: 160px; object-fit: cover; border-radius: 8px; box-shadow: 0 5px 15px rgba(0,0,0,0.15); }
+
+        /* Controls */
+        .controls-floating {
+            position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
+            display: flex; align-items: center; gap: 20px; background: rgba(0,0,0,0.6);
+            padding: 12px 30px; border-radius: 50px; backdrop-filter: blur(10px); z-index: 100; border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        /* --- Gallery & Cards --- */
+        #view-grid { display: block; column-count: 4; column-gap: 20px; padding: 30px; }
+        .gallery-item { break-inside: avoid; margin-bottom: 20px; border-radius: 16px; overflow: hidden; position: relative; cursor: zoom-in; transform: translateZ(0); box-shadow: 0 4px 15px rgba(0,0,0,0.2); transition: 0.3s; background: #27272a; }
+        .gallery-item img { width: 100%; display: block; height: auto; transition: 0.5s; }
+        .gallery-overlay { position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.9), transparent); opacity: 0; transition: 0.3s; display: flex; flex-direction: column; justify-content: flex-end; padding: 20px; }
+        .gallery-item:hover img { transform: scale(1.05); }
+        .gallery-item:hover .gallery-overlay { opacity: 1; }
+        
+        #view-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 30px; padding: 40px; align-content: start; }
+        .modern-card { background: rgba(39, 39, 42, 0.4); border-radius: 24px; overflow: hidden; border: 1px solid rgba(255,255,255,0.05); backdrop-filter: blur(10px); display: flex; flex-direction: column; height: 100%; }
+        .mc-header { height: 220px; position: relative; overflow: hidden; }
+        .mc-header img { width: 100%; height: 100%; object-fit: cover; transition: 0.5s; }
+        .modern-card:hover .mc-header img { transform: scale(1.1); }
+        .mc-body { padding: 25px; flex: 1; display: flex; flex-direction: column; position: relative; }
+
+        /* --- Analytics --- */
+        #view-analytics { flex-direction: column; gap: 25px; padding: 30px; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; }
+        .stat-box { background: linear-gradient(145deg, #1f1f23, #151518); padding: 25px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.05); position: relative; overflow: hidden; }
+        .charts-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px; flex: 1; }
+        .chart-card { background: var(--bg-panel); padding: 25px; border-radius: 20px; display: flex; flex-direction: column; border: 1px solid rgba(255,255,255,0.05); min-height: 350px; }
+
+        /* --- MOBILE OPTIMIZATION --- */
+        @media (max-width: 768px) {
+            body { flex-direction: column; }
+            
+            /* Bottom Navigation */
+            .sidebar {
+                width: 100%; height: 65px; bottom: 0; top: auto;
+                flex-direction: row; border-right: none; border-top: 1px solid rgba(255,255,255,0.1);
+                justify-content: space-around; padding-top: 0; position: fixed;
+                background: rgba(24, 24, 27, 0.95); backdrop-filter: blur(10px);
+            }
+            .sidebar:hover { width: 100%; } /* Disable hover expansion */
+            .nav-item { flex-direction: column; padding: 5px; margin-bottom: 0; font-size: 10px; flex: 1; }
+            .nav-item i { font-size: 22px; min-width: auto; margin-bottom: 2px; }
+            .nav-text { display: block; font-size: 10px; margin-left: 0; opacity: 0.7; }
+            .sidebar:hover .nav-item { justify-content: center; padding-left: 0; } 
+            .nav-item.active::before { top: auto; bottom: 0; left: 25%; width: 50%; height: 3px; border-radius: 3px 3px 0 0; }
+
+            /* Main Content Adjustments */
+            .main-content { margin-bottom: 65px; height: calc(100vh - 65px); } 
+            
+            /* Top Bar Stacking */
+            .top-bar { height: auto; flex-direction: column; padding: 10px 15px; gap: 10px; align-items: stretch; }
+            .top-bar > div { width: 100%; flex-direction: row; }
+            #search-input { width: 60% !important; font-size: 14px; }
+            #district-filter { width: 40% !important; font-size: 14px; }
+            
+            /* Views Padding */
+            .views-container { padding-bottom: 20px; }
+
+            /* Slide View Mobile */
+            .mode-standard { flex-direction: column; padding: 10px; overflow-y: auto; height: auto; padding-bottom: 80px; }
+            .mode-standard .info-panel { padding: 20px; order: 2; flex: none; width: 100%; margin-bottom: 20px; }
+            .mode-standard .photo-panel { height: 250px; order: 1; flex: none; width: 100%; gap: 10px; }
+            .mode-standard h1 { font-size: 1.8rem !important; }
+
+            .mode-immersive { height: 100%; }
+            .immersive-content { left: 20px; bottom: 80px; width: 90%; max-width: 90%; }
+            .immersive-content h1 { font-size: 2rem; margin-bottom: 10px; }
+            .immersive-meta { font-size: 1rem; margin-bottom: 10px; }
+            .immersive-thumbs { display: none; } /* Hide thumbs on small screens */
+
+            .mode-minimal { padding: 20px; width: 95%; height: auto; min-height: 80%; }
+            .min-photos img { width: 100px; height: 80px; }
+
+            /* Controls */
+            .controls-floating { bottom: 20px; padding: 8px 20px; gap: 15px; width: auto; max-width: 90%; }
+
+            /* Cards & Grid */
+            #view-grid { column-count: 1; padding: 15px; }
+            #view-cards { grid-template-columns: 1fr; padding: 15px; }
+            .gallery-overlay { opacity: 1; background: linear-gradient(to top, rgba(0,0,0,0.9) 10%, transparent); }
+
+            /* Analytics */
+            #view-analytics { padding: 15px; }
+            .charts-container { grid-template-columns: 1fr; min-height: auto; }
+            .chart-card { min-height: 250px; }
+            
+            /* Lightbox */
+            #lightbox img { max-width: 95vw; }
+        }
+
+        /* Utils */
+        .hidden { display: none !important; }
+        #loader { position: fixed; inset: 0; background: var(--bg-dark); z-index: 10000; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        .spinner { width: 50px; height: 50px; border: 4px solid rgba(167, 139, 250, 0.2); border-top-color: var(--primary); border-radius: 50%; animation: spin 1s infinite linear; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        
+        #lightbox { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.98); z-index: 9999; justify-content: center; align-items: center; opacity: 0; transition: opacity 0.3s; }
+        #lightbox.show { opacity: 1; }
+        #lightbox img { max-width: 90vw; max-height: 85vh; border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; box-shadow: 0 0 50px rgba(0,0,0,0.5); }
+        .lb-close { position: absolute; top: 30px; right: 40px; font-size: 40px; color: #fff; cursor: pointer; transition: 0.2s; }
+    </style>
+</head>
+<body>
+
+<div id="loader">
+    <div class="spinner"></div>
+    <div style="margin-top:15px; color:var(--primary); letter-spacing:1px; font-weight:500;">DASHBOARD LOADING</div>
+</div>
+
+<div id="lightbox">
+    <span class="lb-close" onclick="closeLightbox()">&times;</span>
+    <img id="lightbox-img" src="">
+</div>
+
+<div class="sidebar" id="main-sidebar">
+    <div class="nav-item active" onclick="switchView('slide')"><i class='bx bx-slideshow'></i> <span class="nav-text">Slides</span></div>
+    <div class="nav-item" onclick="switchView('cards')"><i class='bx bx-grid-alt'></i> <span class="nav-text">Cards</span></div>
+    <div class="nav-item" onclick="switchView('grid')"><i class='bx bxl-instagram'></i> <span class="nav-text">Gallery</span></div>
+    <div class="nav-item" onclick="switchView('print')"><i class='bx bx-printer'></i> <span class="nav-text">Files</span></div>
+    <div class="nav-item" onclick="switchView('analytics')"><i class='bx bx-bar-chart-alt-2'></i> <span class="nav-text">Stats</span></div>
+</div>
+
+<div class="main-content" id="main-content">
+    <div class="top-bar">
+        <div style="flex:1; display:flex; gap:10px;">
+            <input type="text" id="search-input" class="input-style" placeholder="Search event..." onkeyup="applyFilters()">
+            <select id="district-filter" class="input-style" onchange="applyFilters()">
+                <option value="">All Districts</option>
+            </select>
+        </div>
+
+        <div style="display:flex; gap:10px; width:100%;">
+            <button class="action-btn" id="tv-mode-btn" onclick="toggleTVMode()" style="flex:1; justify-content:center;">
+                <i class='bx bx-play-circle'></i> TV Mode
+            </button>
+
+            <!-- Fixed Dropdown -->
+            <div class="dropdown" style="flex:1;">
+                <button class="action-btn" id="export-btn" onclick="toggleDropdown()" style="width:100%; justify-content:center; background: linear-gradient(135deg, #a78bfa 0%, #f472b6 100%); border:none;">
+                    <i class='bx bxs-download'></i> Download
+                </button>
+                <div id="dl-dropdown" class="dropdown-content">
+                    <a onclick="downloadBookletPDF('standard')"><i class='bx bxs-file-pdf'></i> PDF (Standard)</a>
+                    <a onclick="downloadBookletPDF('immersive')"><i class='bx bxs-file-image'></i> PDF (Immersive)</a>
+                    <a onclick="downloadBookletPDF('minimal')"><i class='bx bx-file-blank'></i> PDF (Minimal)</a>
+                    <div style="height:1px; background:rgba(255,255,255,0.1); margin:5px 0;"></div>
+                    <a onclick="downloadFixedPPT()"><i class='bx bxs-slideshow'></i> PowerPoint</a>
+                    <a onclick="downloadExcel()"><i class='bx bxs-spreadsheet'></i> Excel</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="views-container">
+        
+        <!-- 1. SLIDE VIEW -->
+        <div id="view-slide" class="view-section active">
+            <div class="slide-toolbar">
+                <button class="mode-btn active" onclick="setSlideMode('standard')">Standard</button>
+                <button class="mode-btn" onclick="setSlideMode('immersive')">Immersive</button>
+                <button class="mode-btn" onclick="setSlideMode('minimal')">Minimal</button>
+            </div>
+            
+            <div id="slides-wrapper" class="slide-wrapper"></div>
+
+            <div class="controls-floating">
+                <button class="control-btn" style="background:none; border:none; color:#fff; font-size:24px; cursor:pointer;" onclick="changeSlide(-1)"><i class='bx bx-chevron-left'></i></button>
+                <span id="slide-counter" style="min-width:60px; text-align:center; font-weight:600; color:#fff;">1 / 10</span>
+                <button class="control-btn" style="background:none; border:none; color:#fff; font-size:24px; cursor:pointer;" onclick="changeSlide(1)"><i class='bx bx-chevron-right'></i></button>
+            </div>
+        </div>
+
+        <!-- 2. PRINT VIEW -->
+        <div id="view-print" class="view-section" style="flex-direction: column; gap: 20px;"></div>
+
+        <!-- 3. SMART CARDS VIEW -->
+        <div id="view-cards" class="view-section"></div>
+
+        <!-- 4. PINTEREST GALLERY VIEW -->
+        <div id="view-grid" class="view-section"></div>
+
+        <!-- 5. ANALYTICS VIEW -->
+        <div id="view-analytics" class="view-section">
+            <div class="stats-grid">
+                <div class="stat-box"><div class="stat-num" id="an-total">0</div><div class="stat-lbl">Total Events</div></div>
+                <div class="stat-box"><div class="stat-num" id="an-att">0</div><div class="stat-lbl">Total Attendance</div></div>
+                <div class="stat-box"><div class="stat-num" id="an-dist">0</div><div class="stat-lbl">Active Districts</div></div>
+                <div class="stat-box"><div class="stat-num" id="an-avg">0</div><div class="stat-lbl">Avg. Attendance</div></div>
+            </div>
+            <div class="charts-container">
+                 <div class="chart-card">
+                    <div class="chart-header"><i class='bx bx-line-chart'></i> Monthly Trend</div>
+                    <div style="flex:1; position:relative;"><canvas id="chartTime"></canvas></div>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-header"><i class='bx bxs-pie-chart-alt-2'></i> Attendance Share</div>
+                    <div style="flex:1; position:relative;"><canvas id="chartAtt"></canvas></div>
+                </div>
+            </div>
+             <div class="charts-container">
+                <div class="chart-card" style="min-height:300px;">
+                    <div class="chart-header"><i class='bx bxs-bar-chart-alt-2'></i> Events by District</div>
+                    <div style="flex:1; position:relative;"><canvas id="chartDist"></canvas></div>
+                </div>
+             </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    // --- CONFIG ---
+    const SHEET_ID = '1wyr0gt061UT5IVxT1JBYUEUJw1GYcBpzxDKEQmvcXXY';
+    const GID = '1839722438';
+    const URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&gid=${GID}`;
+
+    let rawData = [];
+    let filteredData = [];
+    let currIdx = 0;
+    let tvTimer = null;
+    let slideMode = 'standard'; 
+    let charts = {};
+
+    window.onload = init;
+    
+    function toggleDropdown() {
+        document.getElementById("dl-dropdown").classList.toggle("show");
     }
-  </script>
+    window.onclick = function(event) {
+        if (!event.target.matches('.action-btn') && !event.target.matches('.action-btn *')) {
+            var dropdowns = document.getElementsByClassName("dropdown-content");
+            for (var i = 0; i < dropdowns.length; i++) {
+                if (dropdowns[i].classList.contains('show')) dropdowns[i].classList.remove('show');
+            }
+        }
+    }
+
+    function parseDate(dateStr) {
+        if (!dateStr) return new Date(0);
+        if(typeof dateStr === 'string' && dateStr.indexOf('Date(') >= 0) {
+             const parts = dateStr.match(/\d+/g);
+             if(parts && parts.length >= 3) return new Date(parts[0], parts[1], parts[2]);
+        }
+        const isoMatch = dateStr.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+        if (isoMatch) return new Date(isoMatch[1], isoMatch[2] - 1, isoMatch[3]);
+        const dmyMatch = dateStr.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
+        if (dmyMatch) return new Date(dmyMatch[3], dmyMatch[2] - 1, dmyMatch[1]);
+        const d = new Date(dateStr);
+        return isNaN(d.getTime()) ? new Date(0) : d;
+    }
+
+    async function init() {
+        try {
+            const res = await fetch(URL);
+            const text = await res.text();
+            const json = JSON.parse(text.substring(47).slice(0, -2));
+
+            rawData = json.table.rows.map(row => {
+                const c = row.c;
+                if (!c) return null;
+                let date = '';
+                if (c[1]) date = (typeof c[1].v === 'string' && c[1].v.startsWith('Date(')) ? c[1].v : (c[1].f || c[1].v || '');
+                const district = c[2] ? c[2].v : '';
+                const event = c[3] ? c[3].v : '';
+                const attendance = c[4] ? (parseInt(c[4].v) || 0) : 0;
+                const guests = c[5] ? c[5].v : 'N/A';
+                
+                let photos = [];
+                for(let i=6; i<c.length; i++) {
+                    if(c[i] && c[i].v) {
+                        const ids = String(c[i].v).match(/[-\w]{25,}/g);
+                        if(ids) photos.push(...ids);
+                    }
+                }
+
+                if(!event) return null;
+                return { date, district, event, attendance, guests, photos };
+            }).filter(Boolean);
+            
+            rawData.sort((a, b) => parseDate(a.date) - parseDate(b.date));
+
+            rawData.forEach(item => {
+                if(item.date.indexOf('Date(') >= 0) {
+                    const d = parseDate(item.date);
+                    item.date = d.toLocaleDateString('en-GB'); 
+                }
+            });
+
+            const dists = [...new Set(rawData.map(d=>d.district))].sort();
+            const sel = document.getElementById('district-filter');
+            dists.forEach(d => {
+                const opt = document.createElement('option');
+                opt.value = d; opt.innerText = d;
+                sel.appendChild(opt);
+            });
+
+            applyFilters();
+            document.getElementById('loader').style.display = 'none';
+
+        } catch (e) {
+            console.error(e);
+            document.getElementById('loader').innerHTML = `<div style="color:red">Error Loading Data</div>`;
+        }
+    }
+
+    function applyFilters() {
+        const q = document.getElementById('search-input').value.toLowerCase();
+        const dist = document.getElementById('district-filter').value;
+        filteredData = rawData.filter(item => {
+            const mQ = item.event.toLowerCase().includes(q) || item.guests.toLowerCase().includes(q);
+            const mD = dist ? item.district === dist : true;
+            return mQ && mD;
+        });
+        currIdx = 0;
+        renderAll();
+    }
+
+    function renderAll() {
+        renderSlides(); renderPrint(); renderCards(); renderGrid(); renderAnalytics(); updateCounter();
+    }
+
+    function setSlideMode(mode) {
+        slideMode = mode;
+        document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+        event.target.classList.add('active');
+        renderSlides();
+    }
+
+    function renderSlides() {
+        const wrap = document.getElementById('slides-wrapper');
+        wrap.innerHTML = '';
+        if(!filteredData.length) { wrap.innerHTML = '<h3>No Events Found</h3>'; return; }
+
+        filteredData.forEach((item, i) => {
+            const slide = document.createElement('div');
+            slide.className = `slide-container mode-${slideMode} ${i === currIdx ? 'active' : ''}`;
+            slide.id = `slide-${i}`;
+            const getPhoto = (idx, size='w800') => item.photos[idx] ? `https://lh3.googleusercontent.com/d/${item.photos[idx]}=${size}` : 'https://via.placeholder.com/600x400?text=No+Photo';
+
+            if (slideMode === 'standard') {
+                slide.innerHTML = `
+                    <div class="info-panel">
+                        <h1 style="color:var(--primary); font-size:2.5rem; line-height:1.2; margin-bottom:20px;">${item.event}</h1>
+                        <div class="info-item" style="font-size:1.2rem; margin-bottom:10px;"><i class='bx bx-map'></i> ${item.district} | ${item.date}</div>
+                        <div class="info-item" style="font-size:1.2rem; margin-bottom:10px;"><i class='bx bx-group'></i> Attendance: ${item.attendance}</div>
+                        <div class="info-item" style="font-size:1.1rem; color:#ccc; margin-top:20px; line-height:1.4; max-height:200px; overflow-y:auto; padding-right:10px;">
+                            <strong>Guests:</strong><br>${item.guests}
+                        </div>
+                    </div>
+                    <div class="photo-panel">
+                        ${[0,1,2,3].map(n => `<div class="photo-card" onclick="openLB('${getPhoto(n, 'w1200')}')"><img src="${getPhoto(n)}"></div>`).join('')}
+                    </div>
+                `;
+            } else if (slideMode === 'immersive') {
+                slide.innerHTML = `
+                    <div class="immersive-bg"><img src="${getPhoto(0, 'w1600')}"></div>
+                    <div class="immersive-content">
+                        <h1>${item.event}</h1>
+                        <div class="immersive-meta">
+                            <span><i class='bx bxs-map-pin'></i> ${item.district}</span>
+                            <span> | </span>
+                            <span><i class='bx bxs-calendar'></i> ${item.date}</span>
+                        </div>
+                        <div class="immersive-desc">${item.guests}</div>
+                    </div>
+                    <div class="immersive-thumbs">
+                        ${[1,2].map(n => item.photos[n] ? `<img src="${getPhoto(n)}">` : '').join('')}
+                    </div>
+                `;
+            } else if (slideMode === 'minimal') {
+                slide.innerHTML = `
+                    <h1 style="color:#222; text-align:center; font-size:2.5rem;">${item.event}</h1>
+                    <div style="color:#555; font-size:1.1rem; margin-bottom:30px; font-weight:500;">
+                        ${item.district} • ${item.date} • ${item.attendance} People
+                    </div>
+                    <div class="min-photos">
+                        ${[0,1,2].map(n => item.photos[n] ? `<img src="${getPhoto(n)}">` : '').join('')}
+                    </div>
+                    <p style="margin-top:20px; color:#555; text-align:center; max-width:80%; max-height:150px; overflow-y:auto;">${item.guests}</p>
+                `;
+            }
+            wrap.appendChild(slide);
+        });
+    }
+
+    function changeSlide(dir) {
+        if(!filteredData.length) return;
+        document.getElementById(`slide-${currIdx}`).classList.remove('active');
+        currIdx = (currIdx + dir + filteredData.length) % filteredData.length;
+        document.getElementById(`slide-${currIdx}`).classList.add('active');
+        updateCounter();
+    }
+    function updateCounter() { document.getElementById('slide-counter').innerText = `${filteredData.length ? currIdx + 1 : 0} / ${filteredData.length}`; }
+
+    function toggleTVMode() {
+        const btn = document.getElementById('tv-mode-btn');
+        if(tvTimer) {
+            clearInterval(tvTimer); tvTimer = null;
+            btn.classList.remove('active');
+            btn.innerHTML = "<i class='bx bx-play-circle'></i> TV Mode";
+        } else {
+            setSlideMode('immersive');
+            switchView('slide');
+            tvTimer = setInterval(() => changeSlide(1), 5000);
+            btn.classList.add('active');
+            btn.innerHTML = "<i class='bx bx-pause-circle'></i> Stop TV";
+        }
+    }
+
+    function renderPrint() {
+        const c = document.getElementById('view-print');
+        c.innerHTML = filteredData.map(item => `
+            <div class="print-row" style="display:flex; align-items:center; gap:15px; background:rgba(255,255,255,0.05); padding:10px; border-radius:10px; margin-bottom:10px;">
+                <img src="${item.photos[0] ? `https://lh3.googleusercontent.com/d/${item.photos[0]}=w200` : ''}" 
+                     style="width:80px; height:60px; object-fit:cover; border-radius:6px;"
+                     onerror="this.style.display='none'">
+                <div class="print-data" style="flex:1;">
+                    <h3 style="color:#fff; margin:0; font-size:16px;">${item.event}</h3>
+                    <div style="font-size:0.85rem; color:#aaa;">${item.district} | ${item.date}</div>
+                </div>
+                <div style="text-align:right; min-width:80px;">
+                      <div style="font-size:1.1rem; font-weight:bold; color:var(--primary)">${item.attendance}</div>
+                      <div style="font-size:0.7rem; color:#888;">Attendees</div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function renderCards() {
+        const c = document.getElementById('view-cards');
+        c.innerHTML = filteredData.map((item, i) => `
+            <div class="modern-card" onclick="goToSlide(${i})">
+                <div class="mc-header">
+                    <img src="${item.photos[0] ? `https://lh3.googleusercontent.com/d/${item.photos[0]}=w600` : ''}">
+                    <div class="mc-badge">${item.district}</div>
+                </div>
+                <div class="mc-body">
+                    <div class="mc-date">${item.date}</div>
+                    <div class="mc-title">${item.event}</div>
+                    <div class="mc-desc">${item.guests}</div>
+                    <div class="mc-footer">
+                        <div class="mc-stat"><i class='bx bx-group'></i> ${item.attendance}</div>
+                        <i class='bx bx-right-arrow-alt' style="font-size:20px; color:var(--primary);"></i>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function renderGrid() {
+        const c = document.getElementById('view-grid');
+        c.innerHTML = filteredData.map((item, i) => `
+            <div class="gallery-item" onclick="goToSlide(${i})">
+                <img src="${item.photos[0] ? `https://lh3.googleusercontent.com/d/${item.photos[0]}=w600` : 'https://via.placeholder.com/400'}" loading="lazy">
+                <div class="gallery-overlay">
+                    <div class="gal-actions">
+                        <div class="gal-btn"><i class='bx bx-expand'></i></div>
+                        <div class="gal-btn"><i class='bx bx-share-alt'></i></div>
+                    </div>
+                    <div class="gal-title">${item.event}</div>
+                    <div class="gal-date">${item.date} • ${item.district}</div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function goToSlide(i) {
+        currIdx = i;
+        switchView('slide');
+        renderSlides();
+    }
+
+    function renderAnalytics() {
+        const total = filteredData.length;
+        const att = filteredData.reduce((a,b)=>a+b.attendance,0);
+        const uniqueDist = new Set(filteredData.map(d=>d.district)).size;
+        const avg = total ? Math.round(att/total) : 0;
+
+        document.getElementById('an-total').innerText = total;
+        document.getElementById('an-att').innerText = att.toLocaleString();
+        document.getElementById('an-dist').innerText = uniqueDist;
+        document.getElementById('an-avg').innerText = avg.toLocaleString();
+
+        const distCount = {};
+        const timeline = {};
+        filteredData.forEach(d => {
+            distCount[d.district] = (distCount[d.district] || 0) + 1;
+            try {
+                const parts = d.date.split(/[-/]/);
+                if(parts.length >= 2) {
+                    const monthYear = `${parts[1]}/${parts[2]}`;
+                    timeline[monthYear] = (timeline[monthYear] || 0) + 1;
+                }
+            } catch(e) {}
+        });
+
+        updateChart('chartTime', 'line', Object.keys(timeline), Object.values(timeline), 'Events per Month');
+        updateChart('chartDist', 'bar', Object.keys(distCount), Object.values(distCount), 'Events per District');
+        updateChart('chartAtt', 'doughnut', Object.keys(distCount), Object.values(distCount).map(c => c*avg), 'Est. Attendance');
+    }
+
+    function updateChart(id, type, labels, data, title) {
+        const ctx = document.getElementById(id).getContext('2d');
+        if(charts[id]) charts[id].destroy();
+        const config = {
+            type: type,
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: title,
+                    data: data,
+                    backgroundColor: ['#a78bfa', '#f472b6', '#3b82f6', '#10b981', '#fbbf24', '#f87171'],
+                    borderColor: type === 'line' ? '#a78bfa' : 'rgba(255,255,255,0.1)',
+                    borderWidth: 2,
+                    tension: 0.3, fill: type === 'line'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: type === 'doughnut', labels: { color:'#fff' } }, title: { display: false } },
+                scales: type !== 'doughnut' ? { y: { beginAtZero: true, grid: { color:'rgba(255,255,255,0.05)' }, ticks: { color: '#aaa' } }, x: { grid: { display:false }, ticks: { color: '#aaa' } } } : {}
+            }
+        };
+        if(type === 'line') config.data.datasets[0].backgroundColor = 'rgba(167, 139, 250, 0.2)';
+        charts[id] = new Chart(ctx, config);
+    }
+
+    function getFallbackPlaceholder() {
+        const canvas = document.createElement('canvas');
+        canvas.width = 400; canvas.height = 300;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#222'; ctx.fillRect(0,0,400,300);
+        ctx.fillStyle = '#666'; ctx.font = '24px Arial'; ctx.textAlign = 'center';
+        ctx.fillText('Image N/A', 200, 150);
+        return canvas.toDataURL('image/jpeg');
+    }
+
+    async function toDataURL(url) {
+        if (!url) return getFallbackPlaceholder();
+        const idMatch = url.match(/id=([\w-]+)/) || url.match(/\/d\/([\w-]+)/);
+        const id = idMatch ? idMatch[1] : null;
+        const candidates = [];
+        if(id) candidates.push(`https://lh3.googleusercontent.com/d/${id}=w1000`);
+        else candidates.push(url);
+        const proxies = ['', 'https://corsproxy.io/?', 'https://api.allorigins.win/raw?url=', 'https://api.codetabs.com/v1/proxy?quest='];
+        for (let target of candidates) {
+            for (let proxy of proxies) {
+                try {
+                    const fetchUrl = proxy + encodeURIComponent(target);
+                    const res = await fetch(fetchUrl, { cache: 'no-store' });
+                    if (!res.ok) continue;
+                    const blob = await res.blob();
+                    if(blob.type.indexOf('image') === -1) continue;
+                    return await new Promise(r => {
+                        const fr = new FileReader();
+                        fr.onloadend = () => r(fr.result);
+                        fr.onerror = () => r(null);
+                        fr.readAsDataURL(blob);
+                    });
+                } catch (e) { continue; }
+            }
+        }
+        return getFallbackPlaceholder();
+    }
+
+    async function downloadBookletPDF(viewMode) {
+        const btn = document.getElementById('export-btn');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = "<i class='bx bx-loader-alt bx-spin'></i> Generating...";
+        btn.disabled = true;
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ orientation: 'landscape', unit: 'px', format: [1123, 794] });
+        
+        for(let i=0; i<filteredData.length; i++) {
+            if(i > 0) doc.addPage();
+            const item = filteredData[i];
+            const loadedImages = await Promise.all(item.photos.slice(0,4).map(pid => toDataURL(`https://lh3.googleusercontent.com/d/${pid}=w600`)));
+            btn.innerHTML = `Building ${i+1}/${filteredData.length}...`;
+            doc.setFont('Poppins', 'normal');
+            
+            if (viewMode === 'standard') {
+                doc.setFontSize(36);
+                doc.setTextColor('#a78bfa');
+                doc.text(item.event, 40, 60, { maxWidth: 500 });
+                doc.setFontSize(20);
+                doc.setTextColor('#000000');
+                doc.text(`District: ${item.district}`, 40, 100);
+                doc.text(`Date: ${item.date}`, 40, 130);
+                doc.text(`Attendance: ${item.attendance}`, 40, 160);
+                doc.setFontSize(16);
+                doc.text('Guests:', 40, 200);
+                doc.text(item.guests, 40, 220, { maxWidth: 500 });
+                const imgPos = [[600,40,200,150], [850,40,200,150], [600,200,200,150], [850,200,200,150]];
+                loadedImages.forEach((b64, j) => {
+                    if(b64) doc.addImage(b64, 'JPEG', imgPos[j][0], imgPos[j][1], imgPos[j][2], imgPos[j][3]);
+                });
+            } else if (viewMode === 'immersive') {
+                const bgImg = loadedImages[0] || getFallbackPlaceholder();
+                doc.addImage(bgImg, 'JPEG', 0, 0, 1123, 794);
+                doc.setFillColor(0, 0, 0, 0.3);
+                doc.rect(0, 0, 1123, 794, 'F');
+                doc.setFontSize(56);
+                doc.setTextColor('#ffffff');
+                doc.text(item.event, 60, 300, { maxWidth: 700 });
+                doc.setFontSize(24);
+                doc.setTextColor('#a78bfa');
+                doc.text(`${item.district} | ${item.date} | ${item.attendance} People`, 60, 380);
+                doc.setFontSize(18);
+                doc.setTextColor('#ffffff');
+                doc.setFillColor(0, 0, 0, 0.6);
+                doc.rect(60, 420, 700, 300, 'F');
+                doc.text(item.guests, 80, 450, { maxWidth: 660 });
+            } else if (viewMode === 'minimal') {
+                doc.setFontSize(42);
+                doc.setTextColor('#222222');
+                doc.text(item.event, 561.5, 100, { align: 'center', maxWidth: 1000 });
+                doc.setFontSize(18);
+                doc.setTextColor('#666666');
+                doc.text(`${item.district} • ${item.date} • ${item.attendance} People`, 561.5, 150, { align: 'center' });
+                const imgPos = [[200,200,280,200], [421.5,200,280,200], [643,200,280,200]];
+                loadedImages.slice(0,3).forEach((b64, j) => {
+                    if(b64) doc.addImage(b64, 'JPEG', imgPos[j][0], imgPos[j][1], imgPos[j][2], imgPos[j][3]);
+                });
+                doc.setFillColor('#f9fafb');
+                doc.rect(161.5, 450, 800, 300, 'F');
+                doc.setFontSize(16);
+                doc.setTextColor('#333333');
+                doc.text('Guests:', 181.5, 480);
+                doc.setTextColor('#555555');
+                doc.text(item.guests, 181.5, 500, { maxWidth: 760 });
+            }
+        }
+
+        try {
+            btn.innerHTML = "Saving PDF...";
+            doc.save(`Karyakram_${viewMode}_${new Date().toISOString().split('T')[0]}.pdf`);
+        } catch(e) {
+            console.error("PDF Error:", e);
+            alert("PDF Error. Try again.");
+        } finally {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+    }
+
+    async function downloadFixedPPT() {
+        const btn = document.getElementById('export-btn');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = "<i class='bx bx-loader-alt bx-spin'></i> PPT...";
+        let pptx = new PptxGenJS();
+        
+        for(let i=0; i<filteredData.length; i++) {
+            const item = filteredData[i];
+            let slide = pptx.addSlide();
+            slide.background = { color: 'F0F0F0' };
+            slide.addText(item.event, { x:0.5, y:0.2, w:9, h:0.8, fontSize:24, bold:true, color:'000000' });
+            slide.addText(`District: ${item.district}\nDate: ${item.date}\nAttendance: ${item.attendance}\n\nGuests:\n${item.guests.substring(0,300)}`, { x:0.5, y:1.2, w:4, h:4, fontSize:14, color:'333333', valign:'top' });
+            const photoPos = [{x:5, y:1.2}, {x:7.5, y:1.2}, {x:5, y:3.5}, {x:7.5, y:3.5}];
+            btn.innerHTML = `PPT Slide ${i+1}/${filteredData.length}...`;
+            for(let j=0; j<Math.min(item.photos.length, 4); j++) {
+                try {
+                    const b64 = await toDataURL(`https://lh3.googleusercontent.com/d/${item.photos[j]}=w600`);
+                    slide.addImage({ data: b64, x: photoPos[j].x, y: photoPos[j].y, w: 2.3, h: 2 });
+                } catch(e) { console.error("Image skip in PPT", e); }
+            }
+        }
+        await pptx.writeFile({ fileName: "Karyakram_Report.pptx" }); 
+        btn.innerHTML = originalText;
+    }
+
+    function downloadExcel() {
+        const data = filteredData.map(i => ({ 'Event': i.event, 'Date': i.date, 'District': i.district, 'Attendance': i.attendance, 'Guests': i.guests }));
+        const ws = XLSX.utils.json_to_sheet(data);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Data");
+        XLSX.writeFile(wb, "Data.xlsx");
+    }
+
+    function switchView(id) {
+        document.querySelectorAll('.view-section').forEach(e => e.classList.remove('active'));
+        document.getElementById(`view-${id}`).classList.add('active');
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        if(id === 'slide') document.querySelectorAll('.nav-item')[0].classList.add('active');
+        if(id === 'cards') document.querySelectorAll('.nav-item')[1].classList.add('active');
+        if(id === 'grid') document.querySelectorAll('.nav-item')[2].classList.add('active');
+        if(id === 'print') document.querySelectorAll('.nav-item')[3].classList.add('active');
+        if(id === 'analytics') document.querySelectorAll('.nav-item')[4].classList.add('active');
+    }
+
+    function openLB(src) {
+        document.getElementById('lightbox-img').src = src;
+        const lb = document.getElementById('lightbox');
+        lb.style.display = 'flex';
+        setTimeout(() => lb.classList.add('show'), 10);
+    }
+    function closeLightbox() {
+        const lb = document.getElementById('lightbox');
+        lb.classList.remove('show');
+        setTimeout(() => lb.style.display = 'none', 300);
+    }
+</script>
 </body>
 </html>
