@@ -127,7 +127,6 @@
 
         /* Mode Styles - FIXED SIZES */
         .mode-standard { gap: 30px; padding: 20px; height: 100%; }
-        /* Balanced flex so text isn't squashed */
         .mode-standard .info-panel { flex: 4; background: rgba(31, 31, 35, 0.6); backdrop-filter: blur(10px); padding: 40px; border-radius: 30px; display: flex; flex-direction: column; justify-content: center; border: 1px solid rgba(255,255,255,0.05); overflow:hidden; }
         .mode-standard .photo-panel { flex: 6; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: repeat(2, 1fr); gap: 15px; height: 80vh; } 
         .photo-card { border-radius: 12px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); cursor: pointer; height: 100%; position: relative; }
@@ -441,13 +440,11 @@
                 }
 
                 if(!event) return null;
-                // Store original display string for UI, raw for sorting if needed
-                // But simplifying: store the raw string, parseDate handles formats
                 return { date, district, event, attendance, guests, photos };
             }).filter(Boolean);
             
             // --- STRICT DATE SORTING (NEWEST FIRST) ---
-            rawData.sort((a, b) => parseDate(b.date) - parseDate(a.date));
+            rawData.sort((a, b) => parseDate(a.date) - parseDate(b.date));
 
             // Format dates for display AFTER sorting if they are Date() strings
             rawData.forEach(item => {
@@ -737,30 +734,36 @@
 
     // --- EXPORT LOGIC (FIXED BLANK PDF & VISIBILITY) ---
     async function downloadBookletPDF(viewMode) {
+        // 1. Setup UI
         const btn = document.getElementById('export-btn');
-        const originalText = btn.innerHTML;
+        const oldText = btn.innerHTML;
         btn.innerHTML = "<i class='bx bx-loader-alt bx-spin'></i> Generating...";
         btn.disabled = true;
 
-        // Strategy: Hide main UI, Append PDF container to BODY as standard flow, Scroll Top, Capture
-        const mainContent = document.getElementById('main-content');
-        const sidebar = document.getElementById('main-sidebar');
-        const scrollPos = window.scrollY;
-
-        // Hide App UI
-        mainContent.style.display = 'none';
-        sidebar.style.display = 'none';
-
-        // Create PDF Container
-        const container = document.createElement('div');
-        container.id = 'pdf-gen-container';
-        container.style.width = '1123px'; // A4 Landscape
-        container.style.margin = '0 auto';
-        container.style.background = '#222';
+        // 2. Hide everything else
+        const sidebar = document.querySelector('.sidebar');
+        const main = document.querySelector('.main-content');
+        const originalDisplay = { s: sidebar.style.display, m: main.style.display };
         
+        sidebar.style.display = 'none';
+        main.style.display = 'none';
+
+        // 3. Create PDF Container (Normal Flow)
+        const container = document.createElement('div');
+        container.style.width = '100%'; 
+        container.style.backgroundColor = viewMode === 'minimal' ? '#fff' : '#000';
+        document.body.appendChild(container);
+
+        // 4. Generate Content (Pages)
         const bg = viewMode === 'minimal' ? '#ffffff' : '#0f0f11';
         const txt = viewMode === 'minimal' ? '#000000' : '#ffffff';
         const accent = '#a78bfa';
+
+        const wrapper = document.createElement('div');
+        // A4 Landscape size specific
+        wrapper.style.width = '1123px';
+        wrapper.style.margin = '0 auto'; // Center it
+        wrapper.style.background = bg;
 
         for(let item of filteredData) {
             const page = document.createElement('div');
@@ -775,7 +778,7 @@
                 overflow: hidden;
                 page-break-after: always;
                 font-family: sans-serif;
-                border-bottom: 1px solid #333; /* Visual separator during gen */
+                margin-bottom: 0px;
             `;
             
             let content = '';
@@ -846,13 +849,15 @@
             }
 
             page.innerHTML = content;
-            container.appendChild(page);
+            wrapper.appendChild(page);
         }
+        
+        container.appendChild(wrapper);
 
-        document.body.appendChild(container);
-        window.scrollTo(0,0); // Force scroll top
+        // 5. Scroll Top
+        window.scrollTo(0, 0);
 
-        // --- WAIT FOR IMAGES ---
+        // 6. Wait for images
         const images = container.querySelectorAll('img');
         const promises = Array.from(images).map(img => {
             if (img.complete) return Promise.resolve();
@@ -875,19 +880,18 @@
             jsPDF: { unit: 'px', format: [1123, 794], orientation: 'landscape' }
         };
 
+        // 7. Generate
         try {
             await html2pdf().set(opt).from(container).save();
         } catch(e) {
             console.error("PDF Error:", e);
             alert("PDF Error. Try again.");
         } finally {
-            // Restore UI
+            // 8. Restore
             document.body.removeChild(container);
-            mainContent.style.display = 'flex';
-            sidebar.style.display = 'flex';
-            window.scrollTo(0, scrollPos);
-            
-            btn.innerHTML = originalText;
+            sidebar.style.display = originalDisplay.s;
+            main.style.display = originalDisplay.m;
+            btn.innerHTML = oldText;
             btn.disabled = false;
         }
     }
