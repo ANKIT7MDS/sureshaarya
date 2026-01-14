@@ -713,23 +713,42 @@
         }
     }
 
-    // --- DOWNLOAD LOGIC - ULTIMATE FIX: IFRAME INJECTION + BASE64 ---
+    // --- DOWNLOAD LOGIC (ROBUST FALLBACKS FROM UPLOADED FILE) -------------------
 
-    // 1. Convert Image to Base64 (Using wsrv.nl proxy to bypass CORS)
-    async function getBase64FromUrl(url) {
-        try {
-            const proxyUrl = `https://wsrv.nl/?url=${encodeURIComponent(url)}&output=jpg`;
-            const res = await fetch(proxyUrl);
-            const blob = await res.blob();
-            return new Promise((resolve) => {
-                const reader = new FileReader();
-                reader.onloadend = () => resolve(reader.result);
-                reader.readAsDataURL(blob);
-            });
-        } catch (e) {
-            console.error("Base64 Error:", e);
-            return null;
-        }
+    function candidates(id) { 
+        if(!id) return []; 
+        return [
+            `https://drive.google.com/uc?export=view&id=${id}`,
+            `https://drive.google.com/thumbnail?id=${id}&sz=w1200`,
+            `https://lh3.googleusercontent.com/d/${id}=w1200`
+        ]; 
+    }
+
+    async function fetchAsDataURL(url, timeoutMs=20000){
+      if(!url) throw new Error("empty url");
+      const ctrl = new AbortController();
+      const to = setTimeout(()=>ctrl.abort(), timeoutMs);
+      try{
+        // Using corsproxy.io as in the uploaded file, as it handles redirects well
+        const proxyUrl = "https://corsproxy.io/?" + encodeURIComponent(url);
+        const res = await fetch(proxyUrl, {cache:'no-store', signal: ctrl.signal});
+        if(!res.ok) throw new Error("HTTP " + res.status);
+        const blob = await res.blob();
+        return await new Promise((resolve,reject)=>{
+          const fr = new FileReader();
+          fr.onload = () => resolve(fr.result);
+          fr.onerror = reject;
+          fr.readAsDataURL(blob);
+        });
+      } finally { clearTimeout(to); }
+    }
+
+    async function loadImageAsDataURLWithFallbacks(photoId){
+      const tries = candidates(photoId);
+      for (let i=0; i<tries.length; i++){
+        try{ return await fetchAsDataURL(tries[i]); } catch(e){ /* try next */ }
+      }
+      return null;
     }
 
     function downloadDataCSV() {
@@ -751,83 +770,81 @@
         XLSX.writeFile(wb, "Karyakram_Report.xlsx");
     }
 
-    // --- 2. PDF Download (Clone -> Inject Base64 -> Print) ---
+    // --- "SCREENSHOT WALA PDF" (Slides to PDF) ---
     async function downloadFullPDF() {
         if (filteredData.length === 0) return;
         const btn = document.getElementById('download-main-btn');
         const originalText = btn.innerHTML;
-        btn.innerHTML = '⏳ Preparing PDF...';
+        btn.innerHTML = '⏳ Generating PDF...';
         btn.disabled = true;
+        
+        // Build a container off-screen
+        const container = document.createElement('div');
+        container.style.width = '1123px'; 
+        container.style.position = 'absolute'; 
+        container.style.top = '-99999px';
+        container.style.left = '0';
+        container.style.background = '#0b0c10'; 
+        container.style.color = '#fff';
+        container.style.fontFamily = "'Noto Sans Devanagari', sans-serif";
+
+        let htmlContent = '';
+        
+        for (const item of filteredData) {
+            let imgsHtml = '';
+            const max = Math.min(item.photos.length, 4);
+            
+            // We will fill src later
+            for(let i=0; i<max; i++){
+                imgsHtml += `<div style="border:1px solid rgba(255,255,255,0.2); border-radius:10px; overflow:hidden; background:#000;"><img data-id="${item.photos[i]}" style="width:100%; height:100%; object-fit:cover;"></div>`;
+            }
+            for(let i=max; i<4; i++){ imgsHtml += `<div style="border:1px dashed rgba(255,255,255,0.1); border-radius:10px;"></div>`; }
+            
+            htmlContent += `
+                <div style="width: 1123px; height: 794px; padding: 50px; page-break-after: always; box-sizing: border-box; display: flex; gap: 40px; border: 1px solid #333;">
+                    <div style="flex: 1; display: flex; flex-direction: column; justify-content: center;">
+                        <h1 style="font-size: 42px; color: #66fcf1; margin-bottom: 30px; line-height: 1.2;">${item.event}</h1>
+                        <div style="font-size: 24px; color: #c5c6c7; margin-bottom: 20px;"><span style="color: #45a29e; font-size: 30px;">📅</span> <strong>Date:</strong> ${item.date}</div>
+                        <div style="font-size: 24px; color: #c5c6c7; margin-bottom: 20px;"><span style="color: #45a29e; font-size: 30px;">📍</span> <strong>District:</strong> ${item.district}</div>
+                        <div style="font-size: 24px; color: #c5c6c7; margin-bottom: 20px;"><span style="color: #45a29e; font-size: 30px;">👥</span> <strong>Attend:</strong> ${item.attendance}</div>
+                        <div style="font-size: 24px; color: #c5c6c7;"><span style="color: #45a29e; font-size: 30px;">🎤</span> <strong>Guests:</strong><br>${item.guests}</div>
+                    </div>
+                    <div style="flex: 1; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 20px; height: 100%;">${imgsHtml}</div>
+                </div>`;
+        }
+        container.innerHTML = htmlContent;
+        document.body.appendChild(container);
+
+        // Process images using robust fallback logic
+        const images = container.querySelectorAll('img[data-id]');
+        // Process in chunks
+        const chunk = 5;
+        for (let i=0; i<images.length; i+=chunk) {
+            const batch = Array.from(images).slice(i, i+chunk);
+            await Promise.all(batch.map(async (img) => {
+                const id = img.getAttribute('data-id');
+                const b64 = await loadImageAsDataURLWithFallbacks(id);
+                if (b64) {
+                    img.src = b64;
+                } else {
+                    img.parentElement.innerHTML = '<div style="display:flex;justify-content:center;align-items:center;height:100%;color:#555">Image N/A</div>';
+                }
+            }));
+        }
 
         try {
-            // Create a HIDDEN container (NOT displayed)
-            const container = document.createElement('div');
-            container.style.width = '1123px'; // A4 Landscape
-            container.style.position = 'fixed';
-            container.style.top = '-10000px';
-            container.style.left = '-10000px';
-            container.style.background = '#0b0c10'; 
-            container.style.color = '#fff';
-            container.style.fontFamily = "'Noto Sans Devanagari', sans-serif";
-            document.body.appendChild(container);
-
-            // Construct HTML string first
-            let htmlContent = '';
-            for (const item of filteredData) {
-                // Fetch images as Base64 in parallel for speed
-                const max = Math.min(item.photos.length, 4);
-                const photoPromises = item.photos.slice(0, 4).map(id => 
-                    getBase64FromUrl(`https://drive.google.com/thumbnail?id=${id}&sz=w800`)
-                );
-                const base64Images = await Promise.all(photoPromises);
-
-                let imgsHtml = '';
-                for(let i=0; i<4; i++){
-                    if (i < max && base64Images[i]) {
-                        // INJECT BASE64 DIRECTLY - NO EXTERNAL LINK
-                        imgsHtml += `<div style="border:1px solid rgba(255,255,255,0.2); border-radius:10px; overflow:hidden; background:#000;"><img src="${base64Images[i]}" style="width:100%; height:100%; object-fit:cover;"></div>`;
-                    } else {
-                        imgsHtml += `<div style="border:1px dashed rgba(255,255,255,0.1); border-radius:10px; display:flex; justify-content:center; align-items:center; color:#333;">${i < max ? 'Img Error' : ''}</div>`;
-                    }
-                }
-
-                htmlContent += `
-                    <div style="width: 1123px; height: 794px; padding: 50px; page-break-after: always; box-sizing: border-box; display: flex; gap: 40px; border: 1px solid #333;">
-                        <div style="flex: 1; display: flex; flex-direction: column; justify-content: center;">
-                            <h1 style="font-size: 42px; color: #66fcf1; margin-bottom: 30px; line-height: 1.2;">${item.event}</h1>
-                            <div style="font-size: 24px; color: #c5c6c7; margin-bottom: 20px;"><span style="color: #45a29e; font-size: 30px;">📅</span> <strong>Date:</strong> ${item.date}</div>
-                            <div style="font-size: 24px; color: #c5c6c7; margin-bottom: 20px;"><span style="color: #45a29e; font-size: 30px;">📍</span> <strong>District:</strong> ${item.district}</div>
-                            <div style="font-size: 24px; color: #c5c6c7; margin-bottom: 20px;"><span style="color: #45a29e; font-size: 30px;">👥</span> <strong>Attend:</strong> ${item.attendance}</div>
-                            <div style="font-size: 24px; color: #c5c6c7;"><span style="color: #45a29e; font-size: 30px;">🎤</span> <strong>Guests:</strong><br>${item.guests}</div>
-                        </div>
-                        <div style="flex: 1; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 20px; height: 100%;">${imgsHtml}</div>
-                    </div>`;
-            }
-            
-            container.innerHTML = htmlContent;
-
-            // Generate PDF from the Clean Container
-            const opt = {
+            await html2pdf().set({
                 margin: 0,
                 filename: 'Karyakram_Slides.pdf',
                 image: { type: 'jpeg', quality: 0.95 },
-                html2canvas: { scale: 1.5, scrollY: 0, backgroundColor: '#0b0c10' }, // No CORS needed now
+                html2canvas: { scale: 1.5, scrollY: 0, backgroundColor: '#0b0c10', useCORS: true },
                 jsPDF: { unit: 'px', format: [1123, 794], orientation: 'landscape' }
-            };
-            await html2pdf().set(opt).from(container).save();
-
-            document.body.removeChild(container);
-
-        } catch(e) { 
-            console.error(e); 
-            alert("PDF Error"); 
-        } finally { 
-            btn.innerHTML = originalText; 
-            btn.disabled = false; 
-        }
+            }).from(container).save();
+        } catch(e) { console.error(e); alert("PDF Error"); } 
+        finally { document.body.removeChild(container); btn.innerHTML = originalText; btn.disabled = false; }
     }
 
-    // --- 3. PPT Download (Base64 Injection) ---
+    // --- PPT ---
     async function downloadPPT() {
         const btn = document.getElementById('download-main-btn');
         const originalText = btn.innerHTML;
@@ -850,8 +867,7 @@
                 const max = Math.min(item.photos.length, 4);
                 
                 for(let i=0; i<max; i++){
-                    // Fetch Base64 before adding to PPT
-                    const b64 = await getBase64FromUrl(`https://drive.google.com/thumbnail?id=${item.photos[i]}&sz=w800`);
+                    const b64 = await loadImageAsDataURLWithFallbacks(item.photos[i]);
                     if(b64) {
                         slide.addImage({ data: b64, x: pos[i].x, y: pos[i].y, w: 3.5, h: 2.5 });
                     }
@@ -862,7 +878,7 @@
         finally { btn.innerHTML = originalText; btn.disabled = false; }
     }
 
-    // --- 4. Current Slide Image (Clone -> Inject Base64 -> Canvas) ---
+    // --- Current Slide Image ---
     async function downloadCurrentImage() {
         const activeSlide = document.getElementById(`slide-${currentIndex}`);
         if (!activeSlide || activeSlide.classList.contains('hidden')) return alert("Go to Presentation View");
@@ -872,26 +888,23 @@
         btn.disabled = true;
         
         try {
-            // 1. Clone Slide
             const clone = activeSlide.cloneNode(true);
             clone.style.position='fixed'; clone.style.top='0'; clone.style.left='0'; 
             clone.style.width='1200px'; clone.style.height='800px'; clone.style.zIndex='-9999';
             clone.style.background='#0b0c10'; clone.style.display='flex';
             document.body.appendChild(clone);
             
-            // 2. Swap Images with Base64
             const images = clone.querySelectorAll('img');
             const currentPhotos = filteredData[currentIndex].photos;
             
             await Promise.all(Array.from(images).map(async (img, i) => {
                 if(currentPhotos[i]) {
-                    const b64 = await getBase64FromUrl(`https://drive.google.com/thumbnail?id=${currentPhotos[i]}&sz=w800`);
+                    const b64 = await loadImageAsDataURLWithFallbacks(currentPhotos[i]);
                     if(b64) img.src = b64;
                 }
             }));
             
-            // 3. Capture
-            const canvas = await html2canvas(clone, { backgroundColor: '#0b0c10', scale: 1.5 });
+            const canvas = await html2canvas(clone, { backgroundColor: '#0b0c10', useCORS: true, scale: 1.5 });
             const link = document.createElement('a');
             link.download = `Slide_${currentIndex+1}.png`;
             link.href = canvas.toDataURL("image/png");
@@ -901,7 +914,7 @@
         finally { btn.innerHTML = orig; btn.disabled = false; }
     }
 
-    // --- 5. Full Screenshot (Swap src with Base64 -> Capture -> Restore) ---
+    // --- Full Screenshot ---
     async function downloadScreenshot() {
         const btn = document.getElementById('download-main-btn');
         const orig = btn.innerHTML;
@@ -909,36 +922,10 @@
         btn.disabled = true;
         
         try {
-            // Store original sources to restore later
-            const allImages = document.querySelectorAll('img');
-            const originalSrcs = [];
-            allImages.forEach((img, index) => {
-                originalSrcs.push(img.src);
-                img.setAttribute('data-original-src', img.src); // Backup attribute
-            });
-
-            // Replace all visible images with Base64
-            // We use the proxy to get base64 data for each image source
-            const conversionPromises = Array.from(allImages).map(async (img) => {
-                // Skip if no src or not a remote image
-                if (!img.src || img.src.startsWith('data:')) return;
-                
-                // Try to get base64
-                try {
-                    const b64 = await getBase64FromUrl(img.src);
-                    if (b64) img.src = b64;
-                } catch (e) {
-                    console.log("Failed to convert image for screenshot", img.src);
-                }
-            });
-
-            // Wait for all conversions
-            await Promise.all(conversionPromises);
-
-            // Now take the screenshot
+            // Reverting to standard capture but enabling allowTaint
             const canvas = await html2canvas(document.body, {
                 backgroundColor: '#0b0c10',
-                useCORS: false, // No CORS needed as images are now base64 data URIs
+                useCORS: true,
                 allowTaint: true,
                 ignoreElements: (element) => element.classList.contains('dropdown')
             });
@@ -947,21 +934,8 @@
             link.download = `Dashboard_Shot.png`;
             link.href = canvas.toDataURL("image/png");
             link.click();
-
-        } catch(e) { 
-            console.error(e); 
-            alert("Screenshot Error"); 
-        } finally { 
-            // RESTORE ORIGINAL IMAGES
-            const allImagesAgain = document.querySelectorAll('img');
-            allImagesAgain.forEach((img) => {
-                const original = img.getAttribute('data-original-src');
-                if (original) img.src = original;
-            });
-
-            btn.innerHTML = orig; 
-            btn.disabled = false; 
-        }
+        } catch(e) { console.error(e); alert("Screenshot Error"); }
+        finally { btn.innerHTML = orig; btn.disabled = false; }
     }
 
     function openLightbox(url, caption) {
