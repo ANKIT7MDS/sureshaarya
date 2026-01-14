@@ -25,14 +25,14 @@
             --text-main: #fff;
             --text-muted: #c5c6c7;
             --accent: #ff4757;
+            --card-bg: rgba(31, 40, 51, 0.8);
         }
 
         * { box-sizing: border-box; }
 
         body {
             font-family: 'Poppins', 'Noto Sans Devanagari', sans-serif;
-            margin: 0;
-            padding: 0;
+            margin: 0; padding: 0;
             background-color: var(--bg-dark);
             color: var(--text-main);
             height: 100vh;
@@ -100,11 +100,7 @@
             flex-wrap: wrap;
         }
 
-        .filter-group {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-        }
+        .filter-group { display: flex; gap: 10px; align-items: center; }
 
         .input-style {
             background: rgba(0,0,0,0.3);
@@ -135,6 +131,7 @@
         }
         .action-btn:hover { background: var(--primary); color: #000; transform: translateY(-1px); }
         .action-btn.active { background: var(--accent); animation: pulse 1.5s infinite; }
+        .action-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
 
@@ -230,6 +227,41 @@
             font-size: 1.5rem; font-weight: bold; color: var(--primary);
         }
 
+        /* --- MODERN CARD VIEW (NEW PATTERN) --- */
+        #view-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 30px;
+            padding: 30px;
+            align-content: start;
+        }
+        .modern-card {
+            background: var(--bg-panel);
+            border-radius: 24px;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        .modern-card:hover { transform: translateY(-10px); border-color: var(--primary); box-shadow: 0 15px 45px rgba(102, 252, 241, 0.2); }
+        .m-card-header { height: 200px; position: relative; overflow: hidden; }
+        .m-card-header img { width: 100%; height: 100%; object-fit: cover; transition: 0.5s; }
+        .modern-card:hover .m-card-header img { transform: scale(1.1); }
+        .m-card-badge {
+            position: absolute; top: 15px; left: 15px;
+            background: var(--primary); color: #000;
+            padding: 4px 12px; border-radius: 15px; font-weight: 700; font-size: 12px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+        .m-card-content { padding: 25px; flex: 1; display: flex; flex-direction: column; }
+        .m-card-title { font-size: 1.3rem; font-weight: 700; color: #fff; margin-bottom: 15px; line-height: 1.3; }
+        .m-card-stats { display: flex; gap: 15px; margin-top: auto; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.05); }
+        .m-stat { font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 5px; }
+        .m-stat i { color: var(--primary); }
+
         /* --- GRID VIEW --- */
         #view-grid {
             display: grid;
@@ -257,10 +289,7 @@
         .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; }
         .stat-card {
             background: linear-gradient(135deg, var(--bg-panel), #2c3e50);
-            padding: 25px;
-            border-radius: 15px;
-            text-align: center;
-            border: 1px solid rgba(255,255,255,0.1);
+            padding: 25px; border-radius: 15px; text-align: center; border: 1px solid rgba(255,255,255,0.1);
         }
         .stat-val { font-size: 2.2rem; font-weight: bold; color: var(--primary); }
         .stat-label { font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; margin-top: 5px; }
@@ -316,18 +345,17 @@
             .nav-text { display: block !important; font-size: 10px; }
             
             .main-content { margin-bottom: 65px; height: calc(100vh - 65px); }
-            
-            .top-bar { padding: 15px; gap: 10px; }
-            .filter-group { width: 100%; overflow-x: auto; padding-bottom: 5px; }
+            .top-bar { padding: 10px; gap: 8px; }
+            .top-bar .filter-group { width: 100%; justify-content: space-between; }
             
             .slide-container { flex-direction: column; overflow-y: auto; }
-            .info-panel { flex: none; padding: 25px; border-radius: 15px; }
+            .info-panel { flex: none; padding: 25px; }
             .info-panel h1 { font-size: 1.5rem; }
             .photo-panel { flex: none; height: auto; grid-template-columns: 1fr 1fr; }
-            .photo-card { height: 150px; }
+            .photo-card { height: 140px; }
             
             .chart-row { grid-template-columns: 1fr; }
-            .controls-floating { bottom: 80px; padding: 8px 15px; }
+            .controls-floating { bottom: 80px; }
         }
     </style>
 </head>
@@ -352,6 +380,10 @@
         <i class='bx bx-slideshow'></i>
         <span class="nav-text">Presentation</span>
     </div>
+    <div class="nav-item" onclick="switchView('cards')">
+        <i class='bx bx-id-card'></i>
+        <span class="nav-text">Modern Cards</span>
+    </div>
     <div class="nav-item" onclick="switchView('grid')">
         <i class='bx bx-grid-alt'></i>
         <span class="nav-text">Gallery View</span>
@@ -367,8 +399,8 @@
     
     <!-- Top Bar -->
     <div class="top-bar">
-        <div class="filter-group" style="flex:1; min-width: 200px;">
-            <input type="text" id="search-input" class="input-style" placeholder="Search event or guest..." style="width:100%;" onkeyup="applyFilters()">
+        <div class="filter-group" style="flex:1; min-width: 180px;">
+            <input type="text" id="search-input" class="input-style" placeholder="Search event..." style="width:100%;" onkeyup="applyFilters()">
         </div>
         
         <div class="filter-group">
@@ -381,7 +413,7 @@
             </button>
              
             <div class="dropdown">
-                <button class="action-btn" style="background:#e67e22;">
+                <button class="action-btn" id="export-btn" style="background:#e67e22;">
                     <i class='bx bxs-download'></i> Export <i class='bx bx-chevron-down'></i>
                 </button>
                 <div class="dropdown-content">
@@ -406,10 +438,13 @@
             </div>
         </div>
         
-        <!-- 2. GRID VIEW -->
+        <!-- 2. MODERN CARDS VIEW -->
+        <div id="view-cards" class="view-section"></div>
+        
+        <!-- 3. GALLERY GRID VIEW -->
         <div id="view-grid" class="view-section"></div>
         
-        <!-- 3. ANALYTICS VIEW -->
+        <!-- 4. ANALYTICS VIEW -->
         <div id="view-analytics" class="view-section">
             <div class="stats-row">
                 <div class="stat-card">
@@ -475,7 +510,7 @@
             document.getElementById('loader').style.display = 'none';
         } catch (error) {
             console.error(error);
-            document.getElementById('loader').innerHTML = "<div style='color:red'>Data Load Fail Ho Gaya. Connection check karein.</div>";
+            document.getElementById('loader').innerHTML = "<div style='color:red'>Data Load Error. Network check karein.</div>";
         }
     }
 
@@ -501,6 +536,7 @@
         });
         currentIndex = 0;
         renderSlides();
+        renderCards();
         renderGrid();
         renderAnalytics();
         updateCounter();
@@ -509,26 +545,21 @@
     function renderSlides() {
         const wrapper = document.getElementById('slides-wrapper');
         wrapper.innerHTML = '';
-        if (filteredData.length === 0) {
-            wrapper.innerHTML = '<div style="height:100%; display:flex; justify-content:center; align-items:center;">Koi data nahi mila</div>';
-            return;
-        }
+        if (!filteredData.length) return wrapper.innerHTML = '<div style="height:100%; display:flex; justify-content:center; align-items:center;">Data Not Found</div>';
+        
         filteredData.forEach((item, index) => {
             const div = document.createElement('div');
             div.className = `slide-container ${index === currentIndex ? '' : 'hidden'}`;
             div.id = `slide-${index}`;
             
             let photosHtml = '';
-            const maxPhotos = 4;
             if(item.photos.length > 0) {
-                const limit = Math.min(item.photos.length, maxPhotos);
-                for(let i=0; i<limit; i++) {
-                    const pid = item.photos[i];
-                    const url = `https://drive.google.com/thumbnail?id=${pid}&sz=w800`; 
+                for(let i=0; i<Math.min(item.photos.length, 4); i++) {
+                    const url = `https://drive.google.com/thumbnail?id=${item.photos[i]}&sz=w800`; 
                     let overlay = (i === 3 && item.photos.length > 4) ? `<div class="more-overlay">+${item.photos.length - 3}</div>` : '';
                     photosHtml += `
                     <div class="photo-card" onclick="openLightbox('${url}', '${item.event.replace(/'/g, "")}')">
-                        <img src="${url}" loading="lazy" referrerpolicy="no-referrer" onerror="this.src='https://via.placeholder.com/400x300?text=Image+Load+Error'">
+                        <img src="${url}" loading="lazy" referrerpolicy="no-referrer" onerror="this.src='https://via.placeholder.com/400x300?text=Error'">
                         ${overlay}
                     </div>`;
                 }
@@ -550,11 +581,37 @@
         });
     }
 
+    function renderCards() {
+        const cardView = document.getElementById('view-cards');
+        cardView.innerHTML = '';
+        filteredData.forEach((item, index) => {
+            const thumb = item.photos.length > 0 ? `https://drive.google.com/thumbnail?id=${item.photos[0]}&sz=w600` : 'https://via.placeholder.com/400x300?text=No+Photo';
+            const div = document.createElement('div');
+            div.className = 'modern-card';
+            div.onclick = () => { switchView('slide'); showSlide(index); };
+            div.innerHTML = `
+                <div class="m-card-header">
+                    <img src="${thumb}" loading="lazy" referrerpolicy="no-referrer" onerror="this.src='https://via.placeholder.com/400x300?text=Error'">
+                    <div class="m-card-badge">${item.district}</div>
+                </div>
+                <div class="m-card-content">
+                    <div class="m-card-title">${item.event}</div>
+                    <div class="m-card-stats">
+                        <div class="m-stat"><i class='bx bx-calendar'></i> ${item.date}</div>
+                        <div class="m-stat"><i class='bx bx-group'></i> ${item.attendance}</div>
+                        <div class="m-stat"><i class='bx bx-image'></i> ${item.photos.length} Photos</div>
+                    </div>
+                </div>
+            `;
+            cardView.appendChild(div);
+        });
+    }
+
     function renderGrid() {
         const grid = document.getElementById('view-grid');
         grid.innerHTML = '';
         filteredData.forEach((item, index) => {
-            const thumb = item.photos.length > 0 ? `https://drive.google.com/thumbnail?id=${item.photos[0]}&sz=w500` : 'https://via.placeholder.com/400x300?text=No+Photo';
+            const thumb = item.photos.length > 0 ? `https://drive.google.com/thumbnail?id=${item.photos[0]}&sz=w400` : 'https://via.placeholder.com/400x300?text=No+Photo';
             const div = document.createElement('div');
             div.className = 'grid-item';
             div.onclick = () => { switchView('slide'); showSlide(index); };
@@ -585,34 +642,23 @@
             districtAttendance[d.district] = (districtAttendance[d.district] || 0) + d.attendance;
         });
 
-        const chartConfig = {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { labels: { color: '#c5c6c7', font: { family: 'Poppins' } } } },
-            scales: { 
-                y: { ticks: { color: '#888' }, grid: { color: 'rgba(255,255,255,0.05)' } },
-                x: { ticks: { color: '#888' }, grid: { display: false } }
-            }
+        const commonOpts = {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { labels: { color: '#c5c6c7' } } }
         };
 
         if(charts.dist) charts.dist.destroy();
         charts.dist = new Chart(document.getElementById('districtChart'), {
             type: 'bar',
-            data: { 
-                labels: Object.keys(districtCounts), 
-                datasets: [{ label: 'Events Per District', data: Object.values(districtCounts), backgroundColor: '#66fcf1', borderRadius: 8 }] 
-            },
-            options: chartConfig
+            data: { labels: Object.keys(districtCounts), datasets: [{ label: 'Events', data: Object.values(districtCounts), backgroundColor: '#66fcf1' }] },
+            options: commonOpts
         });
 
         if(charts.att) charts.att.destroy();
         charts.att = new Chart(document.getElementById('attendanceChart'), {
             type: 'doughnut',
-            data: { 
-                labels: Object.keys(districtAttendance), 
-                datasets: [{ label: 'Attendance Share', data: Object.values(districtAttendance), backgroundColor: ['#45a29e', '#66fcf1', '#1f2833', '#c5c6c7', '#ff4757'], borderColor: '#0b0c10', borderWidth: 2 }] 
-            },
-            options: { ...chartConfig, plugins: { legend: { position: 'right', labels: { color: '#fff' } } } }
+            data: { labels: Object.keys(districtAttendance), datasets: [{ label: 'Attendance', data: Object.values(districtAttendance), backgroundColor: ['#45a29e', '#66fcf1', '#1f2833', '#c5c6c7', '#ff4757'] }] },
+            options: commonOpts
         });
     }
 
@@ -621,18 +667,16 @@
         document.getElementById(`view-${viewName}`).classList.add('active');
         document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
         
-        const navItems = document.querySelectorAll('.nav-item');
-        if(viewName === 'slide') navItems[0].classList.add('active');
-        if(viewName === 'grid') navItems[1].classList.add('active');
-        if(viewName === 'analytics') navItems[2].classList.add('active');
+        const navMap = {'slide':0, 'cards':1, 'grid':2, 'analytics':3};
+        document.querySelectorAll('.nav-item')[navMap[viewName]].classList.add('active');
+        if(tvInterval && viewName !== 'slide') toggleTVMode();
     }
 
     function showSlide(index) {
         if(index < 0 || index >= filteredData.length) return;
         currentIndex = index;
         document.querySelectorAll('.slide-container').forEach(el => el.classList.add('hidden'));
-        const active = document.getElementById(`slide-${index}`);
-        if(active) active.classList.remove('hidden');
+        document.getElementById(`slide-${index}`).classList.remove('hidden');
         updateCounter();
     }
 
@@ -651,8 +695,7 @@
     function toggleTVMode() {
         const btn = document.getElementById('tv-mode-btn');
         if (tvInterval) {
-            clearInterval(tvInterval);
-            tvInterval = null;
+            clearInterval(tvInterval); tvInterval = null;
             btn.classList.remove('active');
             btn.innerHTML = "<i class='bx bx-play-circle'></i> TV Mode";
         } else {
@@ -663,80 +706,159 @@
         }
     }
 
-    // --- Utility Functions for Images & Downloads ---
-    async function getBase64Image(url) {
+    // --- ROBUST IMAGE DATA URL CONVERSION (Fixes Missing Images) ---
+    async function toDataURL(url) {
         try {
             const proxyUrl = "https://corsproxy.io/?" + encodeURIComponent(url);
-            const response = await fetch(proxyUrl);
-            const blob = await response.blob();
+            const res = await fetch(proxyUrl);
+            const blob = await res.blob();
             return new Promise((resolve) => {
                 const reader = new FileReader();
                 reader.onloadend = () => resolve(reader.result);
                 reader.readAsDataURL(blob);
             });
-        } catch (e) { return null; }
+        } catch (e) {
+            console.warn("Image fetch failed, using fallback", url);
+            return null;
+        }
     }
 
     async function downloadFullPDF() {
         if (!filteredData.length) return;
-        const btn = event.currentTarget;
+        const btn = document.getElementById('export-btn');
         const originalText = btn.innerHTML;
-        btn.innerHTML = "⏳ Generating...";
+        btn.innerHTML = "⏳ Processing Images...";
+        btn.disabled = true;
         
-        const opt = {
-            margin: 0,
-            filename: 'Karyakram_Slides.pdf',
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2, useCORS: true },
-            jsPDF: { unit: 'in', format: 'letter', orientation: 'landscape' }
-        };
+        // Prepare a hidden container for PDF with Base64 images
+        const pdfContainer = document.createElement('div');
+        pdfContainer.style.width = "1000px";
+        pdfContainer.style.background = "#0b0c10";
+        pdfContainer.style.color = "#fff";
 
-        // We use a hidden clone to generate PDF
-        const element = document.getElementById('slides-wrapper').cloneNode(true);
-        element.style.width = "1200px";
-        element.style.height = "auto";
-        element.querySelectorAll('.slide-container').forEach(s => s.classList.remove('hidden'));
-        
+        for (let i = 0; i < filteredData.length; i++) {
+            const item = filteredData[i];
+            const slide = document.createElement('div');
+            slide.style.padding = "40px";
+            slide.style.pageBreakAfter = "always";
+            slide.style.display = "flex";
+            slide.style.gap = "20px";
+            
+            // Text Side
+            const textDiv = document.createElement('div');
+            textDiv.style.flex = "1";
+            textDiv.innerHTML = `
+                <h1 style="color:#66fcf1; font-size:28px;">${item.event}</h1>
+                <p><b>Date:</b> ${item.date}</p>
+                <p><b>District:</b> ${item.district}</p>
+                <p><b>Attendance:</b> ${item.attendance}</p>
+                <p><b>Guests:</b> ${item.guests}</p>
+            `;
+            
+            // Image Side
+            const imgDiv = document.createElement('div');
+            imgDiv.style.flex = "1.5";
+            imgDiv.style.display = "grid";
+            imgDiv.style.gridTemplateColumns = "1fr 1fr";
+            imgDiv.style.gap = "10px";
+
+            const photoLimit = Math.min(item.photos.length, 4);
+            for(let j=0; j<photoLimit; j++) {
+                const base64 = await toDataURL(`https://drive.google.com/thumbnail?id=${item.photos[j]}&sz=w600`);
+                if(base64) {
+                    const img = document.createElement('img');
+                    img.src = base64;
+                    img.style.width = "100%";
+                    img.style.borderRadius = "8px";
+                    imgDiv.appendChild(img);
+                }
+            }
+            
+            slide.appendChild(textDiv);
+            slide.appendChild(imgDiv);
+            pdfContainer.appendChild(slide);
+            btn.innerHTML = `⏳ Slide ${i+1}/${filteredData.length}...`;
+        }
+
         try {
-            await html2pdf().set(opt).from(element).save();
+            await html2pdf().set({
+                margin: 0,
+                filename: 'Report.pdf',
+                html2canvas: { scale: 2, useCORS: true },
+                jsPDF: { orientation: 'landscape' }
+            }).from(pdfContainer).save();
         } catch(e) { console.error(e); }
+        
         btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
+
+    async function downloadPPT() {
+        if (!filteredData.length) return;
+        const btn = document.getElementById('export-btn');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = "⏳ Preparing PPT...";
+        btn.disabled = true;
+
+        let pptx = new PptxGenJS();
+        for (let i = 0; i < filteredData.length; i++) {
+            const item = filteredData[i];
+            let slide = pptx.addSlide();
+            slide.background = { color: '0B0C10' };
+            
+            slide.addText(item.event, { x: 0.5, y: 0.5, w: 9, fontSize: 24, color: '66FCF1', bold: true });
+            slide.addText(`Date: ${item.date}\nDistrict: ${item.district}\nAttendance: ${item.attendance}\nGuests: ${item.guests}`, 
+                { x: 0.5, y: 1.5, w: 4, fontSize: 14, color: 'FFFFFF' });
+
+            const photoLimit = Math.min(item.photos.length, 4);
+            const positions = [{x:5,y:1},{x:7.5,y:1},{x:5,y:3},{x:7.5,y:3}];
+            for(let j=0; j<photoLimit; j++) {
+                const base64 = await toDataURL(`https://drive.google.com/thumbnail?id=${item.photos[j]}&sz=w600`);
+                if(base64) {
+                    slide.addImage({ data: base64, x: positions[j].x, y: positions[j].y, w: 2.3, h: 1.8 });
+                }
+            }
+        }
+        pptx.writeFile({ fileName: 'Presentation.pptx' });
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
+
+    async function downloadCurrentSlide() {
+        const slide = document.getElementById(`slide-${currentIndex}`);
+        if(!slide) return;
+        
+        const btn = document.getElementById('export-btn');
+        btn.innerHTML = "⏳ Rendering Image...";
+        
+        // Temporarily ensure images are loaded as DataURL for canvas
+        const imgs = slide.querySelectorAll('img');
+        const originalSources = [];
+        for(let img of imgs) {
+            originalSources.push(img.src);
+            const base64 = await toDataURL(img.src);
+            if(base64) img.src = base64;
+        }
+
+        const canvas = await html2canvas(slide, { useCORS: true, backgroundColor: '#0b0c10', scale: 2 });
+        const link = document.createElement('a');
+        link.download = `Slide_${currentIndex+1}.png`;
+        link.href = canvas.toDataURL("image/png");
+        link.click();
+        
+        // Restore sources
+        imgs.forEach((img, idx) => img.src = originalSources[idx]);
+        btn.innerHTML = `<i class='bx bxs-download'></i> Export <i class='bx bx-chevron-down'></i>`;
     }
 
     function downloadExcel() {
         const data = filteredData.map(i => ({
-            'Event Name': i.event,
-            'Date': i.date,
-            'District': i.district,
-            'Attendance': i.attendance,
-            'Guests': i.guests
+            'Event Name': i.event, 'Date': i.date, 'District': i.district, 'Attendance': i.attendance, 'Guests': i.guests
         }));
         const ws = XLSX.utils.json_to_sheet(data);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Events");
         XLSX.writeFile(wb, "Karyakram_Data.xlsx");
-    }
-
-    async function downloadPPT() {
-        let pptx = new PptxGenJS();
-        filteredData.forEach(item => {
-            let slide = pptx.addSlide();
-            slide.background = { color: '0B0C10' };
-            slide.addText(item.event, { x: 0.5, y: 0.5, w: 9, fontSize: 24, color: '66FCF1', bold: true });
-            slide.addText(`Date: ${item.date}\nDistrict: ${item.district}\nAttendance: ${item.attendance}\nGuests: ${item.guests}`, 
-                { x: 0.5, y: 1.5, w: 4, fontSize: 14, color: 'FFFFFF' });
-        });
-        pptx.writeFile({ fileName: 'Karyakram_Presentation.pptx' });
-    }
-
-    async function downloadCurrentSlide() {
-        const activeSlide = document.querySelector('.slide-container:not(.hidden)');
-        if(!activeSlide) return;
-        const canvas = await html2canvas(activeSlide, { useCORS: true, backgroundColor: '#0b0c10' });
-        const link = document.createElement('a');
-        link.download = `Slide_${currentIndex+1}.png`;
-        link.href = canvas.toDataURL();
-        link.click();
     }
 
     function openLightbox(url, caption) {
@@ -748,7 +870,6 @@
     
     function closeLightbox() { document.getElementById('lightbox').style.display = 'none'; }
     
-    // Keyboard Support
     document.addEventListener('keydown', e => { 
         if(e.key === 'Escape') closeLightbox(); 
         if(e.key === 'ArrowRight') nextSlide(); 
