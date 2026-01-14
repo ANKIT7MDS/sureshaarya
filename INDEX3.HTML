@@ -10,7 +10,6 @@
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
     <!-- Libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -441,8 +440,6 @@
                 }
 
                 if(!event) return null;
-                // Store original display string for UI, raw for sorting if needed
-                // But simplifying: store the raw string, parseDate handles formats
                 return { date, district, event, attendance, guests, photos };
             }).filter(Boolean);
             
@@ -516,7 +513,7 @@
             slide.className = `slide-container mode-${slideMode} ${i === currIdx ? 'active' : ''}`;
             slide.id = `slide-${i}`;
 
-            // FIXED: Added $ and used https
+            // Fixed $ syntax
             const getPhoto = (idx, size='w800') => item.photos[idx] ? `https://lh3.googleusercontent.com/d/${item.photos[idx]}=${size}` : 'https://via.placeholder.com/600x400?text=No+Photo';
 
             if (slideMode === 'standard') {
@@ -595,18 +592,19 @@
     // --- VIEWS RENDER ---
     function renderPrint() {
         const c = document.getElementById('view-print');
-        // FIXED: Added $ and used https
+        // Fixed $ syntax
         c.innerHTML = filteredData.map(item => `
-            <div class="print-row">
-                <img src="${item.photos[0] ? `https://lh3.googleusercontent.com/d/${item.photos[0]}=w200` : ''}" onerror="this.style.display='none'">
-                <div class="print-data">
-                    <h3 style="color:#fff">${item.event}</h3>
-                    <div style="font-size:0.9rem; color:#aaa;">${item.district} | ${item.date}</div>
-                    <div style="margin-top:5px; font-size:0.9rem;">Guests: ${item.guests}</div>
+            <div class="print-row" style="display:flex; align-items:center; gap:15px; background:rgba(255,255,255,0.05); padding:10px; border-radius:10px; margin-bottom:10px;">
+                <img src="${item.photos[0] ? `https://lh3.googleusercontent.com/d/${item.photos[0]}=w200` : ''}" 
+                     style="width:80px; height:60px; object-fit:cover; border-radius:6px;"
+                     onerror="this.style.display='none'">
+                <div class="print-data" style="flex:1;">
+                    <h3 style="color:#fff; margin:0; font-size:16px;">${item.event}</h3>
+                    <div style="font-size:0.85rem; color:#aaa;">${item.district} | ${item.date}</div>
                 </div>
-                <div style="text-align:right;">
-                      <div style="font-size:1.2rem; font-weight:bold; color:var(--primary)">${item.attendance}</div>
-                      <div style="font-size:0.8rem; color:#888;">Attendees</div>
+                <div style="text-align:right; min-width:80px;">
+                      <div style="font-size:1.1rem; font-weight:bold; color:var(--primary)">${item.attendance}</div>
+                      <div style="font-size:0.7rem; color:#888;">Attendees</div>
                 </div>
             </div>
         `).join('');
@@ -614,7 +612,7 @@
 
     function renderCards() {
         const c = document.getElementById('view-cards');
-        // FIXED: Added $ and used https
+        // Fixed $ syntax
         c.innerHTML = filteredData.map((item, i) => `
             <div class="modern-card" onclick="goToSlide(${i})">
                 <div class="mc-header">
@@ -636,7 +634,7 @@
 
     function renderGrid() {
         const c = document.getElementById('view-grid');
-        // FIXED: Added $ and used https
+        // Fixed $ syntax
         c.innerHTML = filteredData.map((item, i) => `
             <div class="gallery-item" onclick="goToSlide(${i})">
                 <img src="${item.photos[0] ? `https://lh3.googleusercontent.com/d/${item.photos[0]}=w600` : 'https://via.placeholder.com/400'}" loading="lazy">
@@ -678,7 +676,6 @@
             distCount[d.district] = (distCount[d.district] || 0) + 1;
             
             // Timeline (extract Month-Year)
-            // Assumes DD-MM-YYYY format from the sheet string
             try {
                 const parts = d.date.split(/[-/]/);
                 if(parts.length >= 2) {
@@ -732,7 +729,6 @@
         
         // Special Line Chart Gradient
         if(type === 'line') {
-             // Create gradient later or simplify
              config.data.datasets[0].backgroundColor = 'rgba(167, 139, 250, 0.2)';
         }
 
@@ -753,6 +749,9 @@
     }
 
     async function toDataURL(url) {
+        // Fix for undefined url
+        if (!url) return getFallbackPlaceholder();
+
         const idMatch = url.match(/id=([\w-]+)/) || url.match(/\/d\/([\w-]+)/);
         const id = idMatch ? idMatch[1] : null;
         
@@ -760,7 +759,6 @@
         const candidates = [];
         if(id) {
             candidates.push(`https://lh3.googleusercontent.com/d/${id}=w1000`); // Best for direct access
-            candidates.push(`https://drive.google.com/thumbnail?id=${id}&sz=w1000`);
         } else {
             candidates.push(url);
         }
@@ -768,8 +766,7 @@
         const proxies = [
             '', // Direct attempt first
             'https://corsproxy.io/?',
-            'https://api.allorigins.win/raw?url=',
-            'https://thingproxy.freeboard.io/fetch/'
+            'https://api.allorigins.win/raw?url='
         ];
 
         for (let target of candidates) {
@@ -793,7 +790,7 @@
             }
         }
         // If all fail, return fallback so PDF doesn't break
-        console.warn("Image load failed completely, using placeholder");
+        console.warn("Image load failed completely, using placeholder for: " + url);
         return getFallbackPlaceholder();
     }
 
@@ -807,10 +804,14 @@
         // Create PDF Container
         const container = document.createElement('div');
         container.id = 'pdf-gen-container';
+        // CRITICAL FIX: Ensure container is physically in the DOM so html2canvas can "see" it
+        // We position it off-screen so the user doesn't see it flickering
+        container.style.position = 'fixed';
+        container.style.left = '-9999px';
+        container.style.top = '0';
         container.style.width = '1123px'; // A4 Landscape
-        container.style.margin = '0 auto';
         container.style.background = '#fff';
-        container.style.padding = '20px';
+        container.style.zIndex = '-1';
         
         // Process each event
         for(let i=0; i<filteredData.length; i++) {
@@ -828,13 +829,12 @@
                 page-break-after: always;
                 font-family: 'Poppins', sans-serif;
                 border: 1px solid #eee;
-                margin-bottom: 20px;
             `;
             
             let content = '';
             
             // PRE-FETCH IMAGES AS BASE64 USING ROBUST FETCH
-            // This ensures no 403 Forbidden errors in PDF
+            // Fixed $ syntax in URL
             const imgDataPromises = item.photos.slice(0, 4).map(pid => 
                 toDataURL(`https://lh3.googleusercontent.com/d/${pid}=w600`)
             );
@@ -924,6 +924,9 @@
             btn.innerHTML = `Generating ${i+1}/${filteredData.length}...`;
         }
 
+        // CRITICAL: Append container to body
+        document.body.appendChild(container);
+
         // Generate PDF
         const opt = {
             margin: 0,
@@ -945,6 +948,9 @@
             console.error("PDF Error:", e);
             alert("PDF Error. Try again.");
         } finally {
+            // Clean up: Remove container from body
+            document.body.removeChild(container);
+            
             btn.innerHTML = originalText;
             btn.disabled = false;
         }
@@ -970,7 +976,7 @@
 
             for(let j=0; j<Math.min(item.photos.length, 4); j++) {
                 try {
-                    // Use robust toDataURL to get Base64 data (avoids CORS issues in PPT generation)
+                    // Fix: Added correct $ syntax
                     const b64 = await toDataURL(`https://lh3.googleusercontent.com/d/${item.photos[j]}=w600`);
                     slide.addImage({ data: b64, x: photoPos[j].x, y: photoPos[j].y, w: 2.3, h: 2 });
                 } catch(e) {
