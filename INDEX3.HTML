@@ -257,7 +257,7 @@
     <img id="lightbox-img" src="">
 </div>
 
-<div class="sidebar">
+<div class="sidebar" id="main-sidebar">
     <div class="nav-item active" onclick="switchView('slide')"><i class='bx bx-slideshow'></i> <span class="nav-text">Presentation</span></div>
     <div class="nav-item" onclick="switchView('cards')"><i class='bx bx-grid-alt'></i> <span class="nav-text">Smart Cards</span></div>
     <div class="nav-item" onclick="switchView('grid')"><i class='bx bxl-instagram'></i> <span class="nav-text">Gallery</span></div>
@@ -265,7 +265,7 @@
     <div class="nav-item" onclick="switchView('analytics')"><i class='bx bx-bar-chart-alt-2'></i> <span class="nav-text">Analytics</span></div>
 </div>
 
-<div class="main-content">
+<div class="main-content" id="main-content">
     <div class="top-bar">
         <div style="flex:1; display:flex; gap:10px;">
             <input type="text" id="search-input" class="input-style" placeholder="Search event, guest..." style="width:250px;" onkeyup="applyFilters()">
@@ -384,26 +384,34 @@
         }
     }
 
-    // --- DATE PARSING FIX ---
+    // --- ENHANCED DATE PARSING ---
     function parseDate(dateStr) {
-        if(!dateStr) return new Date(0);
+        if (!dateStr) return new Date(0);
         
-        // Handle "Date(YYYY, M, D)" format from Google Sheets JSON if present
-        if(typeof dateStr === 'string' && dateStr.startsWith('Date(')) {
+        // 1. Handle "Date(YYYY, M, D)" format from Google Sheets JSON
+        // Note: Months in Google Viz Date() are 0-indexed (0=Jan, 11=Dec)
+        if(typeof dateStr === 'string' && dateStr.indexOf('Date(') >= 0) {
              const parts = dateStr.match(/\d+/g);
              if(parts && parts.length >= 3) {
                  return new Date(parts[0], parts[1], parts[2]);
              }
         }
         
-        // Handle "DD-MM-YYYY" or "DD/MM/YYYY"
-        const parts = dateStr.split(/[-/]/);
-        if(parts.length === 3) {
-            // Assume DD-MM-YYYY
-            return new Date(parts[2], parts[1] - 1, parts[0]);
+        // 2. Handle "YYYY-MM-DD" (ISO)
+        const isoMatch = dateStr.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+        if (isoMatch) {
+            return new Date(isoMatch[1], isoMatch[2] - 1, isoMatch[3]);
         }
-        
-        return new Date(dateStr); // Fallback
+
+        // 3. Handle "DD-MM-YYYY" or "DD/MM/YYYY" (Common Indian Format)
+        const dmyMatch = dateStr.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
+        if (dmyMatch) {
+            return new Date(dmyMatch[3], dmyMatch[2] - 1, dmyMatch[1]);
+        }
+
+        // 4. Fallback
+        const d = new Date(dateStr);
+        return isNaN(d.getTime()) ? new Date(0) : d;
     }
 
     async function init() {
@@ -415,8 +423,11 @@
             rawData = json.table.rows.map(row => {
                 const c = row.c;
                 if (!c) return null;
-                // Use formatted value (f) or value (v)
-                const date = c[1] ? (c[1].f || c[1].v) : '';
+                // Prefer 'v' (raw value) for date if it starts with 'Date(', otherwise 'f'
+                let date = '';
+                if (c[1]) {
+                    date = (typeof c[1].v === 'string' && c[1].v.startsWith('Date(')) ? c[1].v : (c[1].f || c[1].v || '');
+                }
                 const district = c[2] ? c[2].v : '';
                 const event = c[3] ? c[3].v : '';
                 const attendance = c[4] ? (parseInt(c[4].v) || 0) : 0;
@@ -431,11 +442,21 @@
                 }
 
                 if(!event) return null;
+                // Store original display string for UI, raw for sorting if needed
+                // But simplifying: store the raw string, parseDate handles formats
                 return { date, district, event, attendance, guests, photos };
             }).filter(Boolean);
             
-            // --- STRICT DATE SORTING FIX ---
+            // --- STRICT DATE SORTING (NEWEST FIRST) ---
             rawData.sort((a, b) => parseDate(b.date) - parseDate(a.date));
+
+            // Format dates for display AFTER sorting if they are Date() strings
+            rawData.forEach(item => {
+                if(item.date.indexOf('Date(') >= 0) {
+                    const d = parseDate(item.date);
+                    item.date = d.toLocaleDateString('en-GB'); // DD/MM/YYYY
+                }
+            });
 
             // Populate Filters
             const dists = [...new Set(rawData.map(d=>d.district))].sort();
@@ -715,33 +736,32 @@
         charts[id] = new Chart(ctx, config);
     }
 
-    // --- EXPORT LOGIC (FIXED BLANK PDF) ---
+    // --- EXPORT LOGIC (FIXED BLANK PDF & VISIBILITY) ---
     async function downloadBookletPDF(viewMode) {
         const btn = document.getElementById('export-btn');
         const originalText = btn.innerHTML;
         btn.innerHTML = "<i class='bx bx-loader-alt bx-spin'></i> Generating...";
         btn.disabled = true;
 
-        // Create container that is VISIBLE but on top of everything to ensure rendering
+        // Strategy: Hide main UI, Append PDF container to BODY as standard flow, Scroll Top, Capture
+        const mainContent = document.getElementById('main-content');
+        const sidebar = document.getElementById('main-sidebar');
+        const scrollPos = window.scrollY;
+
+        // Hide App UI
+        mainContent.style.display = 'none';
+        sidebar.style.display = 'none';
+
+        // Create PDF Container
         const container = document.createElement('div');
-        container.style.position = 'fixed';
-        container.style.top = '0';
-        container.style.left = '0';
-        container.style.width = '100vw'; // Use viewport width
-        container.style.height = '100vh'; // Use viewport height
-        container.style.zIndex = '10000'; // Top of everything
-        container.style.overflow = 'auto'; // Scrollable
-        container.style.background = '#222'; // Dark background for preview
+        container.id = 'pdf-gen-container';
+        container.style.width = '1123px'; // A4 Landscape
+        container.style.margin = '0 auto';
+        container.style.background = '#222';
         
         const bg = viewMode === 'minimal' ? '#ffffff' : '#0f0f11';
         const txt = viewMode === 'minimal' ? '#000000' : '#ffffff';
         const accent = '#a78bfa';
-
-        const wrapper = document.createElement('div');
-        // A4 Landscape size specific
-        wrapper.style.width = '1123px';
-        wrapper.style.margin = '20px auto'; // Center it
-        wrapper.style.background = bg;
 
         for(let item of filteredData) {
             const page = document.createElement('div');
@@ -756,8 +776,7 @@
                 overflow: hidden;
                 page-break-after: always;
                 font-family: sans-serif;
-                margin-bottom: 20px;
-                box-shadow: 0 0 20px rgba(0,0,0,0.5);
+                border-bottom: 1px solid #333; /* Visual separator during gen */
             `;
             
             let content = '';
@@ -772,7 +791,7 @@
                                 <p style="font-size:20px; margin:8px 0;"><strong>Date:</strong> ${item.date}</p>
                                 <p style="font-size:20px; margin:8px 0;"><strong>Attendance:</strong> ${item.attendance}</p>
                             </div>
-                            <div style="font-size:16px; line-height:1.5; color:${viewMode==='minimal'?'#555':'#ccc'}; max-height:200px; overflow:hidden;">
+                            <div style="font-size:16px; line-height:1.5; color:${viewMode==='minimal'?'#555':'#ccc'}; max-height:300px; overflow:hidden;">
                                 <strong>Guests/Notes:</strong><br>${item.guests}
                             </div>
                         </div>
@@ -807,7 +826,7 @@
             }
             else if (viewMode === 'minimal') {
                 content = `
-                    <div style="text-align:center; padding:20px;">
+                    <div style="text-align:center; padding:40px;">
                         <h1 style="font-size:42px; color:#111; margin:0 0 10px 0;">${item.event}</h1>
                         <div style="font-size:18px; color:#666; margin-bottom:40px; text-transform:uppercase; letter-spacing:1px;">
                             ${item.district} &bull; ${item.date} &bull; ${item.attendance} People
@@ -828,43 +847,47 @@
             }
 
             page.innerHTML = content;
-            wrapper.appendChild(page);
+            container.appendChild(page);
         }
 
-        container.appendChild(wrapper);
         document.body.appendChild(container);
+        window.scrollTo(0,0); // Force scroll top
 
-        // --- CRITICAL FIX: WAIT FOR IMAGES ---
+        // --- WAIT FOR IMAGES ---
         const images = container.querySelectorAll('img');
         const promises = Array.from(images).map(img => {
             if (img.complete) return Promise.resolve();
             return new Promise(resolve => {
                 img.onload = resolve;
-                img.onerror = resolve; // Fail gracefully
+                img.onerror = resolve; 
             });
         });
         
-        // Wait up to 3 seconds for images to load
         await Promise.race([
             Promise.all(promises),
-            new Promise(resolve => setTimeout(resolve, 3000)) 
+            new Promise(resolve => setTimeout(resolve, 4000)) 
         ]);
 
         const opt = {
             margin: 0,
             filename: `Karyakram_${viewMode}.pdf`,
             image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2, useCORS: true, scrollY: 0 },
+            html2canvas: { scale: 2, useCORS: true, scrollY: 0, windowWidth: 1123 },
             jsPDF: { unit: 'px', format: [1123, 794], orientation: 'landscape' }
         };
 
         try {
-            await html2pdf().set(opt).from(wrapper).save();
+            await html2pdf().set(opt).from(container).save();
         } catch(e) {
-            console.error("PDF Gen Error:", e);
-            alert("PDF Generation Failed. Please try again.");
+            console.error("PDF Error:", e);
+            alert("PDF Error. Try again.");
         } finally {
+            // Restore UI
             document.body.removeChild(container);
+            mainContent.style.display = 'flex';
+            sidebar.style.display = 'flex';
+            window.scrollTo(0, scrollPos);
+            
             btn.innerHTML = originalText;
             btn.disabled = false;
         }
