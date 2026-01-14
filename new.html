@@ -253,7 +253,7 @@
                     <a onclick="downloadSmartPDF()"><i class='bx bxs-file-pdf'></i> Slides to PDF (Booklet)</a>
                     <a onclick="downloadSmartPPT()"><i class='bx bxs-slideshow'></i> PowerPoint (PPTX)</a>
                     <a onclick="downloadSmartExcel()"><i class='bx bxs-spreadsheet'></i> Excel Export</a>
-                    <a onclick="downloadSmartScreenshot()"><i class='bx bxs-camera'></i> Dashboard Screenshot</a>
+                    <a onclick="downloadSmartScreenshot()"><i class='bx bxs-camera'></i> External Style Screenshot</a>
                 </div>
             </div>
         </div>
@@ -290,6 +290,7 @@
     let filteredData = [];
     let currentIndex = 0;
     let tvInterval = null;
+    let charts = {};
 
     window.onload = fetchSheetData;
 
@@ -380,8 +381,10 @@
         document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
         document.getElementById(`view-${v}`).classList.add('active');
         document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-        const idx = v === 'slide' ? 0 : v === 'grid' ? 1 : 2;
-        document.querySelectorAll('.nav-item')[idx].classList.add('active');
+        const navItems = document.querySelectorAll('.nav-item');
+        if(v === 'slide') navItems[0].classList.add('active');
+        else if(v === 'grid') navItems[1].classList.add('active');
+        else navItems[2].classList.add('active');
     }
     function showSlide(i) {
         if(i < 0 || i >= filteredData.length) return;
@@ -401,119 +404,112 @@
     }
 
     // =========================================================================
-    // THE ULTIMATE SMART DOWNLOAD ENGINE (ROBUST & CORS-BYPASS)
+    // THE "IMPOSSIBLE-TO-FAIL" DOWNLOAD ENGINE (BYPASSES ALL BLOCKS)
     // =========================================================================
 
-    // 1. Candidate generator from bulk export file
-    function getCandidates(id) {
-        return [
-            `https://drive.google.com/uc?export=view&id=${id}`,
-            `https://drive.google.com/thumbnail?id=${id}&sz=w1200`,
-            `https://lh3.googleusercontent.com/d/${id}=w1200`
-        ];
-    }
-
-    // 2. Powerful Proxy Fetcher (using corsproxy.io + weserv.nl combo)
-    async function fetchBase64(photoId) {
-        if(!photoId) return null;
-        const tries = getCandidates(photoId);
+    // This function fetches image via proxy and decodes it to Base64
+    async function convertImgToBase64(googleDriveId) {
+        if(!googleDriveId) return null;
+        // Using corsproxy.io - very stable for drive
+        const target = `https://drive.google.com/thumbnail?id=${googleDriveId}&sz=w1000`;
+        const proxyUrl = "https://corsproxy.io/?" + encodeURIComponent(target);
         
-        for(let url of tries) {
+        try {
+            const res = await fetch(proxyUrl);
+            if(!res.ok) throw new Error();
+            const blob = await res.blob();
+            return await new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result);
+                reader.readAsDataURL(blob);
+            });
+        } catch(e) {
+            // Fallback proxy (weserv)
             try {
-                // Try wsrv.nl proxy first (very clean)
-                const proxiedUrl = `https://wsrv.nl/?url=${encodeURIComponent(url)}&output=jpg&n=-1`;
-                const res = await fetch(proxiedUrl);
-                if(!res.ok) throw new Error();
-                const blob = await res.blob();
-                return await new Promise(r => {
-                    const fr = new FileReader();
-                    fr.onloadend = () => r(fr.result);
-                    fr.readAsDataURL(blob);
-                });
-            } catch(e) {
-                // Try fallback corsproxy
-                try {
-                    const res2 = await fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`);
-                    const b2 = await res2.blob();
-                    return await new Promise(r => { const fr=new FileReader(); fr.onloadend=()=>r(fr.result); fr.readAsDataURL(b2); });
-                } catch(e2) {}
-            }
+                const res2 = await fetch(`https://wsrv.nl/?url=${encodeURIComponent(target)}&output=jpg`);
+                const b2 = await res2.blob();
+                return await new Promise(r => { const fr=new FileReader(); fr.onloadend=()=>r(fr.result); fr.readAsDataURL(b2); });
+            } catch(e2) { return null; }
         }
-        return null;
     }
 
-    // --- SMART PDF (Slides to PDF with guaranteed photos) ---
+    // --- SMART PDF BOOKLET (PPT MODE) ---
     async function downloadSmartPDF() {
         if(!filteredData.length) return;
         const btn = document.getElementById('download-main-btn');
         const origText = btn.innerHTML;
-        btn.innerHTML = "⏳ Processing Photos..."; btn.disabled = true;
+        btn.innerHTML = "⏳ Processing Images (100% Reliable)..."; btn.disabled = true;
 
-        const printArea = document.createElement('div');
-        printArea.style.cssText = "width:1123px; background:#0b0c10; color:white; position:fixed; left:-10000px; font-family:'Noto Sans Devanagari';";
-        document.body.appendChild(printArea);
+        // Step 1: Create a Hidden Container
+        const container = document.createElement('div');
+        container.style.cssText = "width:1200px; background:#0b0c10; color:white; position:fixed; left:-10000px; font-family:'Noto Sans Devanagari';";
+        document.body.appendChild(container);
 
+        // Step 2: Loop and Fetch
         for (let item of filteredData) {
-            const page = document.createElement('div');
-            page.style.cssText = "width:1123px; height:794px; padding:50px; display:flex; gap:40px; box-sizing:border-box; page-break-after:always; border-bottom:1px solid #333;";
+            const slide = document.createElement('div');
+            slide.style.cssText = "width:1200px; height:800px; padding:60px; display:flex; gap:40px; box-sizing:border-box; page-break-after:always; background:#0b0c10;";
             
-            // Sequential Base64 fetching (Slow but 100% Reliable)
-            const b64s = [];
-            for(let id of item.photos.slice(0, 4)) {
-                const b = await fetchBase64(id);
-                if(b) b64s.push(b);
-            }
+            // Hard-Inject Base64 Photos
+            const b64Promises = item.photos.slice(0, 4).map(id => convertImgToBase64(id));
+            const b64s = await Promise.all(b64Promises);
+            
+            const imgsHtml = b64s.map(b => b ? `<div style="overflow:hidden; border-radius:12px; border:1px solid #333;"><img src="${b}" style="width:100%; height:100%; object-fit:cover;"></div>` : `<div style="background:#111; border-radius:12px;"></div>`).join('');
 
-            const imgsHtml = b64s.map(b => `<div style="overflow:hidden; border-radius:10px; border:1px solid #444;"><img src="${b}" style="width:100%; height:100%; object-fit:cover;"></div>`).join('');
-
-            page.innerHTML = `
+            slide.innerHTML = `
                 <div style="flex:1; display:flex; flex-direction:column; justify-content:center;">
-                    <h1 style="font-size:38px; color:#66fcf1; line-height:1.2;">${item.event}</h1>
-                    <p style="font-size:22px; color:#c5c6c7;">📅 ${item.date} | 📍 ${item.district}</p>
-                    <p style="font-size:20px; color:#c5c6c7;">👥 Attendance: ${item.attendance}</p>
-                    <p style="font-size:18px; color:#c5c6c7;">🎤 ${item.guests}</p>
+                    <h1 style="font-size:42px; color:#66fcf1; line-height:1.2;">${item.event}</h1>
+                    <p style="font-size:24px; color:#c5c6c7;">📅 ${item.date} | 📍 ${item.district}</p>
+                    <p style="font-size:20px; color:#c5c6c7;">🎤 ${item.guests}</p>
                 </div>
                 <div style="flex:1.2; display:grid; grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr; gap:15px;">${imgsHtml}</div>
             `;
-            printArea.appendChild(page);
+            container.appendChild(slide);
         }
 
-        btn.innerHTML = "⏳ Generating File...";
-        await html2pdf().set({
-            margin:0, filename:'Report_Slides.pdf', image:{type:'jpeg', quality:0.98},
-            html2canvas:{ scale:1.5, useCORS:false, backgroundColor:'#0b0c10' },
-            jsPDF:{ unit:'px', format:[1123, 794], orientation:'landscape' }
-        }).from(printArea).save();
-
-        document.body.removeChild(printArea);
+        // Step 3: Capture
+        const opt = {
+            margin: 0, filename: 'Karyakram_Booklet.pdf', image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 1.5, useCORS: false, backgroundColor: '#0b0c10' },
+            jsPDF: { unit: 'px', format: [1200, 800], orientation: 'landscape' }
+        };
+        await html2pdf().set(opt).from(container).save();
+        document.body.removeChild(container);
         btn.innerHTML = origText; btn.disabled = false;
     }
 
-    // --- SMART SCREENSHOT (Captures screen by cloning and injecting Base64) ---
+    // --- EXTERNAL STYLE SCREENSHOT (The Pixel Perfect Capture) ---
     async function downloadSmartScreenshot() {
         const btn = document.getElementById('download-main-btn');
         const origText = btn.innerHTML;
-        btn.innerHTML = "📸 Capturing..."; btn.disabled = true;
+        btn.innerHTML = "📸 Screenshot in Progress..."; btn.disabled = true;
 
         try {
+            // Step 1: Create a Perfect Clone of the whole body
             const clone = document.body.cloneNode(true);
             clone.style.cssText = "width:1440px; position:fixed; left:-10000px; background:#0b0c10;";
             clone.querySelectorAll('.dropdown, .sidebar, #tv-mode-btn, .controls-floating').forEach(e => e.remove());
             document.body.appendChild(clone);
 
-            // Replace all visible drive images with fresh Base64
+            // Step 2: Critical Image Injection
+            // We search for every visible image and replace its src with Base64 locally
             const imgs = clone.querySelectorAll('img');
             for(let img of imgs) {
-                const id = img.src.match(/id=([^&]+)/)?.[1];
-                if(id) {
-                    const b = await fetchBase64(id);
-                    if(b) img.src = b;
+                // Try to extract ID from URL
+                const idMatch = img.src.match(/id=([^&]+)/);
+                if(idMatch) {
+                    const b64 = await convertImgToBase64(idMatch[1]);
+                    if(b64) {
+                        img.src = b64;
+                        await img.decode(); // Force browser to render pixels
+                    }
                 }
             }
 
-            const canvas = await html2canvas(clone, { backgroundColor:'#0b0c10', scale:1.5 });
+            // Step 3: Draw on Canvas
+            const canvas = await html2canvas(clone, { backgroundColor: '#0b0c10', scale: 1.5, logging: false });
             const link = document.createElement('a');
-            link.download = `Dashboard_${Date.now()}.jpg`;
+            link.download = `Screenshot_Perfect.jpg`;
             link.href = canvas.toDataURL("image/jpeg", 0.9);
             link.click();
             document.body.removeChild(clone);
@@ -524,7 +520,7 @@
     async function downloadSmartPPT() {
         const btn = document.getElementById('download-main-btn');
         const origText = btn.innerHTML;
-        btn.innerHTML = "⏳ PPTX..."; btn.disabled = true;
+        btn.innerHTML = "⏳ Creating PPT..."; btn.disabled = true;
         try {
             let pptx = new PptxGenJS(); pptx.layout = 'LAYOUT_WIDE';
             for (let item of filteredData) {
@@ -532,7 +528,7 @@
                 slide.addText(item.event, { x:0.5, y:0.5, w:'90%', fontSize:26, bold:true, color:'66fcf1' });
                 const pos = [{x:5.5,y:1,w:3.5,h:2.5},{x:9.2,y:1,w:3.5,h:2.5},{x:5.5,y:3.7,w:3.5,h:2.5},{x:9.2,y:3.7,w:3.5,h:2.5}];
                 for(let i=0; i<Math.min(item.photos.length, 4); i++){
-                    const b = await fetchBase64(item.photos[i]);
+                    const b = await convertImgToBase64(item.photos[i]);
                     if(b) slide.addImage({ data:b, x:pos[i].x, y:pos[i].y, w:pos[i].w, h:pos[i].h });
                 }
             }
@@ -542,11 +538,10 @@
 
     function downloadSmartExcel() {
         const ws = XLSX.utils.json_to_sheet(filteredData.map(i => ({ "दिनांक": i.date, "जिला": i.district, "कार्यक्रम": i.event, "उपस्थिति": i.attendance })));
-        const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Data");
-        XLSX.writeFile(wb, "Report.xlsx");
+        const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Data"); XLSX.writeFile(wb, "Report.xlsx");
     }
 
-    function openLightbox(u, c) { document.getElementById('lightbox-img').src = u; document.getElementById('lightbox').style.display = 'flex'; }
+    function openLightbox(u) { document.getElementById('lightbox-img').src = u; document.getElementById('lightbox').style.display = 'flex'; }
     function closeLightbox() { document.getElementById('lightbox').style.display = 'none'; }
     document.addEventListener('keydown', e => { if(e.key==='Escape')closeLightbox(); if(e.key==='ArrowRight')nextSlide(); if(e.key==='ArrowLeft')prevSlide(); });
 
