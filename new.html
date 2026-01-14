@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Karyakram Dashboard (Proxy Fix)</title>
+    <title>Karyakram Dashboard (Live)</title>
     
     <!-- Premium Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;700&family=Noto+Sans+Devanagari:wght@400;600&display=swap" rel="stylesheet">
@@ -345,9 +345,9 @@
     let tvTimer = null;
     let myChart = null;
 
-    // --- PROXY FIX FOR IMAGES ---
-    // Using wsrv.nl as a proxy to bypass strict Google Drive restrictions
-    const getImgUrl = (id, w=800) => `https://wsrv.nl/?url=https://drive.google.com/uc?id=${id}&w=${w}&q=80&output=jpg`;
+    // --- DIRECT GOOGLE LINK FOR RELIABLE DISPLAY ---
+    // This is the format that works for public files reliably
+    const getImgUrl = (id) => `https://lh3.googleusercontent.com/d/${id}=w1000`;
 
     window.onload = initApp;
 
@@ -408,10 +408,10 @@
             if(item.photos.length === 0) photoHtml = `<div style="display:flex; justify-content:center; align-items:center; height:100%; color:#555;">No Photos</div>`;
             else {
                 for(let i=0; i<Math.min(4, item.photos.length); i++) {
-                    const url = getImgUrl(item.photos[i], 800);
-                    // Updated error message to instruct user
+                    const url = getImgUrl(item.photos[i]);
+                    // REFERRERPOLICY is key here
                     photoHtml += `<div class="gallery-img-box" onclick="viewLb('${url}', '${item.event.replace(/'/g, "")}')">
-                        <img src="${url}" loading="lazy" onerror="this.src='https://placehold.co/400?text=Check+Permissions'">
+                        <img src="${url}" referrerpolicy="no-referrer" loading="lazy" onerror="this.src='https://placehold.co/400?text=Img+Err'">
                     </div>`;
                 }
             }
@@ -436,12 +436,12 @@
         const grid = document.getElementById('view-grid');
         grid.innerHTML = '';
         filteredData.forEach((item, idx) => {
-            const thumb = item.photos.length ? getImgUrl(item.photos[0], 400) : 'https://placehold.co/400?text=No+Img';
+            const thumb = item.photos.length ? getImgUrl(item.photos[0]) : 'https://placehold.co/400?text=No+Img';
             const div = document.createElement('div');
             div.className = 'grid-card';
             div.onclick = () => { switchView('slide'); gotoSlide(idx); };
             div.innerHTML = `
-                <img src="${thumb}" class="grid-thumb" loading="lazy" onerror="this.src='https://placehold.co/400?text=Check+Permissions'">
+                <img src="${thumb}" class="grid-thumb" referrerpolicy="no-referrer" loading="lazy" onerror="this.src='https://placehold.co/400?text=Img+Err'">
                 <div class="grid-content">
                     <div class="grid-head">${item.event}</div>
                     <div style="font-size:0.8em; color:var(--secondary);">${item.date} | ${item.district}</div>
@@ -526,7 +526,7 @@
         if(te - ts > 50) prevSlide();
     }, {passive:true});
 
-    // Downloads (Simple)
+    // Downloads
     async function dl(type) {
         if(!filteredData.length) return;
         const btn = document.querySelector('.dropdown button');
