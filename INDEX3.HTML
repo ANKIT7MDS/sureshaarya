@@ -123,7 +123,7 @@
         .mode-btn:hover { color: #fff; }
         .mode-btn.active { background: var(--primary); color: #000; box-shadow: 0 4px 15px var(--primary-glow); }
 
-        .slide-wrapper { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; }
+        .slide-wrapper { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; touch-action: pan-y; }
         .slide-container { width: 100%; height: 100%; max-width: 1400px; display: none; animation: fadeIn 0.5s; }
         .slide-container.active { display: flex; }
 
@@ -250,12 +250,13 @@
             .gallery-overlay { opacity: 1; background: linear-gradient(to top, rgba(0,0,0,0.9) 10%, transparent); }
 
             /* Analytics - Better spacing */
-            #view-analytics { padding: 15px; gap: 15px; }
-            .stats-grid { grid-template-columns: 1fr 1fr; gap: 10px; } /* 2 per row */
-            .stat-box { padding: 15px; }
-            .stat-num { font-size: 1.8rem; }
-            .charts-container { grid-template-columns: 1fr; min-height: auto; }
-            .chart-card { min-height: 250px; }
+            #view-analytics { padding: 10px; gap: 10px; }
+            .stats-grid { grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; } /* 2 per row */
+            .stat-box { padding: 12px; }
+            .stat-num { font-size: 1.5rem; margin-bottom: 2px; }
+            .stat-lbl { font-size: 0.7rem; }
+            .charts-container { grid-template-columns: 1fr; min-height: auto; gap: 10px; }
+            .chart-card { min-height: 250px; padding: 15px; }
             
             /* Lightbox */
             #lightbox img { max-width: 95vw; }
@@ -361,6 +362,7 @@
                 </button>
                 <div id="dl-dropdown" class="dropdown-content">
                     <a onclick="downloadBookletPDF('standard')"><i class='bx bxs-file-pdf'></i> PDF (Standard)</a>
+                    <a onclick="downloadBookletPDF('magazine')"><i class='bx bxs-book-open'></i> PDF (Magazine)</a>
                     <a onclick="downloadBookletPDF('split')"><i class='bx bx-columns'></i> PDF (Split View)</a>
                     <a onclick="downloadBookletPDF('compact')"><i class='bx bx-list-ul'></i> PDF (Compact List)</a>
                     <div style="height:1px; background:rgba(255,255,255,0.1); margin:5px 0;"></div>
@@ -438,6 +440,10 @@
     let slideMode = 'standard'; 
     let charts = {};
 
+    // Touch variables
+    let touchStartX = 0;
+    let touchEndX = 0;
+
     window.onload = init;
     
     function toggleDropdown() {
@@ -513,12 +519,28 @@
             });
 
             applyFilters();
+            
+            // Add Swipe Listeners
+            const slideWrapper = document.getElementById('slides-wrapper');
+            slideWrapper.addEventListener('touchstart', e => {
+                touchStartX = e.changedTouches[0].screenX;
+            });
+            slideWrapper.addEventListener('touchend', e => {
+                touchEndX = e.changedTouches[0].screenX;
+                handleSwipe();
+            });
+
             document.getElementById('loader').style.display = 'none';
 
         } catch (e) {
             console.error(e);
             document.getElementById('loader').innerHTML = `<div style="color:red">Error Loading Data</div>`;
         }
+    }
+
+    function handleSwipe() {
+        if (touchEndX < touchStartX - 50) changeSlide(1); // Left swipe -> Next
+        if (touchEndX > touchStartX + 50) changeSlide(-1); // Right swipe -> Prev
     }
 
     function applyFilters() {
@@ -867,6 +889,43 @@
                             ${loadedImages.map(b64 => `
                                 <div style="width:100%; height:100%; border-radius:10px; overflow:hidden; border:2px solid #eee; position:relative;">
                                     <img src="${b64}" style="width:100%; height:100%; object-fit:cover; display:block; position:absolute; inset:0;">
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+                contentContainer.appendChild(page);
+            }
+        }
+        else if (viewMode === 'magazine') {
+            for(let i=0; i<filteredData.length; i++) {
+                const item = filteredData[i];
+                const page = document.createElement('div');
+                page.className = 'pdf-page';
+                page.style.cssText = `width: 1123px; height: 794px; background: #fff; color: #000; padding: 0; box-sizing: border-box; position: relative; overflow: hidden; page-break-after: always; font-family: 'Georgia', serif; border: 1px solid #ddd; margin-bottom: 20px;`;
+                
+                const imgDataPromises = item.photos.slice(0, 4).map(pid => toDataURL(`https://lh3.googleusercontent.com/d/${pid}=w1200`));
+                const loadedImages = await Promise.all(imgDataPromises);
+                const mainImg = loadedImages[0] || getFallbackPlaceholder();
+                
+                page.innerHTML = `
+                    <div style="height: 60%; width: 100%; position: relative;">
+                        <img src="${mainImg}" style="width:100%; height:100%; object-fit:cover;">
+                        <div style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(transparent, rgba(0,0,0,0.8)); padding: 40px; color: white;">
+                            <div style="text-transform: uppercase; font-size: 14px; letter-spacing: 2px; color: #a78bfa; margin-bottom: 10px;">${item.district} | ${item.date}</div>
+                            <h1 style="font-size: 48px; margin: 0; font-family: 'Poppins', sans-serif;">${item.event}</h1>
+                        </div>
+                    </div>
+                    <div style="height: 40%; padding: 40px; display: flex; gap: 40px; background: #fff;">
+                        <div style="flex: 2; border-right: 1px solid #eee; padding-right: 40px;">
+                            <h3 style="margin-top: 0; font-family: 'Poppins', sans-serif; color: #444; border-bottom: 2px solid #a78bfa; padding-bottom: 10px; display: inline-block;">Event Details</h3>
+                            <p style="font-size: 16px; line-height: 1.6; color: #555;">${item.guests}</p>
+                            <div style="margin-top: 20px; font-weight: bold; color: #444;">Total Attendance: ${item.attendance}</div>
+                        </div>
+                        <div style="flex: 1; display: flex; flex-direction: column; gap: 15px;">
+                            ${loadedImages.slice(1, 3).map(img => `
+                                <div style="flex: 1; overflow: hidden; border-radius: 8px;">
+                                    <img src="${img}" style="width: 100%; height: 100%; object-fit: cover;">
                                 </div>
                             `).join('')}
                         </div>
