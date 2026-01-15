@@ -256,7 +256,13 @@
 
         /* --- PRINT STYLES (THE MAGIC FIX) --- */
         @media print {
-            body { overflow: visible !important; height: auto !important; background: white !important; }
+            body { 
+                overflow: visible !important; 
+                height: auto !important; 
+                background: white !important;
+                -webkit-print-color-adjust: exact !important; 
+                print-color-adjust: exact !important; 
+            }
             /* Hide EVERYTHING except the print modal content */
             .sidebar, .top-bar, .views-container, #loader, #lightbox, .controls-floating { display: none !important; }
             
@@ -290,6 +296,7 @@
                 padding: 0 !important;
                 height: 100vh !important; /* Force full page height */
                 width: 100% !important;
+                position: relative !important;
             }
             
             @page { size: landscape; margin: 0; }
@@ -469,7 +476,8 @@
                 return { date, district, event, attendance, guests, photos };
             }).filter(Boolean);
             
-            rawData.sort((a, b) => parseDate(b.date) - parseDate(a.date));
+            // SORT: Oldest First (Ascending) a - b
+            rawData.sort((a, b) => parseDate(a.date) - parseDate(b.date));
 
             rawData.forEach(item => {
                 if(item.date.indexOf('Date(') >= 0) {
@@ -794,16 +802,60 @@
             const item = filteredData[i];
             const page = document.createElement('div');
             page.className = 'pdf-page'; // Class for print styling
-            page.style.cssText = `width: 1123px; height: 794px; background: #ffffff; color: #000000; padding: 40px; box-sizing: border-box; position: relative; overflow: hidden; page-break-after: always; font-family: 'Poppins', sans-serif; border: 1px solid #eee; margin-bottom: 20px;`;
+            // FIX: Ensure background color prints correctly
+            const pageBg = viewMode === 'immersive' ? '#000000' : '#ffffff';
+            page.style.cssText = `width: 1123px; height: 794px; background: ${pageBg}; color: #000000; padding: 40px; box-sizing: border-box; position: relative; overflow: hidden; page-break-after: always; font-family: 'Poppins', sans-serif; border: 1px solid #eee; margin-bottom: 20px;`;
             let content = '';
             const imgDataPromises = item.photos.slice(0, 4).map(pid => toDataURL(`https://lh3.googleusercontent.com/d/${pid}=w600`));
             const loadedImages = await Promise.all(imgDataPromises);
 
             if (viewMode === 'standard') {
-                content = `<div style="display:flex; height:100%; gap:40px;"><div style="flex:1;"><h1 style="color:#a78bfa; font-size:36px; margin:0 0 20px 0;">${item.event}</h1><div style="font-size:20px; margin-bottom:15px;"><strong>District:</strong> ${item.district}</div><div style="font-size:20px; margin-bottom:15px;"><strong>Date:</strong> ${item.date}</div><div style="font-size:20px; margin-bottom:30px;"><strong>Attendance:</strong> ${item.attendance}</div><div style="font-size:16px; color:#555;"><strong>Guests:</strong><br>${item.guests}</div></div><div style="width:500px; display:grid; grid-template-columns:1fr 1fr; gap:15px;">${loadedImages.map(b64 => `<div style="height:180px; border-radius:10px; overflow:hidden; border:2px solid #eee;"><img src="${b64}" style="width:100%; height:100%; object-fit:cover; display:block;"></div>`).join('')}</div></div>`;
+                // FIX: Better photo alignment using absolute heights and flexbox
+                content = `
+                    <div style="display:flex; height:100%; gap:40px;">
+                        <div style="flex:1;">
+                            <h1 style="color:#a78bfa; font-size:36px; margin:0 0 20px 0;">${item.event}</h1>
+                            <div style="font-size:20px; margin-bottom:15px;"><strong>District:</strong> ${item.district}</div>
+                            <div style="font-size:20px; margin-bottom:15px;"><strong>Date:</strong> ${item.date}</div>
+                            <div style="font-size:20px; margin-bottom:30px;"><strong>Attendance:</strong> ${item.attendance}</div>
+                            <div style="font-size:16px; color:#555;"><strong>Guests:</strong><br>${item.guests}</div>
+                        </div>
+                        <div style="width:500px; display:grid; grid-template-columns:1fr 1fr; grid-template-rows: repeat(2, 1fr); gap:15px; height:100%;">
+                            ${loadedImages.map(b64 => `
+                                <div style="width:100%; height:100%; border-radius:10px; overflow:hidden; border:2px solid #eee; position:relative;">
+                                    <img src="${b64}" style="width:100%; height:100%; object-fit:cover; display:block; position:absolute; inset:0;">
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
             } else if (viewMode === 'immersive') {
                 const bgImg = loadedImages[0] || getFallbackPlaceholder();
-                content = `<div style="position:absolute; inset:0; z-index:0;"><img src="${bgImg}" style="width:100%; height:100%; object-fit:cover; opacity:0.3; display:block;"><div style="position:absolute; inset:0; background:linear-gradient(to right, #000000 0%, transparent 70%);"></div></div><div style="position:relative; z-index:1; height:100%; display:flex; flex-direction:column; justify-content:center; padding-left:60px;"><h1 style="font-size:56px; color:#ffffff; margin:0 0 20px 0; text-shadow:2px 2px 8px rgba(0,0,0,0.7); position:relative;">${item.event}</h1><div style="display:flex; gap:30px; font-size:24px; color:#a78bfa; font-weight:600; position:relative;"><span>${item.district}</span><span>|</span><span>${item.date}</span><span>|</span><span>${item.attendance} People</span></div><div style="font-size:18px; color:#ffffff; margin-top:30px; max-width:70%; background:rgba(0,0,0,0.6); padding:20px; border-radius:10px; position:relative;">${item.guests}</div></div>`;
+                
+                // Generate thumbnails HTML
+                const thumbsHTML = loadedImages.slice(1, 3).map(img => img ? `
+                    <img src="${img}" style="width:160px; height:100px; object-fit:cover; border-radius:8px; border:2px solid rgba(255,255,255,0.3); box-shadow:0 10px 20px rgba(0,0,0,0.5);">
+                ` : '').join('');
+
+                content = `
+                    <div style="position:absolute; inset:0; z-index:0; background:black;">
+                        <img src="${bgImg}" style="width:100%; height:100%; object-fit:cover; opacity:0.4; display:block;">
+                        <div style="position:absolute; inset:0; background:linear-gradient(to right, #000000 0%, transparent 80%);"></div>
+                    </div>
+                    <div style="position:relative; z-index:1; height:100%; display:flex; flex-direction:column; justify-content:center; padding-left:60px;">
+                        <h1 style="font-size:56px; color:#ffffff; margin:0 0 20px 0; text-shadow:2px 2px 8px rgba(0,0,0,0.7); position:relative;">${item.event}</h1>
+                        <div style="display:flex; gap:30px; font-size:24px; color:#a78bfa; font-weight:600; position:relative;">
+                            <span>${item.district}</span><span>|</span><span>${item.date}</span><span>|</span><span>${item.attendance} People</span>
+                        </div>
+                        <div style="font-size:18px; color:#ffffff; margin-top:30px; max-width:70%; background:rgba(0,0,0,0.6); padding:20px; border-radius:10px; position:relative;">
+                            ${item.guests}
+                        </div>
+                    </div>
+                    <!-- Thumbnails Layer -->
+                    <div style="position:absolute; bottom:80px; right:60px; display:flex; gap:15px; z-index:2;">
+                        ${thumbsHTML}
+                    </div>
+                `;
             } else if (viewMode === 'minimal') {
                 content = `<div style="text-align:center; padding:60px;"><h1 style="font-size:42px; color:#222; margin:0 0 10px 0;">${item.event}</h1><div style="font-size:18px; color:#666; margin-bottom:40px;">${item.district} • ${item.date} • ${item.attendance} People</div><div style="display:flex; justify-content:center; gap:20px; margin-bottom:40px;">${loadedImages.slice(0,3).map(b64 => `<div style="width:280px; height:200px; border-radius:8px; overflow:hidden; box-shadow:0 5px 15px rgba(0,0,0,0.1);"><img src="${b64}" style="width:100%; height:100%; object-fit:cover; display:block;"></div>`).join('')}</div><div style="background:#f9fafb; padding:25px; border-radius:12px; display:inline-block; text-align:left; max-width:80%;"><strong style="color:#333; font-size:16px;">Guests:</strong><p style="color:#555; margin-top:10px; line-height:1.5;">${item.guests}</p></div></div>`;
             }
