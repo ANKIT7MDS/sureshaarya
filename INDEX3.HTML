@@ -1169,3 +1169,63 @@
         btn.disabled = false;
         showToast("PDF Preview Ready", "success");
     }
+
+    async function downloadFixedPPT() {
+        const btn = document.getElementById('export-btn');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = "<i class='bx bx-loader-alt bx-spin'></i> PPT...";
+        let pptx = new PptxGenJS();
+        
+        for(let i=0; i<filteredData.length; i++) {
+            const item = filteredData[i];
+            let slide = pptx.addSlide();
+            slide.background = { color: 'F0F0F0' };
+            slide.addText(item.event, { x:0.5, y:0.2, w:9, h:0.8, fontSize:24, bold:true, color:'000000' });
+            slide.addText(`District: ${item.district}\nDate: ${item.date}\nAttendance: ${item.attendance}\n\nGuests:\n${item.guests.substring(0,300)}`, { x:0.5, y:1.2, w:4, h:4, fontSize:14, color:'333333', valign:'top' });
+            const photoPos = [{x:5, y:1.2}, {x:7.5, y:1.2}, {x:5, y:3.5}, {x:7.5, y:3.5}];
+            btn.innerHTML = `PPT Slide ${i+1}/${filteredData.length}...`;
+            for(let j=0; j<Math.min(item.photos.length, 4); j++) {
+                try {
+                    const b64 = await toDataURL(`https://lh3.googleusercontent.com/d/${item.photos[j]}=w600`);
+                    slide.addImage({ data: b64, x: photoPos[j].x, y: photoPos[j].y, w: 2.3, h: 2 });
+                } catch(e) { console.error("Image skip in PPT", e); }
+            }
+        }
+        await pptx.writeFile({ fileName: "Karyakram_Report.pptx" }); 
+        btn.innerHTML = originalText;
+        showToast("PPT Downloaded Successfully!", "success");
+    }
+
+    function downloadExcel() {
+        const data = filteredData.map(i => ({ 'Event': i.event, 'Date': i.date, 'District': i.district, 'Attendance': i.attendance, 'Guests': i.guests }));
+        const ws = XLSX.utils.json_to_sheet(data);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Data");
+        XLSX.writeFile(wb, "Data.xlsx");
+        showToast("Excel Sheet Downloaded!", "success");
+    }
+
+    function switchView(id) {
+        document.querySelectorAll('.view-section').forEach(e => e.classList.remove('active'));
+        document.getElementById(`view-${id}`).classList.add('active');
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        if(id === 'slide') document.querySelectorAll('.nav-item')[0].classList.add('active');
+        if(id === 'grid') document.querySelectorAll('.nav-item')[1].classList.add('active');
+        if(id === 'print') document.querySelectorAll('.nav-item')[2].classList.add('active');
+        if(id === 'analytics') document.querySelectorAll('.nav-item')[3].classList.add('active');
+    }
+
+    function openLB(src) {
+        document.getElementById('lightbox-img').src = src;
+        const lb = document.getElementById('lightbox');
+        lb.style.display = 'flex';
+        setTimeout(() => lb.classList.add('show'), 10);
+    }
+    function closeLightbox() {
+        const lb = document.getElementById('lightbox');
+        lb.classList.remove('show');
+        setTimeout(() => lb.style.display = 'none', 300);
+    }
+</script>
+</body>
+</html>
