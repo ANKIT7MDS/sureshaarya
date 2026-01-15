@@ -280,26 +280,52 @@
             #toast-container { bottom: 80px; left: 20px; right: 20px; }
         }
 
-        /* Utils */
-        .hidden { display: none !important; }
-        #loader { position: fixed; inset: 0; background: var(--bg-dark); z-index: 10000; display: flex; flex-direction: column; justify-content: center; align-items: center; }
-        .spinner { width: 50px; height: 50px; border: 4px solid rgba(167, 139, 250, 0.2); border-top-color: var(--primary); border-radius: 50%; animation: spin 1s infinite linear; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        
-        #lightbox { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.98); z-index: 9999; justify-content: center; align-items: center; opacity: 0; transition: opacity 0.3s; }
-        #lightbox.show { opacity: 1; }
-        #lightbox img { max-width: 90vw; max-height: 85vh; border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; box-shadow: 0 0 50px rgba(0,0,0,0.5); }
-        .lb-close { position: absolute; top: 30px; right: 40px; font-size: 40px; color: #fff; cursor: pointer; transition: 0.2s; }
-
         /* --- PRINT STYLES --- */
         @media print {
-            body { overflow: visible !important; height: auto !important; background: white !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+            body { 
+                overflow: visible !important; 
+                height: auto !important; 
+                background: white !important; 
+                -webkit-print-color-adjust: exact !important; 
+                print-color-adjust: exact !important; 
+            }
             .sidebar, .top-bar, .views-container, #loader, #lightbox, .controls-floating, #toast-container { display: none !important; }
-            .pdf-preview-modal { position: static !important; width: 100% !important; height: auto !important; background: white !important; z-index: 99999 !important; display: block !important; overflow: visible !important; }
+            
+            /* PDF Preview Modal in Print */
+            .pdf-preview-modal { 
+                position: static !important; 
+                width: 100% !important; 
+                height: auto !important; 
+                background: white !important; 
+                z-index: 99999 !important; 
+                display: block !important; 
+                overflow: visible !important;
+            }
+            
             .pdf-toolbar { display: none !important; }
-            #pdf-content-source { width: 100% !important; margin: 0 !important; box-shadow: none !important; display: block !important; }
-            .pdf-page { page-break-after: always; border: none !important; margin: 0 !important; padding: 0 !important; height: 100vh !important; width: 100% !important; position: relative !important; }
+            
+            #pdf-content-source { 
+                width: 100% !important; 
+                margin: 0 !important; 
+                box-shadow: none !important; 
+                display: block !important;
+            }
+            
+            .pdf-page { 
+                page-break-after: always; 
+                border: none !important; 
+                margin: 0 !important; 
+                padding: 0 !important; 
+                /* Allow height to grow, min-height handles content */
+                height: auto !important; 
+                min-height: 100vh !important;
+                width: 100% !important; 
+                position: relative !important; 
+                overflow: visible !important;
+            }
+            
             .timeline-item { page-break-inside: avoid !important; break-inside: avoid !important; }
+            
             @page { size: landscape; margin: 0; }
         }
     </style>
@@ -435,6 +461,9 @@
     let touchStartX = 0;
     let touchEndX = 0;
 
+    // Hindi Month Mapping
+    const hindiMonths = ["जनवरी", "फरवरी", "मार्च", "अप्रैल", "मई", "जून", "जुलाई", "अगस्त", "सितंबर", "अक्टूबर", "नवंबर", "दिसंबर"];
+
     // Theme Logic
     function toggleTheme() {
         document.body.classList.toggle('light-mode');
@@ -532,6 +561,7 @@
                 return { date, district, event, attendance, guests, photos };
             }).filter(Boolean);
             
+            // SORT: Oldest First (Ascending) a - b
             rawData.sort((a, b) => parseDate(a.date) - parseDate(b.date));
 
             rawData.forEach(item => {
@@ -836,6 +866,7 @@
 
         const modal = document.createElement('div');
         modal.className = 'pdf-preview-modal';
+        modal.id = 'preview-modal-unique'; // ID for targeting
         modal.style.cssText = `position: fixed; inset: 0; z-index: 20000; background: #333; display: flex; flex-direction: column;`;
 
         const toolbar = document.createElement('div');
@@ -863,7 +894,115 @@
 
         document.body.appendChild(modal);
 
-        if (viewMode === 'compact') {
+        // Bind events immediately after creating elements
+        setTimeout(() => {
+            const cancelBtn = document.getElementById('pdf-cancel-btn');
+            if (cancelBtn) {
+                cancelBtn.onclick = () => {
+                    if (document.body.contains(modal)) {
+                        document.body.removeChild(modal);
+                    }
+                };
+            }
+            const saveBtn = document.getElementById('pdf-save-btn');
+            if (saveBtn) {
+                saveBtn.onclick = () => window.print();
+            }
+        }, 100);
+
+        if (viewMode === 'timeline') {
+            // Group data by Month-Year
+            const groups = {};
+            filteredData.forEach(item => {
+                const parts = item.date.split(/[-/]/); 
+                let mIndex = 0; 
+                let y = 0;
+                if(parts.length >= 3) {
+                    // Try parsing DD/MM/YYYY
+                    mIndex = parseInt(parts[1]) - 1;
+                    y = parseInt(parts[2]);
+                } else {
+                    const d = new Date(item.date);
+                    if(!isNaN(d.getTime())) {
+                        mIndex = d.getMonth();
+                        y = d.getFullYear();
+                    }
+                }
+                
+                const key = `${y}-${mIndex}`;
+                if(!groups[key]) {
+                    groups[key] = {
+                        name: hindiMonths[mIndex] || "Unknown",
+                        year: y,
+                        items: []
+                    };
+                }
+                groups[key].items.push(item);
+            });
+
+            // Sort keys by date
+            const sortedKeys = Object.keys(groups).sort((a,b) => {
+                const [y1, m1] = a.split('-').map(Number);
+                const [y2, m2] = b.split('-').map(Number);
+                return (y1 - y2) || (m1 - m2);
+            });
+
+            // Add Main Header at the very top of first page content (in logic)
+            // But user wants "Mandsaur Sambhag..." at top.
+            // We will create pages per month group.
+            
+            for (const key of sortedKeys) {
+                const group = groups[key];
+                const page = document.createElement('div');
+                page.className = 'pdf-page';
+                page.style.cssText = `width: 1123px; min-height: 100vh; height: auto; background: #ffffff; color: #000000; padding: 40px; box-sizing: border-box; position: relative; overflow: visible; page-break-after: always; font-family: 'Poppins', sans-serif; border: 1px solid #eee; margin-bottom: 20px;`;
+                
+                let headerHTML = `
+                    <div style="text-align:center; margin-bottom:30px;">
+                        <h1 style="color:#222; margin:0 0 10px 0; font-size: 28px; text-transform:uppercase; letter-spacing:2px;">मंदसौर संभाग प्रवास कार्यक्रम</h1>
+                        <h2 style="color:#a78bfa; margin:0; font-size: 24px; border-bottom:2px solid #eee; padding-bottom:15px; display:inline-block;">${group.name} माह का प्रवास कार्यक्रम</h2>
+                    </div>
+                `;
+
+                let timelineHTML = '<div style="position:relative; padding-left: 30px; border-left: 4px solid #f0f0f0;">';
+                
+                for(let item of group.items) {
+                    const p1 = await toDataURL(`https://lh3.googleusercontent.com/d/${item.photos[0]}=w400`);
+                    const p2 = item.photos[1] ? await toDataURL(`https://lh3.googleusercontent.com/d/${item.photos[1]}=w400`) : null;
+                    
+                    let photosHTML = `<img src="${p1}" style="width:140px; height:100px; object-fit:cover; object-position:center; border-radius:8px; box-shadow:0 2px 5px rgba(0,0,0,0.1);">`;
+                    if(p2) {
+                        photosHTML += `<img src="${p2}" style="width:140px; height:100px; object-fit:cover; object-position:center; border-radius:8px; box-shadow:0 2px 5px rgba(0,0,0,0.1);">`;
+                    }
+
+                    timelineHTML += `
+                        <div class="timeline-item" style="position:relative; margin-bottom:40px; page-break-inside: avoid; break-inside: avoid;">
+                            <div style="position:absolute; left:-38px; top:0; width:20px; height:20px; background:#a78bfa; border-radius:50%; border:4px solid #fff; box-shadow: 0 0 0 1px #ddd;"></div>
+                            
+                            <div style="display:flex; gap:20px; align-items:flex-start;">
+                                <div style="display:flex; flex-direction:column; gap:10px; min-width:140px;">
+                                    ${photosHTML}
+                                </div>
+                                <div style="flex:1; background:#fdfdfd; border:1px solid #eee; padding:20px; border-radius:12px;">
+                                    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px; border-bottom:1px solid #f0f0f0; padding-bottom:10px;">
+                                        <div>
+                                            <h3 style="margin:0 0 5px 0; font-size:20px; color:#222;">${item.event}</h3>
+                                            <div style="color:#666; font-size:14px; font-weight:500;">${item.district} | ${item.attendance} Attendees</div>
+                                        </div>
+                                        <span style="font-size:13px; color:#fff; background:#a78bfa; padding:4px 10px; border-radius:20px; white-space:nowrap;">${item.date}</span>
+                                    </div>
+                                    <p style="font-size:14px; color:#555; line-height:1.6; margin:0;">${item.guests}</p>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+                timelineHTML += '</div>';
+                page.innerHTML = headerHTML + timelineHTML;
+                contentContainer.appendChild(page);
+            }
+        }
+        else if (viewMode === 'compact') {
             for(let i=0; i<filteredData.length; i+=5) {
                 const page = document.createElement('div');
                 page.className = 'pdf-page';
@@ -999,51 +1138,6 @@
                 contentContainer.appendChild(page);
             }
         }
-        else if (viewMode === 'timeline') {
-            const container = document.createElement('div');
-            container.style.cssText = `width: 100%; background: #fff; padding: 40px; box-sizing: border-box; font-family: 'Poppins', sans-serif;`;
-            
-            container.innerHTML = `<h1 style="text-align:center; color:#222; margin-bottom:40px; text-transform:uppercase; letter-spacing:2px; border-bottom:2px solid #eee; padding-bottom:20px;">Activity Timeline</h1>`;
-            
-            let timelineHTML = '<div style="position:relative; padding-left: 30px; border-left: 4px solid #f0f0f0;">';
-            
-            for(let i=0; i<filteredData.length; i++) {
-                const item = filteredData[i];
-                // Get 2 photos
-                const p1 = await toDataURL(`https://lh3.googleusercontent.com/d/${item.photos[0]}=w400`);
-                const p2 = item.photos[1] ? await toDataURL(`https://lh3.googleusercontent.com/d/${item.photos[1]}=w400`) : null;
-                
-                let photosHTML = `<img src="${p1}" style="width:140px; height:100px; object-fit:cover; object-position:center; border-radius:8px; box-shadow:0 2px 5px rgba(0,0,0,0.1);">`;
-                if(p2) {
-                    photosHTML += `<img src="${p2}" style="width:140px; height:100px; object-fit:cover; object-position:center; border-radius:8px; box-shadow:0 2px 5px rgba(0,0,0,0.1);">`;
-                }
-
-                timelineHTML += `
-                    <div class="timeline-item" style="position:relative; margin-bottom:40px; page-break-inside: avoid; break-inside: avoid;">
-                        <div style="position:absolute; left:-38px; top:0; width:20px; height:20px; background:#a78bfa; border-radius:50%; border:4px solid #fff; box-shadow: 0 0 0 1px #ddd;"></div>
-                        
-                        <div style="display:flex; gap:20px; align-items:flex-start;">
-                            <div style="display:flex; flex-direction:column; gap:10px;">
-                                ${photosHTML}
-                            </div>
-                            <div style="flex:1; background:#fdfdfd; border:1px solid #eee; padding:20px; border-radius:12px;">
-                                <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px; border-bottom:1px solid #f0f0f0; padding-bottom:10px;">
-                                    <div>
-                                        <h3 style="margin:0 0 5px 0; font-size:20px; color:#222;">${item.event}</h3>
-                                        <div style="color:#666; font-size:14px; font-weight:500;">${item.district} | ${item.attendance} Attendees</div>
-                                    </div>
-                                    <span style="font-size:13px; color:#fff; background:#a78bfa; padding:4px 10px; border-radius:20px; white-space:nowrap;">${item.date}</span>
-                                </div>
-                                <p style="font-size:14px; color:#555; line-height:1.6; margin:0;">${item.guests}</p>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }
-            timelineHTML += '</div>';
-            container.innerHTML += timelineHTML;
-            contentContainer.appendChild(container);
-        }
         else {
             // Standard / Immersive / Minimal (Existing Logic)
             for(let i=0; i<filteredData.length; i++) {
@@ -1074,67 +1168,4 @@
         btn.innerHTML = originalText;
         btn.disabled = false;
         showToast("PDF Preview Ready", "success");
-
-        document.getElementById('pdf-cancel-btn').onclick = () => document.body.removeChild(modal);
-        document.getElementById('pdf-save-btn').onclick = () => window.print();
     }
-
-    async function downloadFixedPPT() {
-        const btn = document.getElementById('export-btn');
-        const originalText = btn.innerHTML;
-        btn.innerHTML = "<i class='bx bx-loader-alt bx-spin'></i> PPT...";
-        let pptx = new PptxGenJS();
-        
-        for(let i=0; i<filteredData.length; i++) {
-            const item = filteredData[i];
-            let slide = pptx.addSlide();
-            slide.background = { color: 'F0F0F0' };
-            slide.addText(item.event, { x:0.5, y:0.2, w:9, h:0.8, fontSize:24, bold:true, color:'000000' });
-            slide.addText(`District: ${item.district}\nDate: ${item.date}\nAttendance: ${item.attendance}\n\nGuests:\n${item.guests.substring(0,300)}`, { x:0.5, y:1.2, w:4, h:4, fontSize:14, color:'333333', valign:'top' });
-            const photoPos = [{x:5, y:1.2}, {x:7.5, y:1.2}, {x:5, y:3.5}, {x:7.5, y:3.5}];
-            btn.innerHTML = `PPT Slide ${i+1}/${filteredData.length}...`;
-            for(let j=0; j<Math.min(item.photos.length, 4); j++) {
-                try {
-                    const b64 = await toDataURL(`https://lh3.googleusercontent.com/d/${item.photos[j]}=w600`);
-                    slide.addImage({ data: b64, x: photoPos[j].x, y: photoPos[j].y, w: 2.3, h: 2 });
-                } catch(e) { console.error("Image skip in PPT", e); }
-            }
-        }
-        await pptx.writeFile({ fileName: "Karyakram_Report.pptx" }); 
-        btn.innerHTML = originalText;
-        showToast("PPT Downloaded Successfully!", "success");
-    }
-
-    function downloadExcel() {
-        const data = filteredData.map(i => ({ 'Event': i.event, 'Date': i.date, 'District': i.district, 'Attendance': i.attendance, 'Guests': i.guests }));
-        const ws = XLSX.utils.json_to_sheet(data);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Data");
-        XLSX.writeFile(wb, "Data.xlsx");
-        showToast("Excel Sheet Downloaded!", "success");
-    }
-
-    function switchView(id) {
-        document.querySelectorAll('.view-section').forEach(e => e.classList.remove('active'));
-        document.getElementById(`view-${id}`).classList.add('active');
-        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-        if(id === 'slide') document.querySelectorAll('.nav-item')[0].classList.add('active');
-        if(id === 'grid') document.querySelectorAll('.nav-item')[1].classList.add('active');
-        if(id === 'print') document.querySelectorAll('.nav-item')[2].classList.add('active');
-        if(id === 'analytics') document.querySelectorAll('.nav-item')[3].classList.add('active');
-    }
-
-    function openLB(src) {
-        document.getElementById('lightbox-img').src = src;
-        const lb = document.getElementById('lightbox');
-        lb.style.display = 'flex';
-        setTimeout(() => lb.classList.add('show'), 10);
-    }
-    function closeLightbox() {
-        const lb = document.getElementById('lightbox');
-        lb.classList.remove('show');
-        setTimeout(() => lb.style.display = 'none', 300);
-    }
-</script>
-</body>
-</html>
