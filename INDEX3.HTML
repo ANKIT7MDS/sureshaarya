@@ -171,7 +171,7 @@
         .gallery-item:hover .gallery-overlay { opacity: 1; }
 
         /* --- Analytics --- */
-        #view-analytics { flex-direction: column; gap: 25px; padding: 30px; }
+        #view-analytics { flex-direction: column; gap: 25px; padding: 30px; justify-content: flex-start; } /* Force Top Align */
         .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; }
         .stat-box { background: linear-gradient(145deg, #1f1f23, #151518); padding: 25px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.05); position: relative; overflow: hidden; }
         .charts-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px; flex: 1; }
@@ -215,7 +215,7 @@
             /* Slide View Mobile - Card Style */
             .mode-standard { 
                 flex-direction: column; padding: 10px; height: auto; gap: 15px; 
-                background: #111; /* Slight background for contrast */
+                background: #111; 
             }
             .mode-standard .photo-panel { 
                 height: 280px; order: 1; flex: none; width: 100%; gap: 10px; 
@@ -250,12 +250,12 @@
             .gallery-overlay { opacity: 1; background: linear-gradient(to top, rgba(0,0,0,0.9) 10%, transparent); }
 
             /* Analytics - Better spacing */
-            #view-analytics { padding: 10px; gap: 10px; }
-            .stats-grid { grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; } /* 2 per row */
+            #view-analytics { padding: 10px; gap: 10px; justify-content: flex-start !important; }
+            .stats-grid { grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; flex: none; } /* 2 per row */
             .stat-box { padding: 12px; }
             .stat-num { font-size: 1.5rem; margin-bottom: 2px; }
             .stat-lbl { font-size: 0.7rem; }
-            .charts-container { grid-template-columns: 1fr; min-height: auto; gap: 10px; }
+            .charts-container { grid-template-columns: 1fr; min-height: auto; gap: 10px; flex: none; }
             .chart-card { min-height: 250px; padding: 15px; }
             
             /* Lightbox */
@@ -364,6 +364,8 @@
                     <a onclick="downloadBookletPDF('standard')"><i class='bx bxs-file-pdf'></i> PDF (Standard)</a>
                     <a onclick="downloadBookletPDF('magazine')"><i class='bx bxs-book-open'></i> PDF (Magazine)</a>
                     <a onclick="downloadBookletPDF('split')"><i class='bx bx-columns'></i> PDF (Split View)</a>
+                    <a onclick="downloadBookletPDF('grid-gallery')"><i class='bx bxs-grid'></i> PDF (Visual Grid)</a>
+                    <a onclick="downloadBookletPDF('timeline')"><i class='bx bx-time-five'></i> PDF (Timeline)</a>
                     <a onclick="downloadBookletPDF('compact')"><i class='bx bx-list-ul'></i> PDF (Compact List)</a>
                     <div style="height:1px; background:rgba(255,255,255,0.1); margin:5px 0;"></div>
                     <a onclick="downloadFixedPPT()"><i class='bx bxs-slideshow'></i> PowerPoint</a>
@@ -520,15 +522,15 @@
 
             applyFilters();
             
-            // Add Swipe Listeners
-            const slideWrapper = document.getElementById('slides-wrapper');
-            slideWrapper.addEventListener('touchstart', e => {
+            // Add Swipe Listeners to a container that spans the view
+            const slideView = document.getElementById('view-slide');
+            slideView.addEventListener('touchstart', e => {
                 touchStartX = e.changedTouches[0].screenX;
-            });
-            slideWrapper.addEventListener('touchend', e => {
+            }, {passive: true});
+            slideView.addEventListener('touchend', e => {
                 touchEndX = e.changedTouches[0].screenX;
                 handleSwipe();
-            });
+            }, {passive: true});
 
             document.getElementById('loader').style.display = 'none';
 
@@ -931,6 +933,64 @@
                         </div>
                     </div>
                 `;
+                contentContainer.appendChild(page);
+            }
+        }
+        else if (viewMode === 'grid-gallery') {
+            for(let i=0; i<filteredData.length; i+=6) {
+                const page = document.createElement('div');
+                page.className = 'pdf-page';
+                page.style.cssText = `width: 1123px; height: 794px; background: #ffffff; color: #000000; padding: 40px; box-sizing: border-box; position: relative; overflow: hidden; page-break-after: always; font-family: 'Poppins', sans-serif; border: 1px solid #eee; margin-bottom: 20px;`;
+                
+                let itemsHTML = '<div style="display:grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr 1fr; gap: 20px; height: 100%;">';
+                for(let j=i; j<Math.min(i+6, filteredData.length); j++) {
+                    const item = filteredData[j];
+                    const thumb = await toDataURL(`https://lh3.googleusercontent.com/d/${item.photos[0]}=w600`);
+                    itemsHTML += `
+                        <div style="border:1px solid #eee; border-radius:8px; overflow:hidden; display:flex; flex-direction:column; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
+                            <img src="${thumb}" style="width:100%; height:140px; object-fit:cover;">
+                            <div style="padding:15px; flex:1; background:#f9f9f9;">
+                                <div style="font-size:12px; color:#a78bfa; font-weight:bold; text-transform:uppercase;">${item.date}</div>
+                                <h3 style="margin:5px 0; font-size:16px; color:#222; line-height:1.2; height:40px; overflow:hidden;">${item.event}</h3>
+                                <div style="font-size:13px; color:#666;">${item.district}</div>
+                            </div>
+                        </div>
+                    `;
+                }
+                itemsHTML += '</div>';
+                page.innerHTML = itemsHTML;
+                contentContainer.appendChild(page);
+            }
+        }
+        else if (viewMode === 'timeline') {
+            for(let i=0; i<filteredData.length; i+=5) {
+                const page = document.createElement('div');
+                page.className = 'pdf-page';
+                page.style.cssText = `width: 1123px; height: 794px; background: #ffffff; color: #000000; padding: 40px; box-sizing: border-box; position: relative; overflow: hidden; page-break-after: always; font-family: 'Poppins', sans-serif; border: 1px solid #eee; margin-bottom: 20px;`;
+                
+                let itemsHTML = '<div style="position:relative; padding-left: 20px; height:100%; display:flex; flex-direction:column; justify-content:center;">';
+                itemsHTML += '<div style="position:absolute; left:0; top:40px; bottom:40px; width:4px; background:#f0f0f0;"></div>';
+
+                for(let j=i; j<Math.min(i+5, filteredData.length); j++) {
+                    const item = filteredData[j];
+                    const thumb = await toDataURL(`https://lh3.googleusercontent.com/d/${item.photos[0]}=w400`);
+                    itemsHTML += `
+                        <div style="display:flex; gap:25px; margin-bottom:30px; position:relative; align-items:center;">
+                            <div style="position:absolute; left:-26px; width:16px; height:16px; background:#a78bfa; border-radius:50%; border:4px solid #fff; box-shadow: 0 0 0 1px #ddd;"></div>
+                            <img src="${thumb}" style="width:140px; height:90px; object-fit:cover; border-radius:8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+                            <div style="flex:1; background:#fdfdfd; border:1px solid #eee; padding:15px; border-radius:10px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+                                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #f0f0f0; padding-bottom:8px; margin-bottom:8px;">
+                                    <h3 style="margin:0; font-size:18px; color:#222;">${item.event}</h3>
+                                    <span style="font-size:13px; color:#fff; background:#a78bfa; padding:2px 8px; border-radius:4px;">${item.date}</span>
+                                </div>
+                                <div style="font-size:14px; color:#666; font-weight:500;">${item.district} | ${item.attendance} People</div>
+                                <div style="font-size:13px; color:#555; margin-top:5px; max-height:40px; overflow:hidden;">${item.guests}</div>
+                            </div>
+                        </div>
+                    `;
+                }
+                itemsHTML += '</div>';
+                page.innerHTML = `<h1 style="margin:0 0 30px 0; color:#222; text-align:center; text-transform:uppercase; letter-spacing:2px; border-bottom:2px solid #eee; padding-bottom:10px;">Activity Timeline</h1>` + itemsHTML;
                 contentContainer.appendChild(page);
             }
         }
