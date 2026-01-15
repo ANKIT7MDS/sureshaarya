@@ -67,7 +67,7 @@
             height: 70px; background: rgba(24, 24, 27, 0.9); backdrop-filter: blur(12px);
             display: flex; align-items: center; padding: 0 25px; gap: 15px;
             border-bottom: 1px solid rgba(255,255,255,0.05); z-index: 90;
-            flex-shrink: 0; /* Prevent top bar from shrinking */
+            flex-shrink: 0;
         }
 
         .input-style {
@@ -318,6 +318,12 @@
                 position: relative !important;
             }
             
+            /* Prevent breaking inside items */
+            .timeline-item {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+            }
+
             @page { size: landscape; margin: 0; }
         }
     </style>
@@ -963,36 +969,49 @@
             }
         }
         else if (viewMode === 'timeline') {
-            for(let i=0; i<filteredData.length; i+=5) {
-                const page = document.createElement('div');
-                page.className = 'pdf-page';
-                page.style.cssText = `width: 1123px; height: 794px; background: #ffffff; color: #000000; padding: 40px; box-sizing: border-box; position: relative; overflow: hidden; page-break-after: always; font-family: 'Poppins', sans-serif; border: 1px solid #eee; margin-bottom: 20px;`;
+            const container = document.createElement('div');
+            container.style.cssText = `width: 100%; background: #fff; padding: 40px; box-sizing: border-box; font-family: 'Poppins', sans-serif;`;
+            
+            container.innerHTML = `<h1 style="text-align:center; color:#222; margin-bottom:40px; text-transform:uppercase; letter-spacing:2px; border-bottom:2px solid #eee; padding-bottom:20px;">Activity Timeline</h1>`;
+            
+            let timelineHTML = '<div style="position:relative; padding-left: 30px; border-left: 4px solid #f0f0f0;">';
+            
+            for(let i=0; i<filteredData.length; i++) {
+                const item = filteredData[i];
+                // Get 2 photos
+                const p1 = await toDataURL(`https://lh3.googleusercontent.com/d/${item.photos[0]}=w400`);
+                const p2 = item.photos[1] ? await toDataURL(`https://lh3.googleusercontent.com/d/${item.photos[1]}=w400`) : null;
                 
-                let itemsHTML = '<div style="position:relative; padding-left: 20px; height:100%; display:flex; flex-direction:column; justify-content:center;">';
-                itemsHTML += '<div style="position:absolute; left:0; top:40px; bottom:40px; width:4px; background:#f0f0f0;"></div>';
+                let photosHTML = `<img src="${p1}" style="width:140px; height:100px; object-fit:cover; object-position:center; border-radius:8px; box-shadow:0 2px 5px rgba(0,0,0,0.1);">`;
+                if(p2) {
+                    photosHTML += `<img src="${p2}" style="width:140px; height:100px; object-fit:cover; object-position:center; border-radius:8px; box-shadow:0 2px 5px rgba(0,0,0,0.1);">`;
+                }
 
-                for(let j=i; j<Math.min(i+5, filteredData.length); j++) {
-                    const item = filteredData[j];
-                    const thumb = await toDataURL(`https://lh3.googleusercontent.com/d/${item.photos[0]}=w400`);
-                    itemsHTML += `
-                        <div style="display:flex; gap:25px; margin-bottom:30px; position:relative; align-items:center;">
-                            <div style="position:absolute; left:-26px; width:16px; height:16px; background:#a78bfa; border-radius:50%; border:4px solid #fff; box-shadow: 0 0 0 1px #ddd;"></div>
-                            <img src="${thumb}" style="width:140px; height:90px; object-fit:cover; border-radius:8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
-                            <div style="flex:1; background:#fdfdfd; border:1px solid #eee; padding:15px; border-radius:10px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
-                                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #f0f0f0; padding-bottom:8px; margin-bottom:8px;">
-                                    <h3 style="margin:0; font-size:18px; color:#222;">${item.event}</h3>
-                                    <span style="font-size:13px; color:#fff; background:#a78bfa; padding:2px 8px; border-radius:4px;">${item.date}</span>
+                timelineHTML += `
+                    <div class="timeline-item" style="position:relative; margin-bottom:40px; page-break-inside: avoid; break-inside: avoid;">
+                        <div style="position:absolute; left:-38px; top:0; width:20px; height:20px; background:#a78bfa; border-radius:50%; border:4px solid #fff; box-shadow: 0 0 0 1px #ddd;"></div>
+                        
+                        <div style="display:flex; gap:20px; align-items:flex-start;">
+                            <div style="display:flex; flex-direction:column; gap:10px;">
+                                ${photosHTML}
+                            </div>
+                            <div style="flex:1; background:#fdfdfd; border:1px solid #eee; padding:20px; border-radius:12px;">
+                                <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px; border-bottom:1px solid #f0f0f0; padding-bottom:10px;">
+                                    <div>
+                                        <h3 style="margin:0 0 5px 0; font-size:20px; color:#222;">${item.event}</h3>
+                                        <div style="color:#666; font-size:14px; font-weight:500;">${item.district} | ${item.attendance} Attendees</div>
+                                    </div>
+                                    <span style="font-size:13px; color:#fff; background:#a78bfa; padding:4px 10px; border-radius:20px; white-space:nowrap;">${item.date}</span>
                                 </div>
-                                <div style="font-size:14px; color:#666; font-weight:500;">${item.district} | ${item.attendance} People</div>
-                                <div style="font-size:13px; color:#555; margin-top:5px; max-height:40px; overflow:hidden;">${item.guests}</div>
+                                <p style="font-size:14px; color:#555; line-height:1.6; margin:0;">${item.guests}</p>
                             </div>
                         </div>
-                    `;
-                }
-                itemsHTML += '</div>';
-                page.innerHTML = `<h1 style="margin:0 0 30px 0; color:#222; text-align:center; text-transform:uppercase; letter-spacing:2px; border-bottom:2px solid #eee; padding-bottom:10px;">Activity Timeline</h1>` + itemsHTML;
-                contentContainer.appendChild(page);
+                    </div>
+                `;
             }
+            timelineHTML += '</div>';
+            container.innerHTML += timelineHTML;
+            contentContainer.appendChild(container);
         }
         else {
             // Standard / Immersive / Minimal (Existing Logic)
